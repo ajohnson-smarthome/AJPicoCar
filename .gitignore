@@ -1,0 +1,6 @@
+build/
+sdkconfig.old
+test/test_mixer
+test/test_motors
+*.o
+.DS_Store
