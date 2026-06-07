@@ -28,16 +28,35 @@
 
 - Forward: CH_A=HIGH, CH_B=LOW
 - Reverse: CH_A=LOW, CH_B=HIGH
-- **Never both HIGH** (H-bridge shoot-through on BTS7960). The firmware validates and rejects this.
+- **Never both HIGH** (H-bridge shoot-through on BTS7960). `motors_plan` makes this structurally
+  impossible — for each wheel it sets exactly one of CH_A/CH_B nonzero (or both zero).
 
-## Code structure (`main/main.c`)
+## Code structure (modular since Phase 1)
 
-- `pca9685_init(freq_hz)` — sleep→prescale→wake→restart sequence, errors checked with `ESP_RETURN_ON_ERROR`.
-- `pca9685_set_pwm(channel, duty)` — 12-bit duty 0..4095; uses full-ON/full-OFF bits at extremes.
-- `apply_motors("AB CD EF GH")` — parses 11-char command, validates format and shoot-through, writes 8 channels. Returns `esp_err_t`.
-- `console_init()` — installs USB Serial JTAG driver. **No UART VFS.**
-- `read_line()` — blocking `usb_serial_jtag_read_bytes()` (avoids fgets/VFS non-blocking spam).
-- `app_main()` — init I2C → init PCA9685 → safety stop (`00 00 00 00`) → console init → REPL.
+Refactored from a monolithic `main.c` into focused modules. The pure modules
+(`mixer`, `motors`) have **zero ESP-IDF dependencies** and are host-tested.
+
+- `main/pca9685.{c,h}` — I2C/PCA9685 driver.
+  - `pca9685_bus_init(sda, scl, i2c_speed_hz)` — create I2C master bus + add device `0x40`.
+  - `pca9685_init(pwm_freq_hz)` — sleep→prescale→wake→restart, `ESP_RETURN_ON_ERROR`.
+  - `pca9685_set_pwm(channel, duty)` — 12-bit duty 0..4095; full-ON/full-OFF at extremes; rejects channel >15.
+- `main/mixer.{c,h}` — **pure**. `mixer_mix(throttle, yaw) → {left, right}`: tank-turn mixing
+  (`left=t+y`, `right=t-y`, normalized by `max(|l|,|r|,1)` to keep [-1,1] and preserve turn ratio).
+- `main/motors.{c,h}` — **pure**. `motors_plan(left, right, cfg) → 8 duties`: maps side speeds to
+  per-wheel PWM via a calibration table (`wheel_calib_t {channel_pair, sign}` per `POS_FL/FR/RL/RR`,
+  plus `deadzone`). Left side = {FL, RL}, right = {FR, RR}. Shoot-through-safe by construction.
+- `main/main.c` — orchestrator: `drive(t, y)` = mixer → planner → `motors_apply` (writes 8 channels);
+  console `mix <t> <y>` REPL; default `g_cfg` calibration (replaced by NVS in Phase 5).
+  - `console_init()` — installs USB Serial JTAG driver. **No UART VFS.**
+  - `read_line()` — blocking `usb_serial_jtag_read_bytes()` (avoids fgets/VFS non-blocking spam).
+  - `app_main()` — `pca9685_bus_init` → `pca9685_init` → safety stop `drive(0,0)` → console init → REPL.
+
+### Host tests (`test/`)
+Pure modules compile with plain `cc` (no ESP-IDF). Run from `test/`:
+```bash
+cd test && make run   # builds + runs test_mixer and test_motors
+```
+`test/Makefile` links with `-lm` via `LDLIBS` (Linux needs it after objects).
 
 ### sdkconfig.defaults
 ```
@@ -77,7 +96,7 @@ The bridge (`/tmp/esp_bridge.py`):
 
 Send command:
 ```bash
-echo "10 10 10 10" > /tmp/esp_in
+echo "mix 0.5 0" > /tmp/esp_in
 sleep 1 && tail -c 500 /tmp/esp_out.log
 ```
 
@@ -85,16 +104,20 @@ If port disappears (`Errno 6: Device not configured`), the user probably unplugg
 
 ## Command format
 
-11-char strict format: `AB CD EF GH` (spaces mandatory).
+`mix <throttle> <yaw>` — both floats in `[-1.0, 1.0]`. The firmware mixes them into
+left/right side speeds and logs `drive t=.. y=.. -> L=.. R=..`.
 
-| Command | Meaning |
-|---|---|
-| `00 00 00 00` | All stop |
-| `10 10 10 10` | All forward |
-| `01 01 01 01` | All reverse |
-| `10 01 10 01` | Diagonal mix (tank turn) |
-| `11 ...` | Rejected — shoot-through guard |
-| `10101010` | Rejected — missing spaces |
+| Command | Meaning | Result |
+|---|---|---|
+| `mix 0 0` | All stop | L=0, R=0 |
+| `mix 1 0` | Full forward | L=1, R=1 |
+| `mix -1 0` | Full reverse | L=-1, R=-1 |
+| `mix 0 1` | Spin in place (tank turn) | L=1, R=-1 |
+| `mix 0.5 0.5` | Arc (right side slows) | L=1, R=0 |
+| `mix 5 0` | Rejected — out of [-1,1] | error |
+| `garbage` | Rejected — not a `mix` command | error |
+
+(The old binary `AB CD EF GH` command was removed in the Phase 1 refactor.)
 
 ## Gotchas (learned the hard way)
 
@@ -105,11 +128,26 @@ If port disappears (`Errno 6: Device not configured`), the user probably unplugg
 5. **`esp_vfs_dev.h` is deprecated in IDF 5.4** — use `driver/uart_vfs.h` if you ever need UART VFS (currently we don't).
 6. **First motor power-on can brown out** if battery is weak — pusk current is 5-10× nominal. Stagger starts or use bigger caps if it happens.
 7. **`pca9685_init` previously returned `ESP_OK` even on I2C failure** — now wrapped in `ESP_RETURN_ON_ERROR` so a missing PCA9685 will cause `app_main` to crash visibly via `ESP_ERROR_CHECK`.
+8. **First IDF build can stall on submodule clones** (`esp_wifi/lib`, `micro-ecc`, bt libs) with `curl 56 Recv failure: Operation timed out`. Fix: make git tolerant of slow links, then full recursive init:
+   ```bash
+   git config --global http.lowSpeedLimit 0   # disable abort-on-slow
+   git config --global http.postBuffer 524288000
+   cd ~/esp/esp-idf && git submodule update --init --recursive
+   ```
 
-## Future ideas (not yet implemented)
+## Roadmap
 
-- Variable speed (duty 0..4095 instead of 0/4095 binary)
-- Smooth ramp-up to reduce brownout risk
-- WiFi/BLE control instead of console
-- Per-motor command (`m1 fwd 50%`) instead of bitmap
-- Watchdog: auto-stop if no command for N seconds
+Full design + per-phase plans live in `docs/superpowers/`.
+
+**Done — Phase 1 (merged to `main`):** modular refactor (mixer/motors/pca9685), proportional
+`mix <t> <y>` control, host tests, tank-turn mixing.
+
+**Next — WiFi RC car with web pult (spec: `docs/superpowers/specs/2026-06-07-4wd-rc-tank-turn-design.md`):**
+2. WiFi softAP + HTTP server (serve a static page)
+3. WebSocket protocol `t,y` → `drive()`
+4. Watchdog auto-stop + ramp (slew-rate limit)
+5. Calibration screen (assign FL/FR/RL/RR + direction) persisted in NVS — gate on first connect
+6. Captive-portal + PWA + both control schemes (arcade / tank)
+
+Phase-2 design notes (from Phase 1 review): promote `drive()` into `car.{c,h}` for the WS handler
+to share; guard `g_cfg` with a mutex once a second task exists; clamp inputs inside `drive()` itself.
