@@ -3,6 +3,7 @@ sdkconfig.old
 test/test_mixer
 test/test_motors
 test/test_control_proto
+test/test_watchdog
 *.o
 .DS_Store
 .cache/
