@@ -1,4 +1,6 @@
 #include "car.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include "pca9685.h"
@@ -17,6 +19,10 @@ static motors_config_t g_cfg = {
     },
     .deadzone = 0.05f,
 };
+
+// Serializes the 8-channel I2C write so concurrent callers (console + WebSocket
+// tasks) can't interleave transactions on the shared PCA9685 handle.
+static SemaphoreHandle_t g_lock;
 
 static float clamp_unit(float v) {
     if (v > 1.0f) return 1.0f;
@@ -39,10 +45,22 @@ void car_drive(float throttle, float yaw) {
     yaw = clamp_unit(yaw);
     side_speeds_t s = mixer_mix(throttle, yaw);
     motor_outputs_t out = motors_plan(s.left, s.right, &g_cfg);
+
+    if (g_lock) xSemaphoreTake(g_lock, portMAX_DELAY);
     motors_apply(&out);
+    if (g_lock) xSemaphoreGive(g_lock);
+
     ESP_LOGI(TAG, "drive t=%.2f y=%.2f -> L=%.2f R=%.2f", throttle, yaw, s.left, s.right);
 }
 
+void car_stop(void) {
+    car_drive(0.0f, 0.0f);
+}
+
 void car_init(void) {
-    car_drive(0.0f, 0.0f);  // safety stop
+    g_lock = xSemaphoreCreateMutex();
+    if (g_lock == NULL) {
+        ESP_LOGE(TAG, "failed to create drive mutex");
+    }
+    car_stop();  // safety stop
 }
