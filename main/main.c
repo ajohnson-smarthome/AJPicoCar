@@ -10,6 +10,7 @@
 #include "nvs_flash.h"
 #include "wifi_ap.h"
 #include "http_server.h"
+#include "ws_control.h"
 
 static const char *TAG = "main";
 
@@ -64,6 +65,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(nvs);
     ESP_ERROR_CHECK(wifi_ap_start(AP_SSID, AP_PASSWORD));
     ESP_ERROR_CHECK(http_server_start());
+    ESP_ERROR_CHECK(ws_control_start());
 
     console_init();
     ESP_LOGI(TAG, "Ready. Enter 'mix <throttle> <yaw>' (each -1..1), e.g. 'mix 0.5 0.2':");
