@@ -1,0 +1,27 @@
+#include "mixer.h"
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+
+static int approx(float a, float b) { return fabsf(a - b) < 1e-4f; }
+
+static void check(float t, float y, float el, float er) {
+    side_speeds_t s = mixer_mix(t, y);
+    if (!approx(s.left, el) || !approx(s.right, er)) {
+        printf("FAIL mix(%.2f,%.2f) = {%.4f,%.4f}, expected {%.4f,%.4f}\n",
+               t, y, s.left, s.right, el, er);
+        assert(0);
+    }
+}
+
+int main(void) {
+    check(0.0f, 0.0f, 0.0f, 0.0f);   // стоп
+    check(1.0f, 0.0f, 1.0f, 1.0f);   // прямо
+    check(-1.0f, 0.0f, -1.0f, -1.0f);// назад
+    check(0.0f, 1.0f, 1.0f, -1.0f);  // разворот на месте
+    check(0.0f, -1.0f, -1.0f, 1.0f); // разворот в другую сторону
+    check(0.5f, 0.5f, 1.0f, 0.0f);   // дуга (нормализация t+y=1)
+    check(1.0f, 1.0f, 1.0f, 0.0f);   // насыщение: left=2,right=0 -> /2
+    printf("test_mixer: all passed\n");
+    return 0;
+}
