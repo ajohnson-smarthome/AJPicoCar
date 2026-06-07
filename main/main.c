@@ -4,47 +4,21 @@
 #include "freertos/task.h"
 #include "driver/usb_serial_jtag.h"
 #include "esp_log.h"
-#include "esp_check.h"
 
 #include "pca9685.h"
-#include "mixer.h"
-#include "motors.h"
+#include "car.h"
+#include "nvs_flash.h"
+#include "wifi_ap.h"
+#include "http_server.h"
 
-static const char *TAG = "motor";
+static const char *TAG = "main";
 
 #define I2C_SDA_PIN  22
 #define I2C_SCL_PIN  23
 #define I2C_FREQ_HZ  400000
 #define PWM_FREQ_HZ  1000
-
-// Default calibration (Phase 1). Replaced by an NVS-stored table in Phase 5.
-static motors_config_t g_cfg = {
-    .wheels = {
-        [POS_FL] = { .channel_pair = 0, .sign = 1 },
-        [POS_FR] = { .channel_pair = 1, .sign = 1 },
-        [POS_RL] = { .channel_pair = 2, .sign = 1 },
-        [POS_RR] = { .channel_pair = 3, .sign = 1 },
-    },
-    .deadzone = 0.05f,
-};
-
-// Apply planned PWM to the 8 PCA9685 channels.
-static void motors_apply(const motor_outputs_t *out) {
-    for (uint8_t ch = 0; ch < 8; ch++) {
-        esp_err_t e = pca9685_set_pwm(ch, out->duty[ch]);
-        if (e != ESP_OK) {
-            ESP_LOGE(TAG, "ch%d write failed: %s", ch, esp_err_to_name(e));
-        }
-    }
-}
-
-// Apply intent (throttle, yaw) -> mixer -> planner -> hardware.
-static void drive(float throttle, float yaw) {
-    side_speeds_t s = mixer_mix(throttle, yaw);
-    motor_outputs_t out = motors_plan(s.left, s.right, &g_cfg);
-    motors_apply(&out);
-    ESP_LOGI(TAG, "drive t=%.2f y=%.2f -> L=%.2f R=%.2f", throttle, yaw, s.left, s.right);
-}
+#define AP_SSID      "ESP32-Car"
+#define AP_PASSWORD  "drive1234"   // >= 8 chars for WPA2; "" for open
 
 static void console_init(void) {
     usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
@@ -72,6 +46,7 @@ static int parse_mix(const char *line, float *t, float *y) {
     char cmd[8];
     if (sscanf(line, "%7s %f %f", cmd, t, y) != 3) return -1;
     if (strcmp(cmd, "mix") != 0) return -1;
+    // Reject out-of-range console input early with an error (car_drive also clamps).
     if (*t < -1.0f || *t > 1.0f || *y < -1.0f || *y > 1.0f) return -1;
     return 0;
 }
@@ -79,8 +54,16 @@ static int parse_mix(const char *line, float *t, float *y) {
 void app_main(void) {
     ESP_ERROR_CHECK(pca9685_bus_init(I2C_SDA_PIN, I2C_SCL_PIN, I2C_FREQ_HZ));
     ESP_ERROR_CHECK(pca9685_init(PWM_FREQ_HZ));
+    car_init();
 
-    drive(0.0f, 0.0f);  // safety stop
+    esp_err_t nvs = nvs_flash_init();
+    if (nvs == ESP_ERR_NVS_NO_FREE_PAGES || nvs == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        nvs = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(nvs);
+    ESP_ERROR_CHECK(wifi_ap_start(AP_SSID, AP_PASSWORD));
+    ESP_ERROR_CHECK(http_server_start());
 
     console_init();
     ESP_LOGI(TAG, "Ready. Enter 'mix <throttle> <yaw>' (each -1..1), e.g. 'mix 0.5 0.2':");
@@ -96,7 +79,7 @@ void app_main(void) {
         }
         float t, y;
         if (parse_mix(line, &t, &y) == 0) {
-            drive(t, y);
+            car_drive(t, y);
         } else {
             ESP_LOGE(TAG, "bad command, expected 'mix <t> <y>' with t,y in [-1,1]");
         }
