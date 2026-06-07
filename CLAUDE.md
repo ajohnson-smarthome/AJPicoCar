@@ -134,6 +134,10 @@ left/right side speeds and logs `drive t=.. y=.. -> L=.. R=..`.
    git config --global http.postBuffer 524288000
    cd ~/esp/esp-idf && git submodule update --init --recursive
    ```
+9. **"Motors don't spin" is usually command DELIVERY, not firmware/hardware.** Two traps found in Phase 3 e2e (details: memory `debugging-motors-test-rig`):
+   - Opening the USB Serial JTAG port (pyserial / the bridge) **resets the C6** → a command sent in the first ~1-2 s is lost during boot. Wait for boot, send, and confirm the `drive ...` log echoes before trusting "it didn't work."
+   - WebSocket/touch control must **stream the held command at ~10 Hz**, not send once — a single press is a ~40 ms pulse that can't visibly spin a motor. (The web pad does this; it also feeds the Phase 4 watchdog.)
+   - Decisive isolation: flash a diagnostic `app_main` that drives full-forward in a loop with no console (`while(1){ drive(1,0); vTaskDelay(1000); }`). Motors spin → firmware+hardware are fine, bug is delivery.
 
 ## Roadmap
 
@@ -147,15 +151,22 @@ WiFi softAP **`ESP32-Car`** (WPA2, pass `drive1234`, 192.168.4.1) in `wifi_ap.{c
 serving an embedded `web/index.html` at GET `/`; `app_main` order: pca9685 → car_init → NVS → wifi → http → console.
 Verified on hardware (network visible, page loads, `mix` console still works).
 
+**Done — Phase 3 (merged):** WebSocket `/ws` realtime control. `car_drive` thread-safe (mutex around I2C)
++ `car_stop`; pure `control_proto.{c,h}` parser (`"t,y"`, rejects NaN/inf, host-tested); `ws_control.{c,h}`
+registers `/ws` on `http_server_get_handle()` and applies frames via `car_drive`; `web/index.html` streams
+the held command at 10 Hz. `CONFIG_HTTPD_WS_SUPPORT=y`. Verified on hardware (phone drives fwd/back/turns).
+
 **Next — WiFi RC car with web pult (spec: `docs/superpowers/specs/2026-06-07-4wd-rc-tank-turn-design.md`):**
-3. WebSocket protocol `t,y` → `car_drive()` (add `/ws` via `http_server_get_handle()`)
 4. Watchdog auto-stop + ramp (slew-rate limit)
 5. Calibration screen (assign FL/FR/RL/RR + direction) persisted in NVS — gate on first connect
 6. Captive-portal + PWA + both control schemes (arcade / tank)
 
-**Phase-3 prerequisites/notes (from Phase 2 review):**
-- **Mutex in `car_drive`** before adding the WS handler: the httpd task and console task will both call
-  `car_drive` → I2C on the shared `pca9685_handle`. Add `xSemaphoreCreateMutex()` in `car_init`, take/give
-  around the 8-channel write; then `car.h` thread-safety note becomes true.
-- Add `car_stop()` (= `car_drive(0,0)`) for the WS disconnect handler; document last-write-wins between
-  console and WS; set `httpd_config.max_open_sockets` explicitly when adding `/ws`.
+**Phase-4 prerequisites/notes (from Phase 3 review — `TODO(phase4)` markers in code):**
+- **Watchdog auto-stop:** a ~50 Hz timer; if no WS frame for >N ms (e.g. 300) or WS closes → `car_stop()`.
+  `ws_handler` already has the seam comment where to stamp "last frame received". The web pad's 10 Hz stream
+  feeds it. Watchdog timer runs in `Tmr Svc` (not the httpd task), so the `car_drive` mutex stays safe.
+- **Bounded mutex timeout:** change `xSemaphoreTake(g_lock, portMAX_DELAY)` in `car.c` to a timeout
+  (e.g. `pdMS_TO_TICKS(200)`) so the watchdog task can't itself hang on a stuck lock.
+- **Ramp (slew-rate limit):** cap per-tick duty change before `motors_apply` to reduce jerk/brownout.
+- Downgrade `car_drive` LOGI → LOGD (floods at 10-30 Hz); consider `car_init` → `esp_err_t`; set
+  `httpd_config.max_open_sockets` explicitly.
