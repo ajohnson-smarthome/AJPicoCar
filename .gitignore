@@ -2,6 +2,7 @@ build/
 sdkconfig.old
 test/test_mixer
 test/test_motors
+test/test_control_proto
 *.o
 .DS_Store
 .cache/
