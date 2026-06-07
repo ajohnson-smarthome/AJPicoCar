@@ -1,8 +1,8 @@
 #ifndef CAR_H
 #define CAR_H
 
-// Initialize the default calibration table and issue a safety stop.
-// Call once after pca9685 is initialized.
+// Issue a safety stop (all-zero drive). Call once after pca9685 is initialized.
+// (The default calibration table is a compile-time static in car.c.)
 void car_init(void);
 
 // Apply a driving intent. throttle and yaw are each clamped to [-1, 1],

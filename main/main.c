@@ -4,7 +4,6 @@
 #include "freertos/task.h"
 #include "driver/usb_serial_jtag.h"
 #include "esp_log.h"
-#include "esp_check.h"
 
 #include "pca9685.h"
 #include "car.h"
@@ -42,6 +41,7 @@ static int parse_mix(const char *line, float *t, float *y) {
     char cmd[8];
     if (sscanf(line, "%7s %f %f", cmd, t, y) != 3) return -1;
     if (strcmp(cmd, "mix") != 0) return -1;
+    // Reject out-of-range console input early with an error (car_drive also clamps).
     if (*t < -1.0f || *t > 1.0f || *y < -1.0f || *y > 1.0f) return -1;
     return 0;
 }
