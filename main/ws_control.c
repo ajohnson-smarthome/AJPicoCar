@@ -22,7 +22,13 @@ static esp_err_t ws_handler(httpd_req_t *req) {
         ESP_LOGW(TAG, "recv len failed: %s", esp_err_to_name(ret));
         return ret;
     }
+    // The probe overwrites frame.type with the wire opcode. Only act on data
+    // frames; CONTINUE / control frames are handled by the framework or ignored.
+    if (frame.type != HTTPD_WS_TYPE_TEXT && frame.type != HTTPD_WS_TYPE_BINARY) {
+        return ESP_OK;
+    }
     if (frame.len == 0 || frame.len > 31) {
+        ESP_LOGD(TAG, "ignoring ws frame len=%d", (int)frame.len);
         return ESP_OK;  // ignore empty / oversized frames
     }
 
