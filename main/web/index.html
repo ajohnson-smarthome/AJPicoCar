@@ -5,16 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>ESP32-Car</title>
   <style>
-    body { font-family: -apple-system, system-ui, sans-serif; background:#111; color:#eee;
-           display:flex; flex-direction:column; align-items:center; justify-content:center;
-           height:100vh; margin:0; }
-    h1 { font-size:2rem; }
-    .dot { width:14px; height:14px; border-radius:50%; background:#3c3; display:inline-block;
-           margin-right:8px; }
+    body { font-family:-apple-system,system-ui,sans-serif; background:#111; color:#eee;
+           display:flex; flex-direction:column; align-items:center; gap:14px;
+           height:100vh; margin:0; justify-content:center; touch-action:none; }
+    #status { font-size:0.95rem; }
+    .dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-right:6px;
+           background:#c33; vertical-align:middle; }
+    .dot.on { background:#3c3; }
+    .pad { display:grid; grid-template-columns:repeat(3,84px); grid-template-rows:repeat(3,84px);
+           gap:8px; }
+    button { font-size:1.6rem; border:none; border-radius:14px; background:#333; color:#eee; }
+    button:active { background:#3a6; }
+    .fwd{grid-area:1/2;} .left{grid-area:2/1;} .stop{grid-area:2/2;background:#622;}
+    .right{grid-area:2/3;} .back{grid-area:3/2;}
+    .note { font-size:0.75rem; color:#888; max-width:260px; text-align:center; }
   </style>
 </head>
 <body>
-  <h1><span class="dot"></span>ESP32-Car online</h1>
-  <p>Static page served from the car. Joystick UI coming soon.</p>
+  <div id="status"><span class="dot" id="dot"></span><span id="txt">connecting…</span></div>
+  <div class="pad">
+    <button class="fwd"   data-ty="0.6,0">&#9650;</button>
+    <button class="left"  data-ty="0,-0.6">&#9664;</button>
+    <button class="stop"  data-ty="0,0">&#9632;</button>
+    <button class="right" data-ty="0,0.6">&#9654;</button>
+    <button class="back"  data-ty="-0.6,0">&#9660;</button>
+  </div>
+  <div class="note">Temporary test pad — hold to drive, release to stop. Joystick UI comes later.</div>
+  <script>
+    var dot = document.getElementById('dot');
+    var txt = document.getElementById('txt');
+    var ws;
+    function connect() {
+      ws = new WebSocket('ws://' + location.host + '/ws');
+      ws.onopen  = function(){ dot.classList.add('on'); txt.textContent = 'connected'; };
+      ws.onclose = function(){ dot.classList.remove('on'); txt.textContent = 'disconnected — retrying'; setTimeout(connect, 1000); };
+      ws.onerror = function(){ ws.close(); };
+    }
+    function send(ty) { if (ws && ws.readyState === 1) ws.send(ty); }
+    var btns = document.querySelectorAll('button[data-ty]');
+    for (var i = 0; i < btns.length; i++) {
+      (function(b){
+        var ty = b.getAttribute('data-ty');
+        b.addEventListener('pointerdown',  function(e){ e.preventDefault(); send(ty); });
+        b.addEventListener('pointerup',     function(e){ e.preventDefault(); send('0,0'); });
+        b.addEventListener('pointercancel', function(){ send('0,0'); });
+        b.addEventListener('pointerleave',  function(){ send('0,0'); });
+      })(btns[i]);
+    }
+    connect();
+  </script>
 </body>
 </html>
