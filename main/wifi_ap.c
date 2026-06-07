@@ -23,7 +23,11 @@ static void wifi_event_handler(void *arg, esp_event_base_t base,
 esp_err_t wifi_ap_start(const char *ssid, const char *password) {
     ESP_RETURN_ON_ERROR(esp_netif_init(), TAG, "netif init");
     ESP_RETURN_ON_ERROR(esp_event_loop_create_default(), TAG, "event loop");
-    esp_netif_create_default_wifi_ap();
+    esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
+    if (ap_netif == NULL) {
+        ESP_LOGE(TAG, "failed to create default wifi AP netif");
+        return ESP_FAIL;
+    }
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_RETURN_ON_ERROR(esp_wifi_init(&cfg), TAG, "wifi init");
@@ -41,11 +45,14 @@ esp_err_t wifi_ap_start(const char *ssid, const char *password) {
         },
     };
     size_t slen = strlen(ssid);
+    // 802.11 SSIDs are up to 32 bytes; ssid_len avoids the NUL-termination requirement.
     if (slen > sizeof(wc.ap.ssid)) slen = sizeof(wc.ap.ssid);
     memcpy(wc.ap.ssid, ssid, slen);
     wc.ap.ssid_len = slen;
+
+    size_t plen = strlen(password);
     strlcpy((char *)wc.ap.password, password, sizeof(wc.ap.password));
-    if (strlen(password) == 0) {
+    if (plen == 0) {
         wc.ap.authmode = WIFI_AUTH_OPEN;
     }
 
@@ -54,6 +61,6 @@ esp_err_t wifi_ap_start(const char *ssid, const char *password) {
     ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG, "wifi start");
 
     ESP_LOGI(TAG, "softAP started: SSID='%s' %s, IP 192.168.4.1",
-             ssid, strlen(password) ? "WPA2" : "OPEN");
+             ssid, plen ? "WPA2" : "OPEN");
     return ESP_OK;
 }
