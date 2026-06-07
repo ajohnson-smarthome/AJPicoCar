@@ -5,6 +5,7 @@
 #include "http_server.h"
 #include "control_proto.h"
 #include "car.h"
+#include "watchdog.h"
 
 static const char *TAG = "ws";
 
@@ -44,7 +45,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 
     float t, y;
     if (control_parse_ty((const char *)buf, &t, &y) == 0) {
-        // TODO(phase4): stamp a "last frame received" timestamp here for the watchdog.
+        watchdog_feed();
         car_drive(t, y);
     } else {
         ESP_LOGW(TAG, "bad ws msg: '%s'", (const char *)buf);

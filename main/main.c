@@ -11,6 +11,7 @@
 #include "wifi_ap.h"
 #include "http_server.h"
 #include "ws_control.h"
+#include "watchdog.h"
 
 static const char *TAG = "main";
 
@@ -20,6 +21,7 @@ static const char *TAG = "main";
 #define PWM_FREQ_HZ  1000
 #define AP_SSID      "ESP32-Car"
 #define AP_PASSWORD  "drive1234"   // >= 8 chars for WPA2; "" for open
+#define WDT_TIMEOUT_MS 300
 
 static void console_init(void) {
     usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
@@ -66,6 +68,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(wifi_ap_start(AP_SSID, AP_PASSWORD));
     ESP_ERROR_CHECK(http_server_start());
     ESP_ERROR_CHECK(ws_control_start());
+    watchdog_init(WDT_TIMEOUT_MS);
 
     console_init();
     ESP_LOGI(TAG, "Ready. Enter 'mix <throttle> <yaw>' (each -1..1), e.g. 'mix 0.5 0.2':");
