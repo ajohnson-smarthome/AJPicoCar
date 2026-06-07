@@ -66,6 +66,7 @@ esp_err_t pca9685_init(uint16_t pwm_freq_hz) {
 }
 
 esp_err_t pca9685_set_pwm(uint8_t channel, uint16_t duty) {
+    if (channel > 15) return ESP_ERR_INVALID_ARG;  // 16 channels; >15 hits ALL_LED regs
     uint8_t base_reg = PCA9685_LED0_ON_L + 4 * channel;
     uint16_t on = 0;
     uint16_t off = duty;
