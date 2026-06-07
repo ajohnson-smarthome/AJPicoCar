@@ -11,7 +11,7 @@ void car_init(void);
 // task and the WebSocket task may both call it. Last write wins.
 void car_drive(float throttle, float yaw);
 
-// Convenience safety stop (equivalent to car_drive(0, 0)).
+// Convenience safety stop (equivalent to car_drive(0, 0)). Requires car_init() first.
 void car_stop(void);
 
 #endif // CAR_H

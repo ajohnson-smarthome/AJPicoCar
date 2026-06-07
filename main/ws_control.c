@@ -23,7 +23,8 @@ static esp_err_t ws_handler(httpd_req_t *req) {
         return ret;
     }
     // The probe overwrites frame.type with the wire opcode. Only act on data
-    // frames; CONTINUE / control frames are handled by the framework or ignored.
+    // frames; PING/PONG/CLOSE are handled by the framework (handle_ws_control_frames
+    // defaults to false), CONTINUE and anything unexpected are ignored.
     if (frame.type != HTTPD_WS_TYPE_TEXT && frame.type != HTTPD_WS_TYPE_BINARY) {
         return ESP_OK;
     }
@@ -43,6 +44,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 
     float t, y;
     if (control_parse_ty((const char *)buf, &t, &y) == 0) {
+        // TODO(phase4): stamp a "last frame received" timestamp here for the watchdog.
         car_drive(t, y);
     } else {
         ESP_LOGW(TAG, "bad ws msg: '%s'", (const char *)buf);

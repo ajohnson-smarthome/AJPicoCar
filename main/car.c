@@ -50,6 +50,7 @@ void car_drive(float throttle, float yaw) {
     motors_apply(&out);
     if (g_lock) xSemaphoreGive(g_lock);
 
+    // TODO(phase4): downgrade to ESP_LOGD — at 30 Hz WS driving this floods the log.
     ESP_LOGI(TAG, "drive t=%.2f y=%.2f -> L=%.2f R=%.2f", throttle, yaw, s.left, s.right);
 }
 
@@ -59,8 +60,7 @@ void car_stop(void) {
 
 void car_init(void) {
     g_lock = xSemaphoreCreateMutex();
-    if (g_lock == NULL) {
-        ESP_LOGE(TAG, "failed to create drive mutex");
-    }
+    // A missing mutex would mean unsynchronized I2C from console + WS tasks; fail visibly.
+    ESP_ERROR_CHECK(g_lock ? ESP_OK : ESP_ERR_NO_MEM);
     car_stop();  // safety stop
 }
