@@ -46,12 +46,15 @@ void car_drive(float throttle, float yaw) {
     side_speeds_t s = mixer_mix(throttle, yaw);
     motor_outputs_t out = motors_plan(s.left, s.right, &g_cfg);
 
-    if (g_lock) xSemaphoreTake(g_lock, portMAX_DELAY);
+    // Bounded timeout so a stuck holder can't wedge the watchdog task forever.
+    if (g_lock && xSemaphoreTake(g_lock, pdMS_TO_TICKS(200)) != pdTRUE) {
+        ESP_LOGW(TAG, "drive: mutex busy >200ms, skipping write");
+        return;
+    }
     motors_apply(&out);
     if (g_lock) xSemaphoreGive(g_lock);
 
-    // TODO(phase4): downgrade to ESP_LOGD — at 30 Hz WS driving this floods the log.
-    ESP_LOGI(TAG, "drive t=%.2f y=%.2f -> L=%.2f R=%.2f", throttle, yaw, s.left, s.right);
+    ESP_LOGD(TAG, "drive t=%.2f y=%.2f -> L=%.2f R=%.2f", throttle, yaw, s.left, s.right);
 }
 
 void car_stop(void) {
