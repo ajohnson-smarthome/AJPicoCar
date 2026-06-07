@@ -7,7 +7,8 @@ void car_init(void);
 
 // Apply a driving intent. throttle and yaw are each clamped to [-1, 1],
 // then mixed into side speeds, planned to per-channel PWM, and written to the
-// PCA9685. Safe to call from any task once car_init() has run.
+// PCA9685. NOT yet thread-safe: currently called only from the console task.
+// A mutex is required before a second concurrent caller is added (Phase 3 WebSocket).
 void car_drive(float throttle, float yaw);
 
 #endif // CAR_H
