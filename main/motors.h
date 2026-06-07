@@ -14,7 +14,7 @@ typedef enum {
 
 // Per-wheel calibration: which PCA9685 channel pair, and direction sign.
 typedef struct {
-    uint8_t channel_pair;  // 0..3 -> channels (pair*2 = CH_A, pair*2+1 = CH_B)
+    uint8_t channel_pair;  // MUST be 0..3 (pair*2 = CH_A, pair*2+1 = CH_B); >=4 indexes out of duty[8]
     int8_t  sign;          // +1 normal, -1 direction reversed
 } wheel_calib_t;
 
