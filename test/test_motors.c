@@ -37,6 +37,13 @@ int main(void) {
     o = motors_plan(0.0f, 0.0f, &cfg);
     for (int i = 0; i < 8; i++) expect("stop", o.duty[i], 0);
 
+    // Full reverse: both sides -1 -> all CH_A=0, CH_B=4095.
+    o = motors_plan(-1.0f, -1.0f, &cfg);
+    expect("rev ch0", o.duty[0], 0); expect("rev ch1", o.duty[1], 4095);
+    expect("rev ch2", o.duty[2], 0); expect("rev ch3", o.duty[3], 4095);
+    expect("rev ch4", o.duty[4], 0); expect("rev ch5", o.duty[5], 4095);
+    expect("rev ch6", o.duty[6], 0); expect("rev ch7", o.duty[7], 4095);
+
     // Tank (left=+1, right=-1): left side forward (CH_A), right side reverse (CH_B).
     o = motors_plan(1.0f, -1.0f, &cfg);
     expect("tank FL A", o.duty[0], 4095); expect("tank FL B", o.duty[1], 0);
@@ -66,6 +73,7 @@ int main(void) {
     expect("rev RL A (unchanged)", o.duty[4], 4095);
 
     // Right-side inversion: invert FR (pair1). Drive right side forward, left zero.
+    cfg = default_cfg();
     cfg.wheels[POS_FR].sign = -1;
     o = motors_plan(0.0f, 1.0f, &cfg);   // left=0 -> FL,RL stop; right=1
     expect("rev FR A", o.duty[2], 0);    expect("rev FR B", o.duty[3], 4095); // FR reversed -> CH_B

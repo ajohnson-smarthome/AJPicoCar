@@ -5,7 +5,7 @@
 #include "esp_err.h"
 
 // Initialize the I2C bus and the PCA9685 device. Call once before anything else.
-esp_err_t pca9685_bus_init(int sda_pin, int scl_pin, uint32_t freq_hz);
+esp_err_t pca9685_bus_init(int sda_pin, int scl_pin, uint32_t i2c_speed_hz);
 
 // Configure the PCA9685 PWM frequency (sleep->prescale->wake->restart).
 esp_err_t pca9685_init(uint16_t pwm_freq_hz);

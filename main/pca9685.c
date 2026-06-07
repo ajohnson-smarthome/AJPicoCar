@@ -27,7 +27,7 @@ static esp_err_t pca9685_read_reg(uint8_t reg, uint8_t *value) {
     return i2c_master_transmit_receive(pca9685_handle, &reg, 1, value, 1, -1);
 }
 
-esp_err_t pca9685_bus_init(int sda_pin, int scl_pin, uint32_t freq_hz) {
+esp_err_t pca9685_bus_init(int sda_pin, int scl_pin, uint32_t i2c_speed_hz) {
     i2c_master_bus_config_t bus_cfg = {
         .i2c_port = I2C_NUM_0,
         .sda_io_num = sda_pin,
@@ -41,7 +41,7 @@ esp_err_t pca9685_bus_init(int sda_pin, int scl_pin, uint32_t freq_hz) {
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = PCA9685_ADDR,
-        .scl_speed_hz = freq_hz,
+        .scl_speed_hz = i2c_speed_hz,
     };
     ESP_RETURN_ON_ERROR(i2c_master_bus_add_device(bus_handle, &dev_cfg, &pca9685_handle), TAG, "PCA9685 add failed");
     return ESP_OK;
