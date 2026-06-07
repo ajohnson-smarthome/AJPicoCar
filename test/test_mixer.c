@@ -20,8 +20,9 @@ int main(void) {
     check(-1.0f, 0.0f, -1.0f, -1.0f);// назад
     check(0.0f, 1.0f, 1.0f, -1.0f);  // разворот на месте
     check(0.0f, -1.0f, -1.0f, 1.0f); // разворот в другую сторону
-    check(0.5f, 0.5f, 1.0f, 0.0f);   // дуга (нормализация t+y=1)
+    check(0.5f, 0.5f, 1.0f, 0.0f);   // arc: left hits clamp floor m=1.0 (no scaling)
     check(1.0f, 1.0f, 1.0f, 0.0f);   // насыщение: left=2,right=0 -> /2
+    check(-0.1f, 1.0f, 0.818182f, -1.0f);  // right-dominant saturation: |right|>|left|
     printf("test_mixer: all passed\n");
     return 0;
 }

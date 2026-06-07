@@ -1,5 +1,5 @@
 CC = cc
-CFLAGS = -I../main -Wall -Wextra -Werror -std=c11
+CFLAGS = -I../main -Wall -Wextra -Werror -std=c11 -lm
 
 all: test_mixer test_motors
 
