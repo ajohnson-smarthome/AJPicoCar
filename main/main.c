@@ -7,6 +7,8 @@
 
 #include "pca9685.h"
 #include "car.h"
+#include "nvs_flash.h"
+#include "wifi_ap.h"
 
 static const char *TAG = "main";
 
@@ -14,6 +16,8 @@ static const char *TAG = "main";
 #define I2C_SCL_PIN  23
 #define I2C_FREQ_HZ  400000
 #define PWM_FREQ_HZ  1000
+#define AP_SSID      "ESP32-Car"
+#define AP_PASSWORD  "drive1234"   // >= 8 chars for WPA2; "" for open
 
 static void console_init(void) {
     usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
@@ -50,6 +54,14 @@ void app_main(void) {
     ESP_ERROR_CHECK(pca9685_bus_init(I2C_SDA_PIN, I2C_SCL_PIN, I2C_FREQ_HZ));
     ESP_ERROR_CHECK(pca9685_init(PWM_FREQ_HZ));
     car_init();
+
+    esp_err_t nvs = nvs_flash_init();
+    if (nvs == ESP_ERR_NVS_NO_FREE_PAGES || nvs == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        nvs = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(nvs);
+    ESP_ERROR_CHECK(wifi_ap_start(AP_SSID, AP_PASSWORD));
 
     console_init();
     ESP_LOGI(TAG, "Ready. Enter 'mix <throttle> <yaw>' (each -1..1), e.g. 'mix 0.5 0.2':");
