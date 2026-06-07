@@ -139,15 +139,23 @@ left/right side speeds and logs `drive t=.. y=.. -> L=.. R=..`.
 
 Full design + per-phase plans live in `docs/superpowers/`.
 
-**Done — Phase 1 (merged to `main`):** modular refactor (mixer/motors/pca9685), proportional
+**Done — Phase 1 (merged):** modular refactor (mixer/motors/pca9685), proportional
 `mix <t> <y>` control, host tests, tank-turn mixing.
 
+**Done — Phase 2 (merged):** `car.{c,h}` orchestration (`car_drive` clamps + mixer→planner→PCA9685);
+WiFi softAP **`ESP32-Car`** (WPA2, pass `drive1234`, 192.168.4.1) in `wifi_ap.{c,h}`; `http_server.{c,h}`
+serving an embedded `web/index.html` at GET `/`; `app_main` order: pca9685 → car_init → NVS → wifi → http → console.
+Verified on hardware (network visible, page loads, `mix` console still works).
+
 **Next — WiFi RC car with web pult (spec: `docs/superpowers/specs/2026-06-07-4wd-rc-tank-turn-design.md`):**
-2. WiFi softAP + HTTP server (serve a static page)
-3. WebSocket protocol `t,y` → `drive()`
+3. WebSocket protocol `t,y` → `car_drive()` (add `/ws` via `http_server_get_handle()`)
 4. Watchdog auto-stop + ramp (slew-rate limit)
 5. Calibration screen (assign FL/FR/RL/RR + direction) persisted in NVS — gate on first connect
 6. Captive-portal + PWA + both control schemes (arcade / tank)
 
-Phase-2 design notes (from Phase 1 review): promote `drive()` into `car.{c,h}` for the WS handler
-to share; guard `g_cfg` with a mutex once a second task exists; clamp inputs inside `drive()` itself.
+**Phase-3 prerequisites/notes (from Phase 2 review):**
+- **Mutex in `car_drive`** before adding the WS handler: the httpd task and console task will both call
+  `car_drive` → I2C on the shared `pca9685_handle`. Add `xSemaphoreCreateMutex()` in `car_init`, take/give
+  around the 8-channel write; then `car.h` thread-safety note becomes true.
+- Add `car_stop()` (= `car_drive(0,0)`) for the WS disconnect handler; document last-write-wins between
+  console and WS; set `httpd_config.max_open_sockets` explicitly when adding `/ws`.
