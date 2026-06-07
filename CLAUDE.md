@@ -156,17 +156,19 @@ Verified on hardware (network visible, page loads, `mix` console still works).
 registers `/ws` on `http_server_get_handle()` and applies frames via `car_drive`; `web/index.html` streams
 the held command at 10 Hz. `CONFIG_HTTPD_WS_SUPPORT=y`. Verified on hardware (phone drives fwd/back/turns).
 
+**Done — Phase 4 (merged):** control-link **watchdog** (`watchdog.{c,h}`) — 50 Hz `Tmr Svc` timer; if no WS
+frame for >300 ms → `car_stop()`. `ws_handler` calls `watchdog_feed()`; `watchdog_init(300)` in app_main.
+Pure `watchdog_stale()` host-tested (incl. 32-bit rollover). Console path NOT under watchdog (debug stays
+usable). Also: `car_drive` mutex wait bounded to 200 ms, drive log → LOGD. **Hardware auto-stop test still
+pending (needs user).**
+
 **Next — WiFi RC car with web pult (spec: `docs/superpowers/specs/2026-06-07-4wd-rc-tank-turn-design.md`):**
-4. Watchdog auto-stop + ramp (slew-rate limit)
 5. Calibration screen (assign FL/FR/RL/RR + direction) persisted in NVS — gate on first connect
 6. Captive-portal + PWA + both control schemes (arcade / tank)
 
-**Phase-4 prerequisites/notes (from Phase 3 review — `TODO(phase4)` markers in code):**
-- **Watchdog auto-stop:** a ~50 Hz timer; if no WS frame for >N ms (e.g. 300) or WS closes → `car_stop()`.
-  `ws_handler` already has the seam comment where to stamp "last frame received". The web pad's 10 Hz stream
-  feeds it. Watchdog timer runs in `Tmr Svc` (not the httpd task), so the `car_drive` mutex stays safe.
-- **Bounded mutex timeout:** change `xSemaphoreTake(g_lock, portMAX_DELAY)` in `car.c` to a timeout
-  (e.g. `pdMS_TO_TICKS(200)`) so the watchdog task can't itself hang on a stuck lock.
-- **Ramp (slew-rate limit):** cap per-tick duty change before `motors_apply` to reduce jerk/brownout.
-- Downgrade `car_drive` LOGI → LOGD (floods at 10-30 Hz); consider `car_init` → `esp_err_t`; set
-  `httpd_config.max_open_sockets` explicitly.
+**Deferred — Ramp (slew-rate limit):** needs hardware tuning + a dedicated ~50 Hz ramp task (so single
+console commands still reach full speed). Design sketch in `docs/superpowers/plans/2026-06-08-phase4-watchdog.md`.
+
+**Phase-5 (calibration) plan notes:** spin one motor (channel pair) at a time with short pulses; user tags
+its corner (FL/FR/RL/RR) + direction; store the `motors_config_t` table in NVS; gate the UI on first connect
+(`GET /calib` → if uncalibrated, calibration is the only screen). Replaces the hard-coded default `g_cfg` in `car.c`.
