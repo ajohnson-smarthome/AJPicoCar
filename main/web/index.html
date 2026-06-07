@@ -42,14 +42,29 @@
       ws.onerror = function(){ ws.close(); };
     }
     function send(ty) { if (ws && ws.readyState === 1) ws.send(ty); }
+
+    // Stream the held command at 10 Hz so the motor gets a SUSTAINED drive
+    // (a single press is otherwise too brief — and primes the Phase 4 watchdog).
+    var held = null, timer = null;
+    function startHold(ty) {
+      held = ty;
+      send(ty);
+      if (!timer) timer = setInterval(function(){ if (held) send(held); }, 100);
+    }
+    function release() {
+      held = null;
+      if (timer) { clearInterval(timer); timer = null; }
+      send('0,0');
+    }
+
     var btns = document.querySelectorAll('button[data-ty]');
     for (var i = 0; i < btns.length; i++) {
       (function(b){
         var ty = b.getAttribute('data-ty');
-        b.addEventListener('pointerdown',  function(e){ e.preventDefault(); send(ty); });
-        b.addEventListener('pointerup',     function(e){ e.preventDefault(); send('0,0'); });
-        b.addEventListener('pointercancel', function(){ send('0,0'); });
-        b.addEventListener('pointerleave',  function(){ send('0,0'); });
+        b.addEventListener('pointerdown',  function(e){ e.preventDefault(); startHold(ty); });
+        b.addEventListener('pointerup',     function(e){ e.preventDefault(); release(); });
+        b.addEventListener('pointercancel', function(){ release(); });
+        b.addEventListener('pointerleave',  function(){ release(); });
       })(btns[i]);
     }
     connect();
