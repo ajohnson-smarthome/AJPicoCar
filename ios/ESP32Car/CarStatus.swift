@@ -8,7 +8,7 @@ final class CarStatus: ObservableObject {
     @Published var calibrated: Bool?
     @Published var fw: String?
 
-    private let url = URL(string: "http://192.168.4.1/status")!
+    private let url = URL(string: CarHost.statusURL)!
     private var timer: Timer?
     private var failCount = 0
 

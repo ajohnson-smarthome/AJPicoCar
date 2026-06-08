@@ -5,7 +5,7 @@ final class CarConnection: ObservableObject {
     enum State { case connecting, connected, offline }
     @Published private(set) var state: State = .connecting
 
-    private let url = URL(string: "ws://192.168.4.1/ws")!
+    private let url = URL(string: CarHost.wsURL)!
     private var task: URLSessionWebSocketTask?
     private var timer: Timer?
     private var command = "0.00,0.00"
