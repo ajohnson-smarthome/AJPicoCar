@@ -47,16 +47,20 @@ enum ControlModel {
     }
 
     /// Centerline of the predicted path in local space: starts at (0,0), heads "up"
-    /// (screen -y), bends by yaw. Caller offsets/positions for the two rails.
+    /// (screen -y), bends by yaw. The TOTAL bend is bounded (≤ ~70°) so the arc is a
+    /// gentle parking-camera curve and can never close into a loop/circle, regardless
+    /// of how small t is or how large y is.
     static func trajectoryPoints(t: Double, y: Double, length: Double, steps: Int) -> [CGPoint] {
-        let curv = curvature(t: t, y: y)
+        let steer = Swift.max(-1.0, Swift.min(1.0, y / Swift.max(abs(t), 0.2)))  // [-1,1]
+        let totalTurn = steer * (70.0 * Double.pi / 180.0)                       // bounded
         let seg = length / Double(steps)
+        let dHeading = totalTurn / Double(steps)                                 // constant → circular arc
         var pts: [CGPoint] = []
         var x = 0.0, yy = 0.0
         var heading = -Double.pi / 2
         for _ in 0...steps {
             pts.append(CGPoint(x: x, y: yy))
-            heading += curv * seg * 0.045
+            heading += dHeading
             x += Foundation.cos(heading) * seg
             yy += Foundation.sin(heading) * seg
         }

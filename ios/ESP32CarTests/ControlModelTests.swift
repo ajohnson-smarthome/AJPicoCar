@@ -54,4 +54,9 @@ final class ControlModelTests: XCTestCase {
         XCTAssertLessThan(abs(ControlModel.trajectoryPoints(t: 1, y: 0, length: 100, steps: 24).last!.x), 1e-6)
         XCTAssertGreaterThan(abs(ControlModel.trajectoryPoints(t: 1, y: 0.6, length: 100, steps: 24).last!.x), 5)
     }
+    func testTrajectoryNeverLoops() {
+        // extreme small-t / large-y must stay a gentle arc, never curl back (y strictly decreasing)
+        let ex = ControlModel.trajectoryPoints(t: 0.08, y: 1, length: 120, steps: 24)
+        for i in 1..<ex.count { XCTAssertLessThan(ex[i].y, ex[i - 1].y) }
+    }
 }
