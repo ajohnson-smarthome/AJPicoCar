@@ -6,6 +6,7 @@
 #include "pca9685.h"
 #include "mixer.h"
 #include "motors.h"
+#include "calibration.h"
 
 static const char *TAG = "car";
 
@@ -61,9 +62,34 @@ void car_stop(void) {
     car_drive(0.0f, 0.0f);
 }
 
+void car_set_calibration(const motors_config_t *cfg) {
+    if (g_lock) xSemaphoreTake(g_lock, pdMS_TO_TICKS(200));
+    g_cfg = *cfg;
+    if (g_lock) xSemaphoreGive(g_lock);
+}
+
+void car_spin_pair(uint8_t pair, bool forward) {
+    if (pair > 3) return;
+    motor_outputs_t out = { .duty = {0} };
+    const uint16_t duty = 1600;  // ~40% for identification
+    out.duty[pair * 2]     = forward ? duty : 0;
+    out.duty[pair * 2 + 1] = forward ? 0 : duty;
+    if (g_lock && xSemaphoreTake(g_lock, pdMS_TO_TICKS(200)) != pdTRUE) return;
+    motors_apply(&out);
+    if (g_lock) xSemaphoreGive(g_lock);
+}
+
 void car_init(void) {
     g_lock = xSemaphoreCreateMutex();
     // A missing mutex would mean unsynchronized I2C from console + WS tasks; fail visibly.
     ESP_ERROR_CHECK(g_lock ? ESP_OK : ESP_ERR_NO_MEM);
+
+    motors_config_t loaded;
+    if (calibration_load(&loaded)) {
+        g_cfg = loaded;
+    } else {
+        ESP_LOGW(TAG, "no NVS calibration — using default mapping");
+    }
+
     car_stop();  // safety stop
 }

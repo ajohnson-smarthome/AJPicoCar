@@ -57,7 +57,6 @@ static int parse_mix(const char *line, float *t, float *y) {
 void app_main(void) {
     ESP_ERROR_CHECK(pca9685_bus_init(I2C_SDA_PIN, I2C_SCL_PIN, I2C_FREQ_HZ));
     ESP_ERROR_CHECK(pca9685_init(PWM_FREQ_HZ));
-    car_init();
 
     esp_err_t nvs = nvs_flash_init();
     if (nvs == ESP_ERR_NVS_NO_FREE_PAGES || nvs == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -65,6 +64,8 @@ void app_main(void) {
         nvs = nvs_flash_init();
     }
     ESP_ERROR_CHECK(nvs);
+
+    car_init();
     ESP_ERROR_CHECK(wifi_ap_start(AP_SSID, AP_PASSWORD));
     ESP_ERROR_CHECK(http_server_start());
     ESP_ERROR_CHECK(ws_control_start());
