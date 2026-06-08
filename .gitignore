@@ -9,3 +9,8 @@ test/test_calibration
 .DS_Store
 .cache/
 .superpowers/
+ios/build/
+ios/ESP32Car.xcodeproj/
+ios/DerivedData/
+*.xcuserstate
+tools/mock_car/.venv/
