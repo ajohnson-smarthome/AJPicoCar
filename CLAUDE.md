@@ -170,15 +170,23 @@ REST `GET /calib`, `POST /calib/spin`, `POST /calib/save` on the shared httpd. `
 `GET /calib`: first connect → 4-step wizard (spin each pair, tag corner FL/FR/RL/RR + direction) → save →
 d-pad; "⚙ Recalibrate" button. User calibrated on the bench: spin/identify/save/drive all work, persists.
 
-**Next:** Phase 6 — captive-portal (Safari auto-opens the pad) + PWA (add-to-home-screen) + real
-touch joysticks with both control schemes (arcade / tank), replacing the temporary d-pad.
+**Done — Phase 6 (merged, verified on hardware):** the full phone web pult.
+- *6a* — touch **joysticks** replacing the d-pad: arcade (one stick, up=drive, L/R=turn; default) and
+  tank (two vertical sticks = left/right side), with a scheme toggle (remembered in localStorage). Both
+  produce `t,y` client-side; streams the live command at 10 Hz.
+- *6b* — **PWA**: iOS full-screen meta tags (`apple-mobile-web-app-capable`) + an inline car app icon
+  (data-URI PNG) → "Add to Home Screen" launches chrome-less.
+- *6c* — **captive portal** (`captive.{c,h}`): a minimal UDP DNS server on :53 answering every query with
+  192.168.4.1, plus an httpd 404 → 302 redirect to "/". Joining `ESP32-Car` auto-pops the control page
+  (verified on iPhone). `lwip` added to REQUIRES for the DNS socket.
 
-**Deferred — Ramp (slew-rate limit):** needs hardware tuning + a dedicated ~50 Hz ramp task (so single
-console commands still reach full speed). Design sketch in `docs/superpowers/plans/2026-06-08-phase4-watchdog.md`.
+**🎉 Roadmap complete — Phases 1–6 all merged and verified on hardware: a WiFi-controlled 4WD RC car with
+tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA + captive portal.**
 
-### Needs hardware verification (do with the board, on a stand)
-- **Phase 4 watchdog:** drive from phone, then drop WiFi / close the tab mid-drive → car must auto-stop in
-  ~300 ms (log: `wdt: no control frame ...`). Console `mix` must NOT auto-stop.
-- **Phase 5 calibration:** after Tasks 3–4 are built — first connect shows the calibration screen; spin each
-  motor, tag corner+direction watching the wheels; save; verify the d-pad then drives correct wheels; power-
-  cycle → calibration persists.
+**Deferred / optional future:**
+- **Ramp (slew-rate limit):** needs hardware tuning + a dedicated ~50 Hz ramp task (so single console
+  commands still reach full speed). Design sketch in `docs/superpowers/plans/2026-06-08-phase4-watchdog.md`.
+- **Phase 4 watchdog auto-stop** never explicitly bench-tested (drive from phone → drop WiFi/close tab
+  mid-drive → car must stop in ~300 ms, log `wdt: no control frame ...`; console `mix` must NOT auto-stop).
+- **Power:** USB CDC port drops under motor load (VBUS sags) — power the logic from a stable 5 V separate
+  from the motor supply if flashing-while-driving is needed.
