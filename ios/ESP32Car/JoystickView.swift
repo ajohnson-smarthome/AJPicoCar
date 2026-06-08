@@ -2,19 +2,16 @@ import SwiftUI
 
 struct JoystickView: View {
     var vertical: Bool = false
-    var size: CGFloat = 132
-    /// Reports normalized (x, y) in [-1, 1]; screen Y positive downward. (0,0) on release.
+    var size: CGFloat = 122
+    var palette: Palette
     var onChange: (Double, Double) -> Void
 
     @State private var knob: CGSize = .zero
 
     var body: some View {
         ZStack {
-            Circle().fill(Color(white: 0.09))
-                .overlay(Circle().strokeBorder(Color(white: 0.16)))
-            Circle().fill(Color(red: 0.29, green: 0.87, blue: 0.5))
-                .frame(width: 56, height: 56)
-                .offset(knob)
+            Circle().fill(palette.panel).overlay(Circle().strokeBorder(palette.line))
+            Circle().fill(palette.accent).frame(width: 50, height: 50).offset(knob)
         }
         .frame(width: size, height: size)
         .contentShape(Circle())
@@ -30,10 +27,7 @@ struct JoystickView: View {
                     knob = CGSize(width: dx, height: dy)
                     onChange(Double(dx / r), Double(dy / r))
                 }
-                .onEnded { _ in
-                    knob = .zero
-                    onChange(0, 0)
-                }
+                .onEnded { _ in knob = .zero; onChange(0, 0) }
         )
     }
 }
