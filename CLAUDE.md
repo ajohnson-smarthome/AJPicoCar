@@ -171,17 +171,24 @@ REST `GET /calib`, `POST /calib/spin`, `POST /calib/save` on the shared httpd. `
 d-pad; "⚙ Recalibrate" button. User calibrated on the bench: spin/identify/save/drive all work, persists.
 
 **Done — Phase 6 (merged, verified on hardware):** the full phone web pult.
-- *6a* — touch **joysticks** replacing the d-pad: arcade (one stick, up=drive, L/R=turn; default) and
-  tank (two vertical sticks = left/right side), with a scheme toggle (remembered in localStorage). Both
-  produce `t,y` client-side; streams the live command at 10 Hz.
-- *6b* — **PWA**: iOS full-screen meta tags (`apple-mobile-web-app-capable`) + an inline car app icon
-  (data-URI PNG) → "Add to Home Screen" launches chrome-less.
-- *6c* — **captive portal** (`captive.{c,h}`): a minimal UDP DNS server on :53 answering every query with
-  192.168.4.1, plus an httpd 404 → 302 redirect to "/". Joining `ESP32-Car` auto-pops the control page
-  (verified on iPhone). `lwip` added to REQUIRES for the DNS socket.
+- *6a* — touch **joysticks**: arcade (default) and tank, with a scheme toggle (localStorage). Both produce
+  `t,y` client-side; streams the held command at 10 Hz.
+- *6b* — **PWA**: iOS full-screen meta tags + an inline car app icon (data-URI PNG) → "Add to Home Screen".
+- *6c* — captive portal was added then **removed** (see below).
 
-**🎉 Roadmap complete — Phases 1–6 all merged and verified on hardware: a WiFi-controlled 4WD RC car with
-tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA + captive portal.**
+**Done — web pult redesign (merged):** `main/web/index.html` reworked to a **landscape gamepad** layout,
+**Stealth/minimal** dark style (green accent via CSS vars), portrait "rotate" hint. Arcade = right stick +
+left throttle bar; tank = two corner sticks. Status pill (`connecting`/`connected`/`reconnecting`); sticks
+fade on WS loss. **Calibration redesigned** to a top-down car diagram: press Spin, tap the wheel that turned,
+pick direction — same `/calib*` protocol. (Design: `docs/.../specs/2026-06-08-web-ui-redesign.md`.) Full
+joystick deflection = `t,y = ±1` = duty 4095 = 100% PWM (max the firmware commands; real RPM is battery-bound).
+
+**Removed — captive portal:** the Phase 6c `captive.{c,h}` (DNS + 404 redirect auto-popup) was reverted on
+request — join `ESP32-Car`, then open `http://192.168.4.1/` manually. `app_main` no longer calls it; `lwip`
+dropped from REQUIRES.
+
+**🎉 Roadmap complete — Phases 1–6 merged and verified on hardware: a WiFi-controlled 4WD RC car with
+tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA, redesigned landscape pult.**
 
 **Deferred / optional future:**
 - **Ramp (slew-rate limit):** needs hardware tuning + a dedicated ~50 Hz ramp task (so single console
