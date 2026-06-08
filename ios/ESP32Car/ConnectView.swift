@@ -8,10 +8,10 @@ struct ConnectView: View {
         ZStack {
             p.bg.ignoresSafeArea()
             VStack(spacing: 16) {
-                Text("Машинка не найдена").font(.title3).foregroundStyle(p.text)
-                Text("Подключись к Wi-Fi «ESP32-Car»\n(пароль drive1234) в Настройках,\nзатем вернись в приложение.")
+                Text(L.connectTitle).font(.title3).foregroundStyle(p.text)
+                Text(L.connectBody)
                     .multilineTextAlignment(.center).foregroundStyle(p.muted)
-                Button("Открыть Настройки") {
+                Button(L.openSettings) {
                     if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                 }
                 .padding(.horizontal, 18).padding(.vertical, 10)

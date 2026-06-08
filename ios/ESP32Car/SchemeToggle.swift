@@ -6,8 +6,8 @@ struct SchemeToggle: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            seg("Arcade", "arcade")
-            seg("Tank", "tank")
+            seg(L.schemeArcade, "arcade")
+            seg(L.schemeTank, "tank")
         }
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(palette.line))

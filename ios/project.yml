@@ -24,6 +24,8 @@ targets:
       path: ESP32Car/Info.plist
       properties:
         CFBundleDisplayName: ESP32-Car
+        CFBundleDevelopmentRegion: ru
+        CFBundleLocalizations: [ru]
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

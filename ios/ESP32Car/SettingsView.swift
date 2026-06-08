@@ -12,18 +12,18 @@ struct SettingsView: View {
                     NavigationLink {
                         CalibrationView(palette: palette)
                     } label: {
-                        Label("Калибровка", systemImage: "gearshape.2")
+                        Label(L.settingsCalibration, systemImage: "gearshape.2")
                             .foregroundStyle(palette.text)
                     }
                     .listRowBackground(palette.panel)
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Настройки")
+            .navigationTitle(L.settingsTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Закрыть") { dismiss() }
+                    Button(L.close) { dismiss() }
                 }
             }
         }
