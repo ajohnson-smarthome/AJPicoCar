@@ -13,7 +13,6 @@
 #include "ws_control.h"
 #include "watchdog.h"
 #include "calib_api.h"
-#include "captive.h"
 
 static const char *TAG = "main";
 
@@ -72,7 +71,6 @@ void app_main(void) {
     ESP_ERROR_CHECK(http_server_start());
     ESP_ERROR_CHECK(ws_control_start());
     ESP_ERROR_CHECK(calib_api_start());
-    ESP_ERROR_CHECK(captive_start());
     watchdog_init(WDT_TIMEOUT_MS);
 
     console_init();
