@@ -7,67 +7,160 @@
   <style>
     body { font-family:-apple-system,system-ui,sans-serif; background:#111; color:#eee;
            display:flex; flex-direction:column; align-items:center; gap:14px;
-           height:100vh; margin:0; justify-content:center; touch-action:none; }
+           min-height:100vh; margin:0; justify-content:center; touch-action:none; }
+    h2 { margin:4px; font-size:1.2rem; }
+    .hidden { display:none !important; }
     #status { font-size:0.95rem; }
     .dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-right:6px;
            background:#c33; vertical-align:middle; }
     .dot.on { background:#3c3; }
-    .pad { display:grid; grid-template-columns:repeat(3,84px); grid-template-rows:repeat(3,84px);
-           gap:8px; }
-    button { font-size:1.6rem; border:none; border-radius:14px; background:#333; color:#eee; }
-    button:active { background:#3a6; }
+    .pad { display:grid; grid-template-columns:repeat(3,84px); grid-template-rows:repeat(3,84px); gap:8px; }
+    .pad button { font-size:1.6rem; }
     .fwd{grid-area:1/2;} .left{grid-area:2/1;} .stop{grid-area:2/2;background:#622;}
     .right{grid-area:2/3;} .back{grid-area:3/2;}
-    .note { font-size:0.75rem; color:#888; max-width:260px; text-align:center; }
+    button { border:none; border-radius:12px; background:#333; color:#eee; padding:12px 16px; font-size:1rem; }
+    button:active { background:#3a6; }
+    button:disabled { background:#222; color:#555; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:320px; }
+    .sel { background:#3a6 !important; }
+    .note { font-size:0.78rem; color:#888; max-width:300px; text-align:center; }
+    #link { background:#225; }
   </style>
 </head>
 <body>
-  <div id="status"><span class="dot" id="dot"></span><span id="txt">connecting…</span></div>
-  <div class="pad">
-    <button class="fwd"   data-ty="0.6,0">&#9650;</button>
-    <button class="left"  data-ty="0,-0.6">&#9664;</button>
-    <button class="stop"  data-ty="0,0">&#9632;</button>
-    <button class="right" data-ty="0,0.6">&#9654;</button>
-    <button class="back"  data-ty="-0.6,0">&#9660;</button>
-  </div>
-  <div class="note">Temporary test pad — hold to drive, release to stop. Joystick UI comes later.</div>
+  <!-- ======================= CALIBRATION ======================= -->
+  <section id="cal" class="hidden">
+    <h2>Calibration — step <span id="step">1</span>/4</h2>
+    <div class="note">Press “Spin” and watch which wheel turns. Tag its corner and which way it spun.</div>
+    <button id="spin">▶ Spin this motor</button>
+    <div>It spun:</div>
+    <div class="row">
+      <button class="dir" data-d="1">Forward</button>
+      <button class="dir" data-d="-1">Backward</button>
+    </div>
+    <div>This wheel is:</div>
+    <div class="row">
+      <button class="corner" data-c="FL">Front-Left</button>
+      <button class="corner" data-c="FR">Front-Right</button>
+      <button class="corner" data-c="RL">Rear-Left</button>
+      <button class="corner" data-c="RR">Rear-Right</button>
+    </div>
+    <button id="save" disabled>✔ Save &amp; Drive</button>
+    <div id="calmsg" class="note"></div>
+  </section>
+
+  <!-- ======================= DRIVE PAD ======================= -->
+  <section id="pad" class="hidden">
+    <div id="status"><span class="dot" id="dot"></span><span id="txt">connecting…</span></div>
+    <div class="pad">
+      <button class="fwd"   data-ty="0.6,0">&#9650;</button>
+      <button class="left"  data-ty="0,-0.6">&#9664;</button>
+      <button class="stop"  data-ty="0,0">&#9632;</button>
+      <button class="right" data-ty="0,0.6">&#9654;</button>
+      <button class="back"  data-ty="-0.6,0">&#9660;</button>
+    </div>
+    <button id="recal">⚙ Recalibrate</button>
+    <div class="note">Hold to drive, release to stop.</div>
+  </section>
+
   <script>
-    var dot = document.getElementById('dot');
-    var txt = document.getElementById('txt');
-    var ws;
-    function connect() {
-      ws = new WebSocket('ws://' + location.host + '/ws');
-      ws.onopen  = function(){ dot.classList.add('on'); txt.textContent = 'connected'; };
-      ws.onclose = function(){ dot.classList.remove('on'); txt.textContent = 'disconnected — retrying'; setTimeout(connect, 1000); };
-      ws.onerror = function(){ ws.close(); };
-    }
-    function send(ty) { if (ws && ws.readyState === 1) ws.send(ty); }
+  // ---------- view switching + first-connect gating ----------
+  var calView = document.getElementById('cal');
+  var padView = document.getElementById('pad');
+  function show(el) { calView.classList.add('hidden'); padView.classList.add('hidden'); el.classList.remove('hidden'); }
 
-    // Stream the held command at 10 Hz so the motor gets a SUSTAINED drive
-    // (a single press is otherwise too brief — and primes the Phase 4 watchdog).
-    var held = null, timer = null;
-    function startHold(ty) {
-      held = ty;
-      send(ty);
-      if (!timer) timer = setInterval(function(){ if (held) send(held); }, 100);
-    }
-    function release() {
-      held = null;
-      if (timer) { clearInterval(timer); timer = null; }
-      send('0,0');
-    }
+  fetch('/calib').then(function(r){ return r.json(); })
+    .then(function(j){ if (j.calibrated) startPad(); else startCal(); })
+    .catch(function(){ startCal(); });
 
-    var btns = document.querySelectorAll('button[data-ty]');
-    for (var i = 0; i < btns.length; i++) {
-      (function(b){
-        var ty = b.getAttribute('data-ty');
-        b.addEventListener('pointerdown',  function(e){ e.preventDefault(); startHold(ty); });
-        b.addEventListener('pointerup',     function(e){ e.preventDefault(); release(); });
-        b.addEventListener('pointercancel', function(){ release(); });
-        b.addEventListener('pointerleave',  function(){ release(); });
-      })(btns[i]);
+  // ---------- calibration wizard ----------
+  var cp = 0;                 // current channel pair 0..3
+  var picked = { dir: null, corner: null };
+  var assign = {};           // corner -> {pair, sign}
+  var usedCorners = {};
+
+  function startCal() {
+    cp = 0; assign = {}; usedCorners = {};
+    resetStep();
+    show(calView);
+  }
+  function resetStep() {
+    picked.dir = null; picked.corner = null;
+    document.getElementById('step').textContent = (cp + 1);
+    document.querySelectorAll('.dir').forEach(function(b){ b.classList.remove('sel'); });
+    document.querySelectorAll('.corner').forEach(function(b){
+      b.classList.remove('sel');
+      b.disabled = !!usedCorners[b.dataset.c];
+    });
+    document.getElementById('save').disabled = true;
+    document.getElementById('calmsg').textContent = '';
+  }
+  document.getElementById('spin').addEventListener('click', function(){
+    fetch('/calib/spin', { method:'POST', body: cp + ',1' });
+    document.getElementById('calmsg').textContent = 'spinning pair ' + cp + '…';
+  });
+  document.querySelectorAll('.dir').forEach(function(b){
+    b.addEventListener('click', function(){
+      picked.dir = parseInt(b.dataset.d, 10);
+      document.querySelectorAll('.dir').forEach(function(x){ x.classList.remove('sel'); });
+      b.classList.add('sel'); maybeAssign();
+    });
+  });
+  document.querySelectorAll('.corner').forEach(function(b){
+    b.addEventListener('click', function(){
+      if (b.disabled) return;
+      picked.corner = b.dataset.c;
+      document.querySelectorAll('.corner').forEach(function(x){ x.classList.remove('sel'); });
+      b.classList.add('sel'); maybeAssign();
+    });
+  });
+  function maybeAssign() {
+    if (picked.dir === null || !picked.corner) return;
+    assign[picked.corner] = { pair: cp, sign: picked.dir };
+    usedCorners[picked.corner] = true;
+    cp++;
+    if (cp < 4) { resetStep(); }
+    else {
+      document.getElementById('save').disabled = false;
+      document.getElementById('calmsg').textContent = 'All 4 tagged — press Save.';
     }
-    connect();
+  }
+  document.getElementById('save').addEventListener('click', function(){
+    var order = ['FL','FR','RL','RR'];
+    var body = order.map(function(c){ return assign[c].pair + ':' + assign[c].sign; }).join(',');
+    fetch('/calib/save', { method:'POST', body: body }).then(function(r){
+      if (r.ok) startPad();
+      else { document.getElementById('calmsg').textContent = 'Save failed — retry.'; startCal(); }
+    }).catch(function(){ document.getElementById('calmsg').textContent = 'Save error.'; });
+  });
+
+  // ---------- drive pad (WebSocket, 10 Hz hold stream) ----------
+  var ws, dot = document.getElementById('dot'), txt = document.getElementById('txt');
+  var wsStarted = false;
+  function startPad() {
+    show(padView);
+    if (!wsStarted) { wsStarted = true; connect(); bindPad(); }
+  }
+  function connect() {
+    ws = new WebSocket('ws://' + location.host + '/ws');
+    ws.onopen  = function(){ dot.classList.add('on'); txt.textContent = 'connected'; };
+    ws.onclose = function(){ dot.classList.remove('on'); txt.textContent = 'disconnected — retrying'; setTimeout(connect, 1000); };
+    ws.onerror = function(){ ws.close(); };
+  }
+  function send(ty) { if (ws && ws.readyState === 1) ws.send(ty); }
+  var held = null, timer = null;
+  function startHold(ty) { held = ty; send(ty); if (!timer) timer = setInterval(function(){ if (held) send(held); }, 100); }
+  function release() { held = null; if (timer) { clearInterval(timer); timer = null; } send('0,0'); }
+  function bindPad() {
+    document.querySelectorAll('#pad button[data-ty]').forEach(function(b){
+      var ty = b.getAttribute('data-ty');
+      b.addEventListener('pointerdown',  function(e){ e.preventDefault(); startHold(ty); });
+      b.addEventListener('pointerup',     function(e){ e.preventDefault(); release(); });
+      b.addEventListener('pointercancel', function(){ release(); });
+      b.addEventListener('pointerleave',  function(){ release(); });
+    });
+  }
+  document.getElementById('recal').addEventListener('click', function(){ release(); startCal(); });
   </script>
 </body>
 </html>
