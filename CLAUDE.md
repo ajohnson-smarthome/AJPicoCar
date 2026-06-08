@@ -162,16 +162,16 @@ Pure `watchdog_stale()` host-tested (incl. 32-bit rollover). Console path NOT un
 usable). Also: `car_drive` mutex wait bounded to 200 ms, drive log → LOGD. **Hardware auto-stop test still
 pending (needs user).**
 
-**Partly done — Phase 5 foundation (merged):** `calibration.{c,h}` — NVS persistence of the `motors_config_t`
-table + host-tested inline `calibration_valid` (4 unique channel pairs, signs ±1, deadzone in [0,1)).
-`car_init` now loads it from NVS, **falling back to the default mapping if absent/invalid (driving never
-breaks)**; added `car_set_calibration()` and `car_spin_pair()` (raw single-pair spin for identification).
-NVS init reordered before `car_init`. **Remaining Phase 5 (needs user — plan: `docs/.../phase5-calibration.md`):**
-`/calib*` REST endpoints (Task 3), the calibration screen + first-connect gating in `index.html` (Task 4),
-and the actual on-wheels calibration (Task 5).
+**Done — Phase 5 (merged, verified on hardware):** motor **calibration**. `calibration.{c,h}` — NVS
+persistence of the `motors_config_t` table + host-tested `calibration_valid` (4 unique channel pairs,
+signs ±1, deadzone in [0,1)). `car_init` loads it from NVS, **falling back to the default mapping if
+absent/invalid**; `car_set_calibration()` + `car_spin_pair()` (raw single-pair spin). `calib_api.{c,h}` —
+REST `GET /calib`, `POST /calib/spin`, `POST /calib/save` on the shared httpd. `index.html` gates on
+`GET /calib`: first connect → 4-step wizard (spin each pair, tag corner FL/FR/RL/RR + direction) → save →
+d-pad; "⚙ Recalibrate" button. User calibrated on the bench: spin/identify/save/drive all work, persists.
 
-**Next:** finish Phase 5 UI/endpoints (with user), then Phase 6 — captive-portal + PWA + both control
-schemes (arcade / tank) joystick UI (replaces the temporary d-pad).
+**Next:** Phase 6 — captive-portal (Safari auto-opens the pad) + PWA (add-to-home-screen) + real
+touch joysticks with both control schemes (arcade / tank), replacing the temporary d-pad.
 
 **Deferred — Ramp (slew-rate limit):** needs hardware tuning + a dedicated ~50 Hz ramp task (so single
 console commands still reach full speed). Design sketch in `docs/superpowers/plans/2026-06-08-phase4-watchdog.md`.
