@@ -13,6 +13,8 @@ struct DriveView: View {
     @State private var curT = 0.0
     @State private var curY = 0.0
     @State private var showSettings = false
+    @State private var showCalib = false
+    @State private var didPromptCalib = false
 
     @StateObject private var pad = Gamepad()
     @State private var haptics = Haptics()
@@ -108,6 +110,17 @@ struct DriveView: View {
         .onReceive(pad.$rightY) { _ in push() }
         .onReceive(pad.$connected) { _ in push() }
         .sheet(isPresented: $showSettings) { SettingsView(palette: p) }
+        .onReceive(status.$calibrated) { cal in
+            if cal == false && !didPromptCalib { didPromptCalib = true; showCalib = true }
+        }
+        .sheet(isPresented: $showCalib) {
+            NavigationStack {
+                CalibrationView(palette: p)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) { Button("Позже") { showCalib = false } }
+                    }
+            }
+        }
     }
 
     private var statusLine: String {

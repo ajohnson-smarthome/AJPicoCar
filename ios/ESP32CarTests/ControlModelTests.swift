@@ -59,4 +59,8 @@ final class ControlModelTests: XCTestCase {
         let ex = ControlModel.trajectoryPoints(t: 0.08, y: 1, length: 120, steps: 24)
         for i in 1..<ex.count { XCTAssertLessThan(ex[i].y, ex[i - 1].y) }
     }
+    func testCalibSaveBody() {
+        let a: [Corner: (pair: Int, sign: Int)] = [.fl: (0, 1), .fr: (1, -1), .rl: (2, 1), .rr: (3, -1)]
+        XCTAssertEqual(ControlModel.calibSaveBody(a), "0:1,1:-1,2:1,3:-1")
+    }
 }

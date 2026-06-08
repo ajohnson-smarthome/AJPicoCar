@@ -3,6 +3,8 @@ import CoreGraphics
 
 enum Scheme: String { case arcade, tank }
 
+enum Corner: String, CaseIterable { case fl, fr, rl, rr }
+
 enum DiagramState { case idle, drive, spin }
 
 /// Pure mapping from joystick axes to the firmware's (throttle, yaw) in [-1,1].
@@ -27,6 +29,15 @@ enum ControlModel {
         let m = Swift.max(abs(l), abs(r), 1)
         l /= m; r /= m
         return (l, r)
+    }
+
+    /// Build the /calib/save body "p:s,p:s,p:s,p:s" in FL,FR,RL,RR order.
+    /// Missing corners default to (0, 1) — the wizard only calls this when all 4 are set.
+    static func calibSaveBody(_ a: [Corner: (pair: Int, sign: Int)]) -> String {
+        Corner.allCases.map { c in
+            let v = a[c] ?? (pair: 0, sign: 1)
+            return "\(v.pair):\(v.sign)"
+        }.joined(separator: ",")
     }
 
     /// Wire frame "t,y" with two decimals (matches the web pad / firmware parser).
