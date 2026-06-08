@@ -2,13 +2,15 @@ import SwiftUI
 
 @main
 struct ESP32CarApp: App {
+    @StateObject private var conn = CarConnection()
     var body: some Scene {
         WindowGroup {
-            Text("ESP32-Car")
-                .font(.title)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black.ignoresSafeArea())
+            ZStack {
+                DriveView(conn: conn)
+                if conn.state == .offline { ConnectView() }
+            }
+            .statusBarHidden(true)
+            .persistentSystemOverlays(.hidden)
         }
     }
 }
