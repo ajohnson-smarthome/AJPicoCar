@@ -61,7 +61,7 @@ struct DriveView: View {
 
             HStack(spacing: 34) {
                 sideLabel("L", sides.left)
-                WheelsView(left: sides.left, right: sides.right, palette: p)
+                DriveDiagram(t: curT, y: curY, palette: p)
                 sideLabel("R", sides.right)
             }
 
