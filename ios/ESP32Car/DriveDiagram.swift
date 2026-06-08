@@ -122,20 +122,25 @@ struct DriveDiagram: View {
         let spin = time.truncatingRemainder(dividingBy: 3.0) / 3.0 * 360.0 * sp
         c.rotate(by: .degrees(spin))
 
-        let r: CGFloat = 50
-        let sweep = 110.0
-        for base in [0.0, 180.0] {                            // two arcs 180° apart = ↻
-            let a0 = base + 20.0
-            let a1 = a0 + sweep
-            var arc = Path()
-            arc.addArc(center: .zero, radius: r, startAngle: .degrees(a0), endAngle: .degrees(a1), clockwise: false)
-            c.stroke(arc, with: .color(palette.accent), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-            // arrowhead at the leading end, aligned to the arc tangent (travel direction)
-            let leadDeg = sp > 0 ? a1 : a0
-            let lr = leadDeg * Double.pi / 180
-            let tip = CGPoint(x: Foundation.cos(lr) * Double(r), y: Foundation.sin(lr) * Double(r))
-            let tanAng = lr + (sp > 0 ? Double.pi / 2 : -Double.pi / 2)
-            c.fill(arrowHead(tip: tip, angle: tanAng, size: 13), with: .color(palette.accent))
+        let r = 50.0
+        let sweep = 110.0 * Double.pi / 180                   // arc span
+        let n = 20
+        for base in [0.0, Double.pi] {                        // two arcs 180° apart = ↻
+            // sample the arc as a polyline so the end + tangent are unambiguous
+            let start = base - sp * sweep / 2
+            var pts: [CGPoint] = []
+            for i in 0...n {
+                let a = start + sp * sweep * Double(i) / Double(n)
+                pts.append(CGPoint(x: Foundation.cos(a) * r, y: Foundation.sin(a) * r))
+            }
+            var path = Path()
+            path.move(to: pts[0])
+            for p in pts.dropFirst() { path.addLine(to: p) }
+            c.stroke(path, with: .color(palette.accent), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+            // arrowhead at the true end, pointing along the last segment
+            let last = pts[pts.count - 1], prev = pts[pts.count - 2]
+            let dir = Foundation.atan2(Double(last.y - prev.y), Double(last.x - prev.x))
+            c.fill(arrowHead(tip: last, angle: dir, size: 13), with: .color(palette.accent))
         }
     }
 
