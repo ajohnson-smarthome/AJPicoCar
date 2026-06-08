@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct ESP32CarApp: App {
     @StateObject private var conn = CarConnection()
+    @Environment(\.scenePhase) private var phase
     var body: some Scene {
         WindowGroup {
             ZStack {
@@ -11,6 +12,9 @@ struct ESP32CarApp: App {
             }
             .statusBarHidden(true)
             .persistentSystemOverlays(.hidden)
+            .onChange(of: phase) { newPhase in
+                if newPhase != .active { conn.pause() }  // stop streaming in background
+            }
         }
     }
 }

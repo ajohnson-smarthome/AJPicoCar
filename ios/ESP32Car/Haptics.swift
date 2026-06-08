@@ -7,6 +7,10 @@ final class Haptics {
     init() {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
         engine = try? CHHapticEngine()
+        // Restart after an audio-session interruption (call/Siri) leaves it stopped.
+        engine?.stoppedHandler = { [weak self] _ in
+            Task { @MainActor in try? self?.engine?.start() }
+        }
         try? engine?.start()
     }
 

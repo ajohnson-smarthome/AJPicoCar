@@ -14,6 +14,10 @@ final class CarConnection: ObservableObject {
     /// Latest driving intent; streamed at 10 Hz while connected.
     func setCommand(_ s: String) { command = s }
 
+    /// Zero the streamed command — called when the app leaves the foreground so a
+    /// backgrounded-but-still-connected app can't keep the car driving.
+    func pause() { command = "0.00,0.00" }
+
     func start() {
         guard !started else { return }
         started = true
@@ -58,6 +62,7 @@ final class CarConnection: ObservableObject {
     }
 
     private func drop() {
+        guard task != nil else { return }  // already dropped — avoid double reconnect
         task?.cancel(with: .goingAway, reason: nil)
         task = nil
         state = .offline

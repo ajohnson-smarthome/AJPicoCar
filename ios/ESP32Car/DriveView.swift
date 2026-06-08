@@ -81,6 +81,7 @@ struct DriveView: View {
         .onReceive(pad.$leftX) { _ in push() }
         .onReceive(pad.$leftY) { _ in push() }
         .onReceive(pad.$rightY) { _ in push() }
+        .onReceive(pad.$connected) { _ in push() }  // zero out if a gamepad disconnects mid-drive
     }
 }
 

@@ -16,7 +16,10 @@ final class Gamepad: ObservableObject {
         attach(GCController.controllers().first)
     }
 
-    @objc private func changed() { attach(GCController.controllers().first) }
+    @objc private func changed() {
+        // NotificationCenter may post off the main queue; hop to the actor.
+        Task { @MainActor in self.attach(GCController.controllers().first) }
+    }
 
     private func attach(_ c: GCController?) {
         connected = (c?.extendedGamepad != nil)
