@@ -5,26 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>ESP32-Car</title>
   <style>
+    html,body { height:100%; }
     body { font-family:-apple-system,system-ui,sans-serif; background:#111; color:#eee;
-           display:flex; flex-direction:column; align-items:center; gap:14px;
-           min-height:100vh; margin:0; justify-content:center; touch-action:none; }
+           display:flex; flex-direction:column; align-items:center; gap:12px;
+           margin:0; justify-content:center; touch-action:none; overflow:hidden; }
     h2 { margin:4px; font-size:1.2rem; }
     .hidden { display:none !important; }
-    #status { font-size:0.95rem; }
+    #status { font-size:0.9rem; }
     .dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-right:6px;
            background:#c33; vertical-align:middle; }
     .dot.on { background:#3c3; }
-    .pad { display:grid; grid-template-columns:repeat(3,84px); grid-template-rows:repeat(3,84px); gap:8px; }
-    .pad button { font-size:1.6rem; }
-    .fwd{grid-area:1/2;} .left{grid-area:2/1;} .stop{grid-area:2/2;background:#622;}
-    .right{grid-area:2/3;} .back{grid-area:3/2;}
     button { border:none; border-radius:12px; background:#333; color:#eee; padding:12px 16px; font-size:1rem; }
     button:active { background:#3a6; }
     button:disabled { background:#222; color:#555; }
     .row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:320px; }
     .sel { background:#3a6 !important; }
     .note { font-size:0.78rem; color:#888; max-width:300px; text-align:center; }
-    #link { background:#225; }
+    .corner button { font-size:1.6rem; }
+
+    /* joysticks */
+    #sticks { display:flex; gap:40px; align-items:center; justify-content:center; }
+    .base { width:150px; height:150px; border-radius:50%; background:#1c1c1c;
+            border:2px solid #333; position:relative; touch-action:none; }
+    .base.vert { width:90px; height:170px; border-radius:45px; }
+    .knob { width:64px; height:64px; border-radius:50%; background:#3a6;
+            position:absolute; left:50%; top:50%; margin:-32px 0 0 -32px; will-change:transform; }
+    .topbar { display:flex; gap:10px; align-items:center; }
   </style>
 </head>
 <body>
@@ -39,59 +45,56 @@
       <button class="dir" data-d="-1">Backward</button>
     </div>
     <div>This wheel is:</div>
-    <div class="row">
-      <button class="corner" data-c="FL">Front-Left</button>
-      <button class="corner" data-c="FR">Front-Right</button>
-      <button class="corner" data-c="RL">Rear-Left</button>
-      <button class="corner" data-c="RR">Rear-Right</button>
+    <div class="row corner">
+      <button class="cn" data-c="FL">FL</button>
+      <button class="cn" data-c="FR">FR</button>
+      <button class="cn" data-c="RL">RL</button>
+      <button class="cn" data-c="RR">RR</button>
     </div>
     <button id="save" disabled>✔ Save &amp; Drive</button>
     <div id="calmsg" class="note"></div>
   </section>
 
-  <!-- ======================= DRIVE PAD ======================= -->
+  <!-- ======================= DRIVE ======================= -->
   <section id="pad" class="hidden">
-    <div id="status"><span class="dot" id="dot"></span><span id="txt">connecting…</span></div>
-    <div class="pad">
-      <button class="fwd"   data-ty="0.6,0">&#9650;</button>
-      <button class="left"  data-ty="0,-0.6">&#9664;</button>
-      <button class="stop"  data-ty="0,0">&#9632;</button>
-      <button class="right" data-ty="0,0.6">&#9654;</button>
-      <button class="back"  data-ty="-0.6,0">&#9660;</button>
+    <div class="topbar">
+      <span id="status"><span class="dot" id="dot"></span><span id="txt">connecting…</span></span>
+      <button id="scheme">Arcade</button>
     </div>
+
+    <div id="sticks">
+      <!-- arcade: single stick -->
+      <div id="arcadeWrap">
+        <div class="base" id="arcBase"><div class="knob" id="arcKnob"></div></div>
+      </div>
+      <!-- tank: two vertical sticks -->
+      <div id="tankWrap" class="hidden" style="display:flex; gap:40px;">
+        <div class="base vert" id="lBase"><div class="knob" id="lKnob"></div></div>
+        <div class="base vert" id="rBase"><div class="knob" id="rKnob"></div></div>
+      </div>
+    </div>
+
     <button id="recal">⚙ Recalibrate</button>
-    <div class="note">Hold to drive, release to stop.</div>
+    <div class="note" id="padnote">Arcade: up = drive, left/right = turn.</div>
   </section>
 
   <script>
-  // ---------- view switching + first-connect gating ----------
   var calView = document.getElementById('cal');
   var padView = document.getElementById('pad');
-  function show(el) { calView.classList.add('hidden'); padView.classList.add('hidden'); el.classList.remove('hidden'); }
+  function show(el){ calView.classList.add('hidden'); padView.classList.add('hidden'); el.classList.remove('hidden'); }
 
   fetch('/calib').then(function(r){ return r.json(); })
     .then(function(j){ if (j.calibrated) startPad(); else startCal(); })
     .catch(function(){ startCal(); });
 
-  // ---------- calibration wizard ----------
-  var cp = 0;                 // current channel pair 0..3
-  var picked = { dir: null, corner: null };
-  var assign = {};           // corner -> {pair, sign}
-  var usedCorners = {};
-
-  function startCal() {
-    cp = 0; assign = {}; usedCorners = {};
-    resetStep();
-    show(calView);
-  }
-  function resetStep() {
-    picked.dir = null; picked.corner = null;
-    document.getElementById('step').textContent = (cp + 1);
+  // ---------------- calibration wizard ----------------
+  var cp = 0, picked = { dir:null, corner:null }, assign = {}, used = {};
+  function startCal(){ cp=0; assign={}; used={}; resetStep(); show(calView); }
+  function resetStep(){
+    picked.dir=null; picked.corner=null;
+    document.getElementById('step').textContent = (cp+1);
     document.querySelectorAll('.dir').forEach(function(b){ b.classList.remove('sel'); });
-    document.querySelectorAll('.corner').forEach(function(b){
-      b.classList.remove('sel');
-      b.disabled = !!usedCorners[b.dataset.c];
-    });
+    document.querySelectorAll('.cn').forEach(function(b){ b.classList.remove('sel'); b.disabled=!!used[b.dataset.c]; });
     document.getElementById('save').disabled = true;
     document.getElementById('calmsg').textContent = '';
   }
@@ -99,68 +102,90 @@
     fetch('/calib/spin', { method:'POST', body: cp + ',1' });
     document.getElementById('calmsg').textContent = 'spinning pair ' + cp + '…';
   });
-  document.querySelectorAll('.dir').forEach(function(b){
-    b.addEventListener('click', function(){
-      picked.dir = parseInt(b.dataset.d, 10);
-      document.querySelectorAll('.dir').forEach(function(x){ x.classList.remove('sel'); });
-      b.classList.add('sel'); maybeAssign();
-    });
-  });
-  document.querySelectorAll('.corner').forEach(function(b){
-    b.addEventListener('click', function(){
-      if (b.disabled) return;
-      picked.corner = b.dataset.c;
-      document.querySelectorAll('.corner').forEach(function(x){ x.classList.remove('sel'); });
-      b.classList.add('sel'); maybeAssign();
-    });
-  });
-  function maybeAssign() {
-    if (picked.dir === null || !picked.corner) return;
-    assign[picked.corner] = { pair: cp, sign: picked.dir };
-    usedCorners[picked.corner] = true;
-    cp++;
-    if (cp < 4) { resetStep(); }
-    else {
-      document.getElementById('save').disabled = false;
-      document.getElementById('calmsg').textContent = 'All 4 tagged — press Save.';
-    }
+  document.querySelectorAll('.dir').forEach(function(b){ b.addEventListener('click', function(){
+    picked.dir = parseInt(b.dataset.d,10);
+    document.querySelectorAll('.dir').forEach(function(x){ x.classList.remove('sel'); }); b.classList.add('sel'); maybeAssign();
+  });});
+  document.querySelectorAll('.cn').forEach(function(b){ b.addEventListener('click', function(){
+    if (b.disabled) return; picked.corner = b.dataset.c;
+    document.querySelectorAll('.cn').forEach(function(x){ x.classList.remove('sel'); }); b.classList.add('sel'); maybeAssign();
+  });});
+  function maybeAssign(){
+    if (picked.dir===null || !picked.corner) return;
+    assign[picked.corner] = { pair:cp, sign:picked.dir }; used[picked.corner]=true; cp++;
+    if (cp<4) resetStep();
+    else { document.getElementById('save').disabled=false; document.getElementById('calmsg').textContent='All 4 tagged — press Save.'; }
   }
   document.getElementById('save').addEventListener('click', function(){
-    var order = ['FL','FR','RL','RR'];
-    var body = order.map(function(c){ return assign[c].pair + ':' + assign[c].sign; }).join(',');
-    fetch('/calib/save', { method:'POST', body: body }).then(function(r){
-      if (r.ok) startPad();
-      else { document.getElementById('calmsg').textContent = 'Save failed — retry.'; startCal(); }
-    }).catch(function(){ document.getElementById('calmsg').textContent = 'Save error.'; });
+    var order=['FL','FR','RL','RR'];
+    var body=order.map(function(c){ return assign[c].pair+':'+assign[c].sign; }).join(',');
+    fetch('/calib/save',{method:'POST',body:body}).then(function(r){
+      if (r.ok) startPad(); else { document.getElementById('calmsg').textContent='Save failed — retry.'; startCal(); }
+    }).catch(function(){ document.getElementById('calmsg').textContent='Save error.'; });
   });
 
-  // ---------- drive pad (WebSocket, 10 Hz hold stream) ----------
-  var ws, dot = document.getElementById('dot'), txt = document.getElementById('txt');
-  var wsStarted = false;
-  function startPad() {
-    show(padView);
-    if (!wsStarted) { wsStarted = true; connect(); bindPad(); }
-  }
-  function connect() {
-    ws = new WebSocket('ws://' + location.host + '/ws');
-    ws.onopen  = function(){ dot.classList.add('on'); txt.textContent = 'connected'; };
-    ws.onclose = function(){ dot.classList.remove('on'); txt.textContent = 'disconnected — retrying'; setTimeout(connect, 1000); };
+  // ---------------- WebSocket ----------------
+  var ws, dot=document.getElementById('dot'), txt=document.getElementById('txt'), wsStarted=false;
+  function connect(){
+    ws = new WebSocket('ws://'+location.host+'/ws');
+    ws.onopen  = function(){ dot.classList.add('on'); txt.textContent='connected'; };
+    ws.onclose = function(){ dot.classList.remove('on'); txt.textContent='disconnected — retrying'; setTimeout(connect,1000); };
     ws.onerror = function(){ ws.close(); };
   }
-  function send(ty) { if (ws && ws.readyState === 1) ws.send(ty); }
-  var held = null, timer = null;
-  function startHold(ty) { held = ty; send(ty); if (!timer) timer = setInterval(function(){ if (held) send(held); }, 100); }
-  function release() { held = null; if (timer) { clearInterval(timer); timer = null; } send('0,0'); }
-  function bindPad() {
-    document.querySelectorAll('#pad button[data-ty]').forEach(function(b){
-      var ty = b.getAttribute('data-ty');
-      b.addEventListener('pointerdown',  function(e){ e.preventDefault(); startHold(ty); });
-      b.addEventListener('pointerup',     function(e){ e.preventDefault(); release(); });
-      b.addEventListener('pointercancel', function(){ release(); });
-      b.addEventListener('pointerleave',  function(){ release(); });
-    });
+  function send(s){ if (ws && ws.readyState===1) ws.send(s); }
+
+  // ---------------- joysticks ----------------
+  function clamp(v){ return v<-1?-1:(v>1?1:v); }
+  function makeStick(base, knob, vertical){
+    var v={x:0,y:0}, active=false, pid=null;
+    function setKnob(dx,dy){ knob.style.transform='translate('+dx+'px,'+dy+'px)'; }
+    function reset(){ v.x=0; v.y=0; setKnob(0,0); }
+    function move(e){
+      var r=base.getBoundingClientRect(), R=Math.min(r.width,r.height)/2;
+      var dx=e.clientX-(r.left+r.width/2), dy=e.clientY-(r.top+r.height/2);
+      if (vertical) dx=0;
+      var d=Math.hypot(dx,dy); if (d>R){ dx=dx/d*R; dy=dy/d*R; }
+      setKnob(dx,dy); v.x=clamp(dx/R); v.y=clamp(dy/R);
+    }
+    base.addEventListener('pointerdown', function(e){ active=true; pid=e.pointerId; base.setPointerCapture(pid); e.preventDefault(); move(e); });
+    base.addEventListener('pointermove', function(e){ if(active && e.pointerId===pid) move(e); });
+    function end(e){ if(active){ active=false; reset(); } }
+    base.addEventListener('pointerup', end);
+    base.addEventListener('pointercancel', end);
+    return v;
   }
-  document.getElementById('recal').addEventListener('click', function(){ release(); startCal(); });
+  var arc = makeStick(document.getElementById('arcBase'), document.getElementById('arcKnob'), false);
+  var lft = makeStick(document.getElementById('lBase'),  document.getElementById('lKnob'),  true);
+  var rgt = makeStick(document.getElementById('rBase'),  document.getElementById('rKnob'),  true);
+
+  var scheme = localStorage.getItem('scheme') || 'arcade';
+  function applyScheme(){
+    var arcadeOn = (scheme==='arcade');
+    document.getElementById('arcadeWrap').classList.toggle('hidden', !arcadeOn);
+    document.getElementById('tankWrap').classList.toggle('hidden', arcadeOn);
+    document.getElementById('scheme').textContent = arcadeOn ? 'Arcade' : 'Tank';
+    document.getElementById('padnote').textContent = arcadeOn
+      ? 'Arcade: up = drive, left/right = turn.'
+      : 'Tank: left stick = left side, right stick = right side.';
+  }
+  document.getElementById('scheme').addEventListener('click', function(){
+    scheme = (scheme==='arcade') ? 'tank' : 'arcade';
+    localStorage.setItem('scheme', scheme); applyScheme();
+  });
+
+  function command(){
+    var t, y;
+    if (scheme==='arcade'){ t = -arc.y; y = arc.x; }           // up = +throttle
+    else { var L=-lft.y, R=-rgt.y; t=(L+R)/2; y=(L-R)/2; }      // tank -> t,y
+    return clamp(t).toFixed(2) + ',' + clamp(y).toFixed(2);
+  }
+
+  // ---------------- pad lifecycle ----------------
+  function startPad(){
+    show(padView); applyScheme();
+    if (!wsStarted){ wsStarted=true; connect(); setInterval(function(){ send(command()); }, 100); }
+  }
+  document.getElementById('recal').addEventListener('click', function(){ startCal(); });
   </script>
 </body>
 </html>
