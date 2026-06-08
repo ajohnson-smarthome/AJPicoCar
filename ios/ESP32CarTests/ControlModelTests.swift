@@ -40,4 +40,18 @@ final class ControlModelTests: XCTestCase {
         let s = ControlModel.sides(t: 0.5, y: 0.5)
         XCTAssertTrue(close(s.left, 1) && close(s.right, 0))
     }
+    func testDiagramState() {
+        XCTAssertEqual(ControlModel.diagramState(t: 0.8, y: 0), .drive)
+        XCTAssertEqual(ControlModel.diagramState(t: 0, y: 0.7), .spin)
+        XCTAssertEqual(ControlModel.diagramState(t: 0, y: 0), .idle)
+    }
+    func testCurvature() {
+        XCTAssertEqual(ControlModel.curvature(t: 1, y: 0), 0, accuracy: 1e-9)
+        XCTAssertTrue(ControlModel.curvature(t: 1, y: 0.5) > 0)
+        XCTAssertTrue(ControlModel.curvature(t: 1, y: -0.5) < 0)
+    }
+    func testTrajectoryStraightVsCurved() {
+        XCTAssertLessThan(abs(ControlModel.trajectoryPoints(t: 1, y: 0, length: 100, steps: 24).last!.x), 1e-6)
+        XCTAssertGreaterThan(abs(ControlModel.trajectoryPoints(t: 1, y: 0.6, length: 100, steps: 24).last!.x), 5)
+    }
 }
