@@ -1,0 +1,54 @@
+name: ESP32Car
+options:
+  bundleIdPrefix: com.adamjohnson
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  ESP32Car:
+    type: application
+    platform: iOS
+    sources:
+      - ESP32Car
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.adamjohnson.esp32car
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: ESP32Car/Info.plist
+    info:
+      path: ESP32Car/Info.plist
+      properties:
+        CFBundleDisplayName: ESP32-Car
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSLocalNetworkUsageDescription: "Connects to the ESP32-Car over local Wi-Fi to drive it."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  ESP32CarTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - ESP32CarTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+    dependencies:
+      - target: ESP32Car
+schemes:
+  ESP32Car:
+    build:
+      targets:
+        ESP32Car: all
+        ESP32CarTests: [test]
+    test:
+      targets:
+        - ESP32CarTests
