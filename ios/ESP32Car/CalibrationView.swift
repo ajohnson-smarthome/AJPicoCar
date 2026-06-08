@@ -23,7 +23,7 @@ struct CalibrationView: View {
             }
             .padding(20)
         }
-        .navigationTitle("Калибровка")
+        .navigationTitle(L.calibTitle)
         .navigationBarTitleDisplayMode(.inline)
         .tint(palette.accent)
         .onAppear {
@@ -78,26 +78,26 @@ struct CalibrationView: View {
     private var rightPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             segments
-            Text("Шаг \(min(step + 1, 4)) из 4").font(.headline).foregroundStyle(palette.text)
+            Text(L.calibStep(min(step + 1, 4))).font(.headline).foregroundStyle(palette.text)
 
             if let c = pending {
-                Text("Колесо \(c.label) — куда крутилось?")
+                Text(L.calibWhichDir(c.label))
                     .font(.subheadline).foregroundStyle(palette.muted)
                 HStack(spacing: 10) {
-                    Button { assignDir(1) } label: { Label("вперёд", systemImage: "arrow.up") }
+                    Button { assignDir(1) } label: { Label(L.calibForward, systemImage: "arrow.up") }
                         .buttonStyle(.bordered).tint(palette.accent)
-                    Button { assignDir(-1) } label: { Label("назад", systemImage: "arrow.down") }
+                    Button { assignDir(-1) } label: { Label(L.calibBack, systemImage: "arrow.down") }
                         .buttonStyle(.bordered).tint(palette.warn)
                 }
             } else if step < 4 {
-                Text("Крутится мотор \(step + 1) — тапни колесо, которое поехало.")
+                Text(L.calibSpinPrompt(step + 1))
                     .font(.subheadline).foregroundStyle(palette.muted)
                     .fixedSize(horizontal: false, vertical: true)
-                Button { spin() } label: { Label("Spin", systemImage: "play.fill") }
+                Button { spin() } label: { Label(L.calibSpin, systemImage: "play.fill") }
                     .buttonStyle(.borderedProminent).tint(palette.accent)
             } else {
-                Text("Все колёса размечены.").font(.subheadline).foregroundStyle(palette.muted)
-                Button { save() } label: { Label("Save", systemImage: "checkmark") }
+                Text(L.calibAllSet).font(.subheadline).foregroundStyle(palette.muted)
+                Button { save() } label: { Label(L.calibSave, systemImage: "checkmark") }
                     .buttonStyle(.borderedProminent).tint(palette.accent).disabled(saving)
             }
 
@@ -141,7 +141,7 @@ struct CalibrationView: View {
         Task {
             let ok = await client.save(body: ControlModel.calibSaveBody(assign))
             saving = false
-            if ok { dismiss() } else { errMsg = "Сохранение не прошло — повтори." }
+            if ok { dismiss() } else { errMsg = L.calibSaveFailed }
         }
     }
 }

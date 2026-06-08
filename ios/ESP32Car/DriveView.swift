@@ -52,7 +52,7 @@ struct DriveView: View {
                 HStack {
                     HStack(spacing: 7) {
                         Circle().fill(status.online ? p.accent : Color.orange).frame(width: 8, height: 8)
-                        Text(status.online ? "connected · \(status.pingMs ?? 0) ms" : "searching…")
+                        Text(status.online ? L.driveConnected(status.pingMs ?? 0) : L.driveSearching)
                             .font(.system(size: 12)).foregroundStyle(p.muted)
                     }
                     Spacer()
@@ -73,9 +73,9 @@ struct DriveView: View {
             }
 
             HStack(spacing: 34) {
-                sideLabel("L", sides.left)
+                sideLabel(L.sideLeft, sides.left)
                 DriveDiagram(t: curT, y: curY, palette: p)
-                sideLabel("R", sides.right)
+                sideLabel(L.sideRight, sides.right)
             }
 
             VStack {
@@ -117,16 +117,16 @@ struct DriveView: View {
             NavigationStack {
                 CalibrationView(palette: p)
                     .toolbar {
-                        ToolbarItem(placement: .cancellationAction) { Button("Позже") { showCalib = false } }
+                        ToolbarItem(placement: .cancellationAction) { Button(L.later) { showCalib = false } }
                     }
             }
         }
     }
 
     private var statusLine: String {
-        let up = status.uptimeS.map { "up \($0)s" } ?? "up —"
-        let cal = (status.calibrated ?? false) ? "calib ✓" : "calib ✗"
-        let fw = status.fw.map { "fw \($0)" } ?? "fw —"
+        let up = status.uptimeS.map { L.driveUptime($0) } ?? L.driveUptimeUnknown
+        let cal = (status.calibrated ?? false) ? L.driveCalibYes : L.driveCalibNo
+        let fw = status.fw.map { L.driveFw($0) } ?? L.driveFwUnknown
         return "\(up) · \(cal) · \(fw)"
     }
 
