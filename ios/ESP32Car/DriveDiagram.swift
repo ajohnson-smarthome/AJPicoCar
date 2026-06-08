@@ -137,10 +137,10 @@ struct DriveDiagram: View {
             path.move(to: pts[0])
             for p in pts.dropFirst() { path.addLine(to: p) }
             c.stroke(path, with: .color(palette.accent), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-            // arrowhead at the START of the arc, pointing along the arc (toward the next point)
-            let first = pts[0], next = pts[1]
-            let dir = Foundation.atan2(Double(next.y - first.y), Double(next.x - first.x))
-            c.fill(arrowHead(tip: first, angle: dir, size: 13), with: .color(palette.accent))
+            // arrowhead at the END of the arc, pointing along the last segment (travel direction)
+            let last = pts[pts.count - 1], prev = pts[pts.count - 2]
+            let dir = Foundation.atan2(Double(last.y - prev.y), Double(last.x - prev.x))
+            c.fill(arrowHead(tip: last, angle: dir, size: 13), with: .color(palette.accent))
         }
     }
 
