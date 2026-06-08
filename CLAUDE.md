@@ -197,3 +197,54 @@ tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration,
   mid-drive → car must stop in ~300 ms, log `wdt: no control frame ...`; console `mix` must NOT auto-stop).
 - **Power:** USB CDC port drops under motor load (VBUS sags) — power the logic from a stable 5 V separate
   from the motor supply if flashing-while-driving is needed.
+
+## Native iOS app (`ios/`)
+
+A SwiftUI phone pult that drives the same firmware over the existing WiFi/WS/REST API. **XcodeGen project**
+(`ios/project.yml` → `ESP32Car.xcodeproj`; the `.xcodeproj` is generated and gitignored — version `project.yml`).
+Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-localized.
+
+- **Firmware companion:** `main/status_api.{c,h}` adds `GET /status` →
+  `{"device":"esp32-car","fw":..,"uptime_s":..,"calibrated":..,"heap":..}` — a signed identity + telemetry the app
+  polls (positive "am I on the car's network" check, no SSID entitlement needed). Registered in `app_main` after
+  the http server. (Calibration uses the pre-existing `/calib`, `/calib/spin`, `/calib/save`.)
+
+### iOS structure (`ios/ESP32Car/`)
+- `ControlModel.swift` — **pure** (Foundation/CoreGraphics): scheme math (`arcade`/`tank`/`sides`/`frame`),
+  `diagramState`/`curvature`/`trajectoryPoints` (bounded arc, never loops), `calibSaveBody`, `Corner`. Host-tested
+  natively with `swiftc` (no simulator needed) + mirrored XCTest.
+- `CarHost.swift` — `#if targetEnvironment(simulator)` → `127.0.0.1:8080` (mock), else `192.168.4.1`. Single source
+  of the WS/HTTP address. `CarConnection.swift` (WS `/ws`, 10 Hz stream, reconnect, `pause()` on background),
+  `CarStatus.swift` (polls `/status` 1.5 s, debounced offline, ping/uptime/calibrated/fw).
+- `DriveView.swift` — B1 landscape layout (status pill + scheme toggle + ⚙ top; `L · DriveDiagram · R` center;
+  status line bottom; joysticks bottom corners). `DriveDiagram.swift` — animated `Canvas`: chevron-tread wheels +
+  predicted-trajectory rails (green fwd / amber reverse) or spin indicator (↻ + counter wheels). `JoystickView`,
+  `SchemeToggle`, `Gamepad` (GameController), `Haptics` (CoreHaptics), `Theme.swift` (warm palettes).
+- `SettingsView.swift` (⚙ sheet) → `CalibrationView.swift` (split-layout wizard: Spin pair → tap turned wheel →
+  direction → save, via `CalibClient.swift`). Auto-prompts when `/status` says `calibrated=false`.
+- `L.swift` + `Resources/ru.lproj/Localizable.strings` — all UI text via `enum L` over `NSLocalizedString`
+  (`CFBundleDevelopmentRegion=ru`; add `en.lproj` for a 2nd language). No Cyrillic literals in views.
+
+### Build & run the iOS app
+- **On iPhone:** `open ios/ESP32Car.xcodeproj` → set Team (free Apple ID) in Signing → Run on device. Join WiFi
+  `ESP32-Car`, allow Local Network. Free signing expires in 7 days (just Run again).
+- **In the Simulator, no hardware** (the dev workflow this session used): start the **mock car** —
+  `cd tools/mock_car && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` then
+  `nohup .venv/bin/python -u mock_car.py >/tmp/mock_car.log 2>&1 &` (aiohttp on `127.0.0.1:8080`, serves
+  `/status`+`/ws`+`/calib*`; `calibrated` flag starts false, set true on save). Then:
+  ```bash
+  cd ios && xcodegen generate
+  xcodebuild build -scheme ESP32Car -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/ddata
+  xcrun simctl boot "iPhone 17"; open -a Simulator
+  xcrun simctl install booted "$(find /tmp/ddata/Build/Products -name ESP32Car.app|head -1)"
+  xcrun simctl launch booted com.adamjohnson.esp32car
+  ```
+  The app auto-targets the localhost mock in the simulator (via `CarHost`); on device it targets `192.168.4.1`.
+  Screenshot: `xcrun simctl io booted screenshot /tmp/x.png`.
+
+### iOS gotchas
+- **Pure modules are host-tested with `swiftc` natively** (e.g. `swiftc ios/ESP32Car/ControlModel.swift check.swift main.swift && ./a.out`) — no XCTest/simulator runtime required. SwiftUI parts are compile-checked with `xcodebuild -sdk iphonesimulator26.2`.
+- **The Simulator reports a phantom game controller** (`pad.connected == true`), so the touch joystick is gated on
+  actual gamepad deflection — otherwise idle "gamepad" input masks touch (`DriveView.push()`).
+- Build SDK is `iphonesimulator26.2` but the installed **runtime is iOS 26.3** — that's fine (build vs run).
+- Simulator strings show Russian even on an English simulator because `CFBundleDevelopmentRegion=ru`.
