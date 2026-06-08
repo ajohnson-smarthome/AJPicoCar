@@ -8,42 +8,53 @@ struct CalibrationView: View {
     @State private var assign: [Corner: (pair: Int, sign: Int)] = [:]
     @State private var pending: Corner?
     @State private var saving = false
-    @State private var msg = "Нажми Spin и смотри, какое колесо крутится."
+    @State private var errMsg: String?
+    @State private var pulse = false
     private let client = CalibClient()
+
+    private var identifying: Bool { pending == nil && step < 4 }
 
     var body: some View {
         ZStack {
             palette.bg.ignoresSafeArea()
-            VStack(spacing: 14) {
-                Text("Шаг \(min(step + 1, 4))/4").font(.headline).foregroundStyle(palette.text)
-                diagram
-                HStack(spacing: 10) {
-                    Button { spin() } label: { Label("Spin", systemImage: "play.fill") }
-                        .buttonStyle(.borderedProminent).tint(palette.accent).disabled(step >= 4)
-                    if pending != nil {
-                        Button { assignDir(1) } label: { Label("вперёд", systemImage: "arrow.up") }.tint(palette.accent)
-                        Button { assignDir(-1) } label: { Label("назад", systemImage: "arrow.down") }.tint(palette.warn)
-                    }
-                    Button { save() } label: { Label("Save", systemImage: "checkmark") }
-                        .disabled(step < 4 || saving)
-                }
-                Text(msg).font(.footnote).foregroundStyle(palette.muted).multilineTextAlignment(.center)
+            HStack(spacing: 20) {
+                carPanel
+                rightPanel
             }
-            .padding()
+            .padding(20)
         }
         .navigationTitle("Калибровка")
         .navigationBarTitleDisplayMode(.inline)
         .tint(palette.accent)
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.1).repeatForever(autoreverses: false)) { pulse = true }
+        }
     }
 
-    private var diagram: some View {
+    // MARK: left — car (with concentric pulse)
+    private var carPanel: some View {
+        carDiagram.frame(maxWidth: .infinity)
+    }
+
+    private var carDiagram: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12).fill(palette.panel)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(palette.line))
-                .frame(width: 92, height: 132)
+            // pulse halo — concentric with the body, expands outward while identifying
+            if identifying {
+                RoundedRectangle(cornerRadius: 13).stroke(palette.warn, lineWidth: 2)
+                    .frame(width: 64, height: 98)
+                    .scaleEffect(pulse ? 1.32 : 1.0)
+                    .opacity(pulse ? 0 : 0.55)
+                    .animation(.easeOut(duration: 1.1).repeatForever(autoreverses: false), value: pulse)
+            }
+            RoundedRectangle(cornerRadius: 13).fill(palette.panel)
+                .overlay(RoundedRectangle(cornerRadius: 13).stroke(palette.line))
+                .frame(width: 64, height: 98)
+            RoundedRectangle(cornerRadius: 4).fill(palette.bg.opacity(0.7))
+                .frame(width: 34, height: 12).offset(y: -31)
             ForEach(Corner.allCases, id: \.self) { wheelButton($0) }
         }
-        .frame(width: 170, height: 170)
+        .scaleEffect(1.4)
+        .frame(width: 150, height: 190)
     }
 
     private func wheelButton(_ c: Corner) -> some View {
@@ -52,44 +63,91 @@ struct CalibrationView: View {
         let fill = assigned ? palette.accent : (isPending ? palette.warn : palette.idleWheel)
         return Button { tap(c) } label: {
             Text(assigned ? "✓" : c.label)
-                .font(.system(size: 12, weight: .bold))
-                .frame(width: 32, height: 42)
+                .font(.system(size: 10, weight: .bold))
+                .frame(width: 22, height: 32)
                 .background(fill)
                 .foregroundStyle(palette.bg)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+                .shadow(color: isPending ? palette.warn.opacity(0.9) : .clear, radius: 6)
         }
         .disabled(assigned)
         .offset(x: c.dx, y: c.dy)
     }
 
+    // MARK: right — steps / actions
+    private var rightPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            segments
+            Text("Шаг \(min(step + 1, 4)) из 4").font(.headline).foregroundStyle(palette.text)
+
+            if let c = pending {
+                Text("Колесо \(c.label) — куда крутилось?")
+                    .font(.subheadline).foregroundStyle(palette.muted)
+                HStack(spacing: 10) {
+                    Button { assignDir(1) } label: { Label("вперёд", systemImage: "arrow.up") }
+                        .buttonStyle(.bordered).tint(palette.accent)
+                    Button { assignDir(-1) } label: { Label("назад", systemImage: "arrow.down") }
+                        .buttonStyle(.bordered).tint(palette.warn)
+                }
+            } else if step < 4 {
+                Text("Крутится мотор \(step + 1) — тапни колесо, которое поехало.")
+                    .font(.subheadline).foregroundStyle(palette.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button { spin() } label: { Label("Spin", systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent).tint(palette.accent)
+            } else {
+                Text("Все колёса размечены.").font(.subheadline).foregroundStyle(palette.muted)
+                Button { save() } label: { Label("Save", systemImage: "checkmark") }
+                    .buttonStyle(.borderedProminent).tint(palette.accent).disabled(saving)
+            }
+
+            if let e = errMsg {
+                Text(e).font(.caption).foregroundStyle(palette.warn)
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var segments: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<4, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(i <= step && step < 4 || i < step ? palette.accent : palette.line)
+                    .frame(width: 28, height: 4)
+                    .shadow(color: i == step && step < 4 ? palette.accent.opacity(0.8) : .clear, radius: 4)
+            }
+        }
+    }
+
+    // MARK: logic (unchanged behavior)
     private func spin() {
+        errMsg = nil
         Task { await client.spin(pair: step, dir: 1) }
-        msg = "Кручу мотор \(step + 1)… тапни колесо, что крутится."
     }
     private func tap(_ c: Corner) {
         guard assign[c] == nil else { return }
         pending = c
-        msg = "Куда крутилось колесо \(c.label)?"
     }
     private func assignDir(_ sign: Int) {
         guard let c = pending else { return }
         assign[c] = (pair: step, sign: sign)
         pending = nil
         step += 1
-        msg = step < 4 ? "Жми Spin для следующего мотора." : "Все 4 размечены — жми Save."
     }
     private func save() {
         saving = true
+        errMsg = nil
         Task {
             let ok = await client.save(body: ControlModel.calibSaveBody(assign))
             saving = false
-            if ok { dismiss() } else { msg = "Сохранение не прошло — повтори." }
+            if ok { dismiss() } else { errMsg = "Сохранение не прошло — повтори." }
         }
     }
 }
 
 private extension Corner {
     var label: String { rawValue.uppercased() }
-    var dx: CGFloat { (self == .fl || self == .rl) ? -54 : 54 }
-    var dy: CGFloat { (self == .fl || self == .fr) ? -46 : 46 }
+    var dx: CGFloat { (self == .fl || self == .rl) ? -33 : 33 }
+    var dy: CGFloat { (self == .fl || self == .fr) ? -36 : 36 }
 }
