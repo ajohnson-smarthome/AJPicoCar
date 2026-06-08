@@ -26,7 +26,8 @@ struct DriveView: View {
 
     private func push() {
         let c: (t: Double, y: Double)
-        if pad.connected {
+        let padActive = pad.connected && (abs(pad.leftX) > 0.03 || abs(pad.leftY) > 0.03 || abs(pad.rightY) > 0.03)
+        if padActive {
             if scheme == .arcade { c = ControlModel.arcade(stickX: pad.leftX, stickY: -pad.leftY) }
             else { c = ControlModel.tank(leftStickY: -pad.leftY, rightStickY: -pad.rightY) }
         } else if scheme == .arcade {
