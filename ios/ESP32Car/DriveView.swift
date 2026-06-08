@@ -9,6 +9,9 @@ struct DriveView: View {
     @State private var leftY = 0.0
     @State private var rightY = 0.0
 
+    @StateObject private var pad = Gamepad()
+    @State private var haptics = Haptics()
+
     init(conn: CarConnection) {
         _conn = ObservedObject(wrappedValue: conn)
     }
@@ -17,8 +20,15 @@ struct DriveView: View {
 
     private func push() {
         let c: (t: Double, y: Double)
-        if scheme == .arcade { c = ControlModel.arcade(stickX: arcX, stickY: arcY) }
-        else { c = ControlModel.tank(leftStickY: leftY, rightStickY: rightY) }
+        if pad.connected {
+            // gamepad: up = +1, negate to the screen-Y convention the model expects
+            if scheme == .arcade { c = ControlModel.arcade(stickX: pad.leftX, stickY: -pad.leftY) }
+            else { c = ControlModel.tank(leftStickY: -pad.leftY, rightStickY: -pad.rightY) }
+        } else if scheme == .arcade {
+            c = ControlModel.arcade(stickX: arcX, stickY: arcY)
+        } else {
+            c = ControlModel.tank(leftStickY: leftY, rightStickY: rightY)
+        }
         conn.setCommand(ControlModel.frame(t: c.t, y: c.y))
     }
     private var throttle: Double {
@@ -48,8 +58,11 @@ struct DriveView: View {
                 HStack {
                     ThrottleBar(value: throttle).padding(.leading, 30)
                     Spacer()
-                    JoystickView { x, y in arcX = x; arcY = y; push() }
-                        .padding(.trailing, 24)
+                    JoystickView { x, y in
+                        if arcX == 0 && arcY == 0 && (x != 0 || y != 0) { haptics.tick() }
+                        arcX = x; arcY = y; push()
+                    }
+                    .padding(.trailing, 24)
                 }
                 .padding(.bottom, 24)
                 .frame(maxHeight: .infinity, alignment: .bottom)
@@ -65,6 +78,9 @@ struct DriveView: View {
         }
         .opacity(conn.state == .offline ? 0.4 : 1)
         .onAppear { conn.start() }
+        .onReceive(pad.$leftX) { _ in push() }
+        .onReceive(pad.$leftY) { _ in push() }
+        .onReceive(pad.$rightY) { _ in push() }
     }
 }
 
