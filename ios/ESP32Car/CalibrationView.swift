@@ -31,22 +31,21 @@ struct CalibrationView: View {
         }
     }
 
-    // MARK: left — car + pulse
+    // MARK: left — car (with concentric pulse)
     private var carPanel: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(palette.warn, lineWidth: 3)
-                .frame(width: 130, height: 170)
-                .scaleEffect(pulse ? 1.18 : 0.9)
-                .opacity(identifying ? (pulse ? 0 : 0.5) : 0)
-                .animation(.easeOut(duration: 1.1).repeatForever(autoreverses: false), value: pulse)
-            carDiagram
-        }
-        .frame(maxWidth: .infinity)
+        carDiagram.frame(maxWidth: .infinity)
     }
 
     private var carDiagram: some View {
         ZStack {
+            // pulse halo — concentric with the body, expands outward while identifying
+            if identifying {
+                RoundedRectangle(cornerRadius: 13).stroke(palette.warn, lineWidth: 2)
+                    .frame(width: 64, height: 98)
+                    .scaleEffect(pulse ? 1.32 : 1.0)
+                    .opacity(pulse ? 0 : 0.55)
+                    .animation(.easeOut(duration: 1.1).repeatForever(autoreverses: false), value: pulse)
+            }
             RoundedRectangle(cornerRadius: 13).fill(palette.panel)
                 .overlay(RoundedRectangle(cornerRadius: 13).stroke(palette.line))
                 .frame(width: 64, height: 98)
@@ -55,7 +54,7 @@ struct CalibrationView: View {
             ForEach(Corner.allCases, id: \.self) { wheelButton($0) }
         }
         .scaleEffect(1.4)
-        .frame(width: 130, height: 170)
+        .frame(width: 150, height: 190)
     }
 
     private func wheelButton(_ c: Corner) -> some View {
@@ -149,6 +148,6 @@ struct CalibrationView: View {
 
 private extension Corner {
     var label: String { rawValue.uppercased() }
-    var dx: CGFloat { (self == .fl || self == .rl) ? -48 : 48 }
-    var dy: CGFloat { (self == .fl || self == .fr) ? -40 : 40 }
+    var dx: CGFloat { (self == .fl || self == .rl) ? -33 : 33 }
+    var dy: CGFloat { (self == .fl || self == .fr) ? -36 : 36 }
 }
