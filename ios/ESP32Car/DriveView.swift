@@ -108,7 +108,10 @@ struct DriveView: View {
     private func sideLabel(_ name: String, _ v: Double) -> some View {
         VStack(spacing: 2) {
             Text(name).font(.system(size: 13)).foregroundStyle(p.accent)
-            Text("\(Int(v * 100))%").font(.system(size: 15, weight: .semibold)).foregroundStyle(p.accent)
+            Text("\(Int(v * 100))%")
+                .font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                .foregroundStyle(p.accent)
         }
+        .frame(width: 64)  // fixed width so the car doesn't shift as the % text changes
     }
 }
