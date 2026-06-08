@@ -18,6 +18,14 @@ enum ControlModel {
         return (clamp((l + r) / 2), clamp((l - r) / 2))
     }
 
+    /// Mixer: throttle/yaw -> normalized left/right side speeds in [-1,1] (mirrors the firmware).
+    static func sides(t: Double, y: Double) -> (left: Double, right: Double) {
+        var l = t + y, r = t - y
+        let m = Swift.max(abs(l), abs(r), 1)
+        l /= m; r /= m
+        return (l, r)
+    }
+
     /// Wire frame "t,y" with two decimals (matches the web pad / firmware parser).
     static func frame(t: Double, y: Double) -> String {
         String(format: "%.2f,%.2f", clamp(t), clamp(y))

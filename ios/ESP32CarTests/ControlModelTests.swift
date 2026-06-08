@@ -28,4 +28,16 @@ final class ControlModelTests: XCTestCase {
     func testFrame() {
         XCTAssertEqual(ControlModel.frame(t: 0.5, y: -1), "0.50,-1.00")
     }
+    func testSidesForward() {
+        let s = ControlModel.sides(t: 1, y: 0)
+        XCTAssertTrue(close(s.left, 1) && close(s.right, 1))
+    }
+    func testSidesSpin() {
+        let s = ControlModel.sides(t: 0, y: 1)
+        XCTAssertTrue(close(s.left, 1) && close(s.right, -1))
+    }
+    func testSidesArcNormalized() {
+        let s = ControlModel.sides(t: 0.5, y: 0.5)
+        XCTAssertTrue(close(s.left, 1) && close(s.right, 0))
+    }
 }
