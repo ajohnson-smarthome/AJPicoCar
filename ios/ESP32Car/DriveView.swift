@@ -12,6 +12,7 @@ struct DriveView: View {
     @State private var rightY = 0.0
     @State private var curT = 0.0
     @State private var curY = 0.0
+    @State private var showSettings = false
 
     @StateObject private var pad = Gamepad()
     @State private var haptics = Haptics()
@@ -54,6 +55,16 @@ struct DriveView: View {
                     }
                     Spacer()
                     SchemeToggle(scheme: $schemeRaw, palette: p)
+                    Button { showSettings = true } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 15))
+                            .foregroundStyle(p.muted)
+                            .frame(width: 34, height: 28)
+                            .background(p.panel)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(p.line))
+                    }
+                    .padding(.leading, 8)
                 }
                 .padding(.horizontal, 18).padding(.top, 8)
                 Spacer()
@@ -96,6 +107,7 @@ struct DriveView: View {
         .onReceive(pad.$leftY) { _ in push() }
         .onReceive(pad.$rightY) { _ in push() }
         .onReceive(pad.$connected) { _ in push() }
+        .sheet(isPresented: $showSettings) { SettingsView(palette: p) }
     }
 
     private var statusLine: String {
