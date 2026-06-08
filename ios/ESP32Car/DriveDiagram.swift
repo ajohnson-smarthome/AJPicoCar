@@ -117,24 +117,38 @@ struct DriveDiagram: View {
     private func drawSpin(_ ctx: inout GraphicsContext, center: CGPoint, time: Double) {
         var c = ctx
         c.translateBy(x: center.x, y: center.y)
-        let dirSign: Double = y >= 0 ? 1 : -1
-        let ang = (time.truncatingRemainder(dividingBy: 2.8) / 2.8) * 2 * Double.pi * dirSign
-        c.rotate(by: .radians(ang))
-        let r: CGFloat = 52
-        for s in [CGFloat(1), CGFloat(-1)] {
-            var t2 = c
-            t2.rotate(by: .degrees(s > 0 ? 0 : 180))
+        let sp: Double = y >= 0 ? 1 : -1                       // rotation direction
+        // gentle continuous rotation so it reads as "spinning"
+        let spin = time.truncatingRemainder(dividingBy: 3.0) / 3.0 * 360.0 * sp
+        c.rotate(by: .degrees(spin))
+
+        let r: CGFloat = 50
+        let sweep = 110.0
+        for base in [0.0, 180.0] {                            // two arcs 180° apart = ↻
+            let a0 = base + 20.0
+            let a1 = a0 + sweep
             var arc = Path()
-            arc.addArc(center: .zero, radius: r, startAngle: .degrees(-40), endAngle: .degrees(50), clockwise: false)
-            t2.stroke(arc, with: .color(palette.accent), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-            let a = CGFloat.pi / 180 * 50
-            let tip = CGPoint(x: Foundation.cos(a) * r, y: Foundation.sin(a) * r)
-            var head = Path()
-            head.move(to: CGPoint(x: tip.x - 5, y: tip.y - 1))
-            head.addLine(to: CGPoint(x: tip.x + 4, y: tip.y + 3))
-            head.addLine(to: CGPoint(x: tip.x - 2, y: tip.y + 7))
-            head.closeSubpath()
-            t2.fill(head, with: .color(palette.accent))
+            arc.addArc(center: .zero, radius: r, startAngle: .degrees(a0), endAngle: .degrees(a1), clockwise: false)
+            c.stroke(arc, with: .color(palette.accent), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+            // arrowhead at the leading end, aligned to the arc tangent (travel direction)
+            let leadDeg = sp > 0 ? a1 : a0
+            let lr = leadDeg * Double.pi / 180
+            let tip = CGPoint(x: Foundation.cos(lr) * Double(r), y: Foundation.sin(lr) * Double(r))
+            let tanAng = lr + (sp > 0 ? Double.pi / 2 : -Double.pi / 2)
+            c.fill(arrowHead(tip: tip, angle: tanAng, size: 13), with: .color(palette.accent))
         }
+    }
+
+    /// Filled triangular arrowhead with its tip at `tip`, pointing toward `angle` (radians).
+    private func arrowHead(tip: CGPoint, angle: Double, size: CGFloat) -> Path {
+        let back = angle + Double.pi
+        var p = Path()
+        p.move(to: tip)
+        p.addLine(to: CGPoint(x: tip.x + Foundation.cos(back + 0.5) * Double(size),
+                              y: tip.y + Foundation.sin(back + 0.5) * Double(size)))
+        p.addLine(to: CGPoint(x: tip.x + Foundation.cos(back - 0.5) * Double(size),
+                              y: tip.y + Foundation.sin(back - 0.5) * Double(size)))
+        p.closeSubpath()
+        return p
     }
 }
