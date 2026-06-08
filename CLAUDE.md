@@ -162,13 +162,23 @@ Pure `watchdog_stale()` host-tested (incl. 32-bit rollover). Console path NOT un
 usable). Also: `car_drive` mutex wait bounded to 200 ms, drive log → LOGD. **Hardware auto-stop test still
 pending (needs user).**
 
-**Next — WiFi RC car with web pult (spec: `docs/superpowers/specs/2026-06-07-4wd-rc-tank-turn-design.md`):**
-5. Calibration screen (assign FL/FR/RL/RR + direction) persisted in NVS — gate on first connect
-6. Captive-portal + PWA + both control schemes (arcade / tank)
+**Partly done — Phase 5 foundation (merged):** `calibration.{c,h}` — NVS persistence of the `motors_config_t`
+table + host-tested inline `calibration_valid` (4 unique channel pairs, signs ±1, deadzone in [0,1)).
+`car_init` now loads it from NVS, **falling back to the default mapping if absent/invalid (driving never
+breaks)**; added `car_set_calibration()` and `car_spin_pair()` (raw single-pair spin for identification).
+NVS init reordered before `car_init`. **Remaining Phase 5 (needs user — plan: `docs/.../phase5-calibration.md`):**
+`/calib*` REST endpoints (Task 3), the calibration screen + first-connect gating in `index.html` (Task 4),
+and the actual on-wheels calibration (Task 5).
+
+**Next:** finish Phase 5 UI/endpoints (with user), then Phase 6 — captive-portal + PWA + both control
+schemes (arcade / tank) joystick UI (replaces the temporary d-pad).
 
 **Deferred — Ramp (slew-rate limit):** needs hardware tuning + a dedicated ~50 Hz ramp task (so single
 console commands still reach full speed). Design sketch in `docs/superpowers/plans/2026-06-08-phase4-watchdog.md`.
 
-**Phase-5 (calibration) plan notes:** spin one motor (channel pair) at a time with short pulses; user tags
-its corner (FL/FR/RL/RR) + direction; store the `motors_config_t` table in NVS; gate the UI on first connect
-(`GET /calib` → if uncalibrated, calibration is the only screen). Replaces the hard-coded default `g_cfg` in `car.c`.
+### Needs hardware verification (do with the board, on a stand)
+- **Phase 4 watchdog:** drive from phone, then drop WiFi / close the tab mid-drive → car must auto-stop in
+  ~300 ms (log: `wdt: no control frame ...`). Console `mix` must NOT auto-stop.
+- **Phase 5 calibration:** after Tasks 3–4 are built — first connect shows the calibration screen; spin each
+  motor, tag corner+direction watching the wheels; save; verify the d-pad then drives correct wheels; power-
+  cycle → calibration persists.
