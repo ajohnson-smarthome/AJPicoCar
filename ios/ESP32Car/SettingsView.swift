@@ -10,7 +10,7 @@ struct SettingsView: View {
                 palette.bg.ignoresSafeArea()
                 List {
                     NavigationLink {
-                        CalibrationStub(palette: palette)
+                        CalibrationView(palette: palette)
                     } label: {
                         Label("Калибровка", systemImage: "gearshape.2")
                             .foregroundStyle(palette.text)
@@ -31,17 +31,3 @@ struct SettingsView: View {
     }
 }
 
-private struct CalibrationStub: View {
-    let palette: Palette
-    var body: some View {
-        ZStack {
-            palette.bg.ignoresSafeArea()
-            VStack(spacing: 12) {
-                Image(systemName: "gearshape.2").font(.largeTitle).foregroundStyle(palette.muted)
-                Text("Калибровка — в разработке").foregroundStyle(palette.text)
-            }
-        }
-        .navigationTitle("Калибровка")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
