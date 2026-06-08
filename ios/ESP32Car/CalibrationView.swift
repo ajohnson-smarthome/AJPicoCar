@@ -18,13 +18,14 @@ struct CalibrationView: View {
                 Text("Шаг \(min(step + 1, 4))/4").font(.headline).foregroundStyle(palette.text)
                 diagram
                 HStack(spacing: 10) {
-                    Button("▶ Spin") { spin() }
+                    Button { spin() } label: { Label("Spin", systemImage: "play.fill") }
                         .buttonStyle(.borderedProminent).tint(palette.accent).disabled(step >= 4)
                     if pending != nil {
-                        Button("↑ вперёд") { assignDir(1) }.tint(palette.accent)
-                        Button("↓ назад") { assignDir(-1) }.tint(palette.warn)
+                        Button { assignDir(1) } label: { Label("вперёд", systemImage: "arrow.up") }.tint(palette.accent)
+                        Button { assignDir(-1) } label: { Label("назад", systemImage: "arrow.down") }.tint(palette.warn)
                     }
-                    Button("✔ Save") { save() }.disabled(step < 4 || saving)
+                    Button { save() } label: { Label("Save", systemImage: "checkmark") }
+                        .disabled(step < 4 || saving)
                 }
                 Text(msg).font(.footnote).foregroundStyle(palette.muted).multilineTextAlignment(.center)
             }
