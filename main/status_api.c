@@ -22,6 +22,7 @@ static esp_err_t status_get(httpd_req_t *req) {
     int n = snprintf(buf, sizeof(buf),
         "{\"device\":\"esp32-car\",\"fw\":\"%s\",\"uptime_s\":%ld,\"calibrated\":%s,\"heap\":%u}",
         FW_VERSION, uptime_s, calibrated ? "true" : "false", (unsigned)heap);
+    if (n < 0 || n >= (int)sizeof(buf)) n = (int)sizeof(buf) - 1;  // guard against truncation
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, buf, n);
 }

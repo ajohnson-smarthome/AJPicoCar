@@ -10,6 +10,7 @@ final class CarStatus: ObservableObject {
 
     private let url = URL(string: "http://192.168.4.1/status")!
     private var timer: Timer?
+    private var failCount = 0
 
     func start() {
         guard timer == nil else { return }
@@ -37,11 +38,22 @@ final class CarStatus: ObservableObject {
             }
             Task { @MainActor in
                 guard let self else { return }
-                self.online = ok
-                self.pingMs = ok ? ms : nil
-                self.uptimeS = up
-                self.calibrated = cal
-                self.fw = fwv
+                if ok {
+                    self.failCount = 0
+                    self.online = true
+                    self.pingMs = ms
+                    self.uptimeS = up
+                    self.calibrated = cal
+                    self.fw = fwv
+                } else {
+                    // Debounce: only drop offline after two consecutive misses so a single
+                    // transient /status timeout can't hide the pad mid-drive.
+                    self.failCount += 1
+                    if self.failCount >= 2 {
+                        self.online = false
+                        self.pingMs = nil
+                    }
+                }
             }
         }.resume()
     }

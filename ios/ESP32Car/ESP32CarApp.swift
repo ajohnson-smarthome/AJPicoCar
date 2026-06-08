@@ -13,7 +13,6 @@ struct ESP32CarApp: App {
             }
             .statusBarHidden(true)
             .persistentSystemOverlays(.hidden)
-            .onAppear { status.start() }
             .onChange(of: phase) { newPhase in
                 if newPhase != .active { conn.pause() }
             }
