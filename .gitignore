@@ -13,3 +13,4 @@ ios/build/
 ios/ESP32Car.xcodeproj/
 ios/DerivedData/
 *.xcuserstate
+tools/mock_car/.venv/
