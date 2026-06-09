@@ -21,12 +21,12 @@ struct DriveDiagram: View {
                 render(&ctx, size, time: tl.date.timeIntervalSinceReferenceDate)
             }
         }
-        .frame(width: 150, height: 200)
+        .frame(width: 112, height: 200)
         .scaleEffect(1.32)   // car size (+10% then +20%)
     }
 
     private func render(_ ctx: inout GraphicsContext, _ size: CGSize, time: Double) {
-        let center = CGPoint(x: size.width / 2, y: size.height * 0.55)
+        let center = CGPoint(x: size.width / 2, y: size.height * 0.5)
         let sides = ControlModel.sides(t: t, y: y)
         switch ControlModel.diagramState(t: t, y: y) {
         case .drive: drawRails(&ctx, center: center)

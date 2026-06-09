@@ -74,7 +74,7 @@ struct DriveView: View {
                 Spacer()
             }
 
-            HStack(spacing: 44) {
+            HStack(spacing: 28) {
                 PowerBar(value: sides.left, palette: p)
                 DriveDiagram(t: curT, y: curY, palette: p)
                 PowerBar(value: sides.right, palette: p)
