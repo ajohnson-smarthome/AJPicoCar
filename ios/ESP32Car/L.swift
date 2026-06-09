@@ -21,10 +21,8 @@ enum L {
     static var calibSave: String { s("calib.save") }
     static var calibSaveFailed: String { s("calib.saveFailed") }
     static var driveSearching: String { s("drive.searching") }
-    static var driveUptimeUnknown: String { s("drive.uptimeUnknown") }
-    static var driveCalibYes: String { s("drive.calibYes") }
-    static var driveCalibNo: String { s("drive.calibNo") }
-    static var driveFwUnknown: String { s("drive.fwUnknown") }
+    static var driveCalibratedYes: String { s("drive.calibratedYes") }
+    static var driveCalibratedNo: String { s("drive.calibratedNo") }
     static var sideLeft: String { s("drive.sideLeft") }
     static var sideRight: String { s("drive.sideRight") }
     static var schemeArcade: String { s("scheme.arcade") }
@@ -33,6 +31,10 @@ enum L {
     static func calibWhichDir(_ wheel: String) -> String { s("calib.whichDir", wheel) }
     static func calibSpinPrompt(_ n: Int) -> String { s("calib.spinPrompt", n) }
     static func driveConnected(_ ms: Int) -> String { s("drive.connected", ms) }
-    static func driveUptime(_ sec: Int) -> String { s("drive.uptime", sec) }
-    static func driveFw(_ v: String) -> String { s("drive.fw", v) }
+    static func uptime(_ sec: Int) -> String {
+        if sec < 60 { return s("uptime.sec", sec) }
+        if sec < 3600 { return s("uptime.min", sec / 60) }
+        if sec < 86400 { return s("uptime.hourMin", sec / 3600, (sec % 3600) / 60) }
+        return s("uptime.day", sec / 86400)
+    }
 }
