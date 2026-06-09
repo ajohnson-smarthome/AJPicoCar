@@ -15,6 +15,7 @@
 #include "calib_api.h"
 #include "status_api.h"
 #include "ota_api.h"
+#include "ramp.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
 
@@ -70,6 +71,7 @@ void app_main(void) {
     }
     ESP_ERROR_CHECK(nvs);
 
+    ESP_ERROR_CHECK(ramp_init());   // start the sole PCA9685 writer before any car_* call
     car_init();
     ESP_ERROR_CHECK(wifi_ap_start(AP_SSID, AP_PASSWORD));
     ESP_ERROR_CHECK(http_server_start());
