@@ -5,6 +5,7 @@ import Foundation
 final class UpdateClient: NSObject, ObservableObject {
     struct Release { let tag: String; let assetURL: URL }
     @Published var uploadProgress: Double = 0
+    @Published var downloadProgress: Double = 0
 
     private let repo = "ajohnson-smarthome/AJPicoCar"
 
@@ -31,8 +32,11 @@ final class UpdateClient: NSObject, ObservableObject {
     }
 
     func download(_ url: URL) async -> URL? {
+        downloadProgress = 0
+        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        defer { session.finishTasksAndInvalidate() }
         do {
-            let (tmp, _) = try await URLSession.shared.download(from: url)
+            let (tmp, _) = try await session.download(from: url)
             let dest = FileManager.default.temporaryDirectory.appendingPathComponent("firmware.bin")
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.moveItem(at: tmp, to: dest)
@@ -55,11 +59,20 @@ final class UpdateClient: NSObject, ObservableObject {
     }
 }
 
-extension UpdateClient: URLSessionTaskDelegate {
+extension UpdateClient: URLSessionTaskDelegate, URLSessionDownloadDelegate {
     nonisolated func urlSession(_ session: URLSession, task: URLSessionTask,
                                 didSendBodyData bytesSent: Int64, totalBytesSent: Int64,
                                 totalBytesExpectedToSend: Int64) {
         let p = totalBytesExpectedToSend > 0 ? Double(totalBytesSent) / Double(totalBytesExpectedToSend) : 0
         Task { @MainActor in self.uploadProgress = p }
     }
+    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                                didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
+                                totalBytesExpectedToWrite: Int64) {
+        let p = totalBytesExpectedToWrite > 0 ? Double(totalBytesWritten) / Double(totalBytesExpectedToWrite) : 0
+        Task { @MainActor in self.downloadProgress = p }
+    }
+    // Required by URLSessionDownloadDelegate; async download(from:) consumes the file itself.
+    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                                didFinishDownloadingTo location: URL) { }
 }

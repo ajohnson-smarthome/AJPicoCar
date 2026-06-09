@@ -31,23 +31,26 @@ enum L {
     static func calibWhichDir(_ wheel: String) -> String { s("calib.whichDir", wheel) }
     static func calibSpinPrompt(_ n: Int) -> String { s("calib.spinPrompt", n) }
     static var settingsFirmware: String { s("settings.firmware") }
-    static var fwUpToDate: String { s("fw.upToDate") }
-    static var fwConnectCar: String { s("fw.connectCar") }
-    static var fwFlash: String { s("fw.flash") }
-    static var fwRebooting: String { s("fw.rebooting") }
-    static var fwFailed: String { s("fw.failed") }
-    static var fwDone: String { s("fw.done") }
     static var fwChecking: String { s("fw.checking") }
+    static var fwUpToDate: String { s("fw.upToDate") }
     static var fwRecheck: String { s("fw.recheck") }
+    static var fwAvailable: String { s("fw.available") }
     static var fwUpdate: String { s("fw.update") }
-    static var fwDownloadingGh: String { s("fw.downloadingGh") }
+    static var fwDownloadTitle: String { s("fw.downloadTitle") }
+    static var fwConnectTitle: String { s("fw.connectTitle") }
+    static var fwConnectSub: String { s("fw.connectSub") }
+    static var fwFlash: String { s("fw.flash") }
+    static var fwUploadTitle: String { s("fw.uploadTitle") }
+    static var fwRebootTitle: String { s("fw.rebootTitle") }
     static var fwRebootWait: String { s("fw.rebootWait") }
+    static var fwDoneTitle: String { s("fw.doneTitle") }
+    static var fwFailTitle: String { s("fw.failTitle") }
+    static var fwFailSub: String { s("fw.failSub") }
     static var fwRetry: String { s("fw.retry") }
     static func fwCurrent(_ v: String) -> String { s("fw.current", v) }
-    static func fwLatest(_ v: String) -> String { s("fw.latest", v) }
-    static func fwDownloaded(_ v: String) -> String { s("fw.downloaded", v) }
-    static func fwUploadingTag(_ v: String) -> String { s("fw.uploadingTag", v) }
-    static func fwVersion(_ v: String) -> String { s("fw.version", v) }
+    static func fwVersionLine(_ v: String) -> String { s("fw.versionLine", v) }
+    static func fwTransition(_ a: String, _ b: String) -> String { s("fw.transition", a, b) }
+    static func fwDoneSub(_ v: String) -> String { s("fw.doneSub", v) }
     static func driveConnected(_ ms: Int) -> String { s("drive.connected", ms) }
     static func uptime(_ sec: Int) -> String {
         if sec < 60 { return s("uptime.sec", sec) }

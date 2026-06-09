@@ -4,7 +4,6 @@ struct FirmwareView: View {
     let palette: Palette
     @ObservedObject var status: CarStatus
     @StateObject private var client = UpdateClient()
-    @Environment(\.dismiss) private var dismiss
 
     @State private var release: UpdateClient.Release?
     @State private var binURL: URL?
@@ -32,49 +31,47 @@ struct FirmwareView: View {
     }
 
     @ViewBuilder private var stateBlock: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 7) {
             switch phase {
             case .checking:
-                Text(L.fwCurrent(current)).foregroundStyle(p.text)
-                ProgressView(L.fwChecking).tint(p.accent)
+                title(L.fwChecking); sub(L.fwCurrent(current))
             case .upToDate:
-                Text(L.fwCurrent(current)).foregroundStyle(p.text)
-                Label(L.fwUpToDate, systemImage: "checkmark.seal").foregroundStyle(p.accent)
-                Button { Task { await check() } } label: { Label(L.fwRecheck, systemImage: "arrow.clockwise") }
-                    .buttonStyle(.bordered).tint(p.muted)
+                title(L.fwUpToDate); sub(L.fwVersionLine(current))
+                Button { Task { await check() } } label: { Text(L.fwRecheck) }
+                    .buttonStyle(.bordered).tint(p.muted).padding(.top, 2)
             case .available:
-                Text(L.fwCurrent(current)).foregroundStyle(p.text)
-                Text(L.fwLatest(release?.tag ?? "—")).foregroundStyle(p.accent)
-                Button { Task { await download() } } label: { Label(L.fwUpdate, systemImage: "arrow.down.circle") }
-                    .buttonStyle(.borderedProminent).tint(p.accent)
+                title(L.fwAvailable); sub(L.fwTransition(current, release?.tag ?? "—"))
+                Button { Task { await download() } } label: { Text(L.fwUpdate) }
+                    .buttonStyle(.borderedProminent).tint(p.accent).padding(.top, 2)
             case .downloading:
-                Text("\(current) → \(release?.tag ?? "")").font(.subheadline).foregroundStyle(p.muted)
-                Text(L.fwDownloadingGh).font(.caption).foregroundStyle(p.muted)
-                ProgressView().tint(p.accent)
+                title(L.fwDownloadTitle)
+                sub("\(L.fwTransition(current, release?.tag ?? "")) · \(Int(client.downloadProgress * 100))%")
+                ProgressView(value: client.downloadProgress).tint(p.accent).frame(width: 150)
             case .downloaded:
-                Label(L.fwDownloaded(release?.tag ?? ""), systemImage: "checkmark.circle").foregroundStyle(p.accent)
-                Text(L.fwConnectCar).font(.caption).foregroundStyle(p.warn)
-                Button { Task { await flash() } } label: { Label(L.fwFlash, systemImage: "bolt.fill") }
-                    .buttonStyle(.borderedProminent).tint(p.accent)
-                    .disabled(!status.online)
+                title(L.fwConnectTitle); sub(L.fwConnectSub)
+                Button { Task { await flash() } } label: { Text(L.fwFlash) }
+                    .buttonStyle(.borderedProminent).tint(p.accent).disabled(!status.online).padding(.top, 2)
             case .uploading:
-                Text(L.fwUploadingTag(release?.tag ?? "")).font(.subheadline).foregroundStyle(p.muted)
-                ProgressView(value: client.uploadProgress).tint(p.accent).frame(width: 160)
-                Text("\(Int(client.uploadProgress * 100))%").font(.caption).foregroundStyle(p.muted)
+                title(L.fwUploadTitle)
+                sub("\(release?.tag ?? "") · \(Int(client.uploadProgress * 100))%")
+                ProgressView(value: client.uploadProgress).tint(p.accent).frame(width: 150)
             case .rebooting:
-                ProgressView(L.fwRebooting).tint(p.accent)
-                Text(L.fwRebootWait).font(.caption).foregroundStyle(p.muted)
+                title(L.fwRebootTitle); sub(L.fwRebootWait)
             case .done:
-                Label(L.fwDone, systemImage: "checkmark.circle.fill").font(.headline).foregroundStyle(p.accent)
-                Text(L.fwVersion(current)).foregroundStyle(p.text)
-                Button { dismiss() } label: { Text(L.close) }
-                    .buttonStyle(.bordered).tint(p.muted)
+                title(L.fwDoneTitle); sub(L.fwDoneSub(current))
             case .failed:
-                Label(L.fwFailed, systemImage: "xmark.circle").font(.headline).foregroundStyle(p.warn)
-                Button { Task { await check() } } label: { Label(L.fwRetry, systemImage: "arrow.clockwise") }
-                    .buttonStyle(.borderedProminent).tint(p.accent)
+                title(L.fwFailTitle); sub(L.fwFailSub)
+                Button { Task { await check() } } label: { Text(L.fwRetry) }
+                    .buttonStyle(.borderedProminent).tint(p.accent).padding(.top, 2)
             }
         }
+    }
+
+    private func title(_ t: String) -> some View {
+        Text(t).font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
+    }
+    private func sub(_ t: String) -> some View {
+        Text(t).font(.system(size: 12)).foregroundStyle(p.muted)
     }
 
     private func check() async {
