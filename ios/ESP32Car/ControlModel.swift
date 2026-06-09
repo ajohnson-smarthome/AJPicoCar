@@ -31,6 +31,15 @@ enum ControlModel {
         return (l, r)
     }
 
+    /// Link-quality level 0...4 from ping (we can't read real Wi-Fi RSSI on iOS).
+    static func signalLevel(online: Bool, pingMs: Int?) -> Int {
+        guard online, let p = pingMs else { return 0 }
+        if p < 50 { return 4 }
+        if p < 120 { return 3 }
+        if p < 250 { return 2 }
+        return 1
+    }
+
     /// Build the /calib/save body "p:s,p:s,p:s,p:s" in FL,FR,RL,RR order.
     /// Missing corners default to (0, 1) — the wizard only calls this when all 4 are set.
     static func calibSaveBody(_ a: [Corner: (pair: Int, sign: Int)]) -> String {
