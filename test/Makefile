@@ -2,7 +2,7 @@ CC = cc
 CFLAGS = -I../main -Wall -Wextra -Werror -std=c11
 LDLIBS = -lm
 
-all: test_mixer test_motors test_control_proto test_watchdog test_calibration test_ramp
+all: test_mixer test_motors test_control_proto test_watchdog test_calibration test_ramp test_trim
 
 test_mixer: test_mixer.c ../main/mixer.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
@@ -22,8 +22,11 @@ test_calibration: test_calibration.c
 test_ramp: test_ramp.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
+test_trim: test_trim.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
 run: all
-	./test_mixer && ./test_motors && ./test_control_proto && ./test_watchdog && ./test_calibration && ./test_ramp
+	./test_mixer && ./test_motors && ./test_control_proto && ./test_watchdog && ./test_calibration && ./test_ramp && ./test_trim
 
 clean:
-	rm -f test_mixer test_motors test_control_proto test_watchdog test_calibration test_ramp
+	rm -f test_mixer test_motors test_control_proto test_watchdog test_calibration test_ramp test_trim

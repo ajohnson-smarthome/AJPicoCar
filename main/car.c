@@ -7,6 +7,8 @@
 #include "mixer.h"
 #include "motors.h"
 #include "calibration.h"
+#include "trim.h"
+#include "nvs.h"
 
 static const char *TAG = "car";
 
@@ -24,6 +26,7 @@ static motors_config_t g_cfg = {
 // Serializes g_cfg access and target planning for concurrent callers (console + WS + httpd).
 // The PCA9685 itself is written only by the ramp task (ramp.c).
 static SemaphoreHandle_t g_lock;
+static int8_t g_trim_pct = 0;   // [-30..30], guarded by g_lock like g_cfg
 
 static float clamp_unit(float v) {
     if (v > 1.0f) return 1.0f;
@@ -43,6 +46,7 @@ void car_drive(float throttle, float yaw) {
         ESP_LOGW(TAG, "drive: mutex busy >200ms, skipping write");
         return;
     }
+    trim_apply(&s.left, &s.right, (float)g_trim_pct / 100.0f);
     motor_outputs_t out = motors_plan(s.left, s.right, &g_cfg);
     ramp_set_target(out.duty);
     if (g_lock) xSemaphoreGive(g_lock);
@@ -63,6 +67,21 @@ void car_set_calibration(const motors_config_t *cfg) {
     }
     g_cfg = *cfg;
     if (g_lock) xSemaphoreGive(g_lock);
+}
+
+void car_set_trim(int8_t pct) {
+    if (pct > 30) pct = 30;
+    if (pct < -30) pct = -30;
+    if (g_lock && xSemaphoreTake(g_lock, pdMS_TO_TICKS(200)) != pdTRUE) {
+        ESP_LOGW(TAG, "set_trim: mutex busy, NOT updated");
+        return;
+    }
+    g_trim_pct = pct;
+    if (g_lock) xSemaphoreGive(g_lock);
+}
+
+int8_t car_get_trim(void) {
+    return g_trim_pct;   // i8 read is atomic on riscv32
 }
 
 void car_spin_pair(uint8_t pair, bool forward) {
@@ -86,6 +105,13 @@ void car_init(void) {
         g_cfg = loaded;
     } else {
         ESP_LOGW(TAG, "no NVS calibration — using default mapping");
+    }
+
+    nvs_handle_t h;
+    if (nvs_open("car", NVS_READONLY, &h) == ESP_OK) {
+        int8_t t;
+        if (nvs_get_i8(h, "trim_pct", &t) == ESP_OK && t >= -30 && t <= 30) g_trim_pct = t;
+        nvs_close(h);
     }
 
     car_stop();  // safety stop
