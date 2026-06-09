@@ -13,6 +13,9 @@ static volatile uint32_t s_last_feed_ms = 0;
 static volatile bool     s_armed = false;
 static uint32_t          s_timeout_ms = 300;
 static TimerHandle_t     s_timer = NULL;
+static volatile uint32_t s_trips = 0;
+
+uint32_t watchdog_trips(void) { return s_trips; }
 
 static uint32_t now_ms(void) {
     return (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
@@ -31,6 +34,7 @@ static void wdt_cb(TimerHandle_t t) {
     if (!s_armed) return;
     if (watchdog_stale(s_last_feed_ms, now_ms(), s_timeout_ms)) {
         ESP_LOGW(TAG, "no control frame for >%ums — stopping car", (unsigned)s_timeout_ms);
+        s_trips++;
         car_stop();
         s_armed = false;  // disarm until traffic resumes
     }
