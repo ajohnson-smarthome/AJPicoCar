@@ -21,7 +21,7 @@ struct DriveDiagram: View {
     let palette: Palette
 
     @State private var spinClock = SpinClock()
-    private let metal = Color(red: 0.227, green: 0.188, blue: 0.141)  // #3a3024
+    private var metal: Color { palette.metal }
     private let carW: CGFloat = 36
     private let carLen: CGFloat = 74
     private let wheelW: CGFloat = 12

@@ -11,7 +11,7 @@ struct CalibrationView: View {
     @State private var failed = false
     private let client = CalibClient()
 
-    private let metal = Color(red: 0.227, green: 0.188, blue: 0.141)  // #3a3024
+    private var metal: Color { palette.metal }
 
     private enum CalState { case spin, direction, done, saving, failed }
     private var state: CalState {

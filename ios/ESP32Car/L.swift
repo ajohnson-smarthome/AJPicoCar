@@ -56,6 +56,11 @@ enum L {
     static func fwTransition(_ a: String, _ b: String) -> String { s("fw.transition", a, b) }
     static func fwDoneSub(_ v: String) -> String { s("fw.doneSub", v) }
     static func driveConnected(_ ms: Int) -> String { s("drive.connected", ms) }
+    static var rampTitle: String { s("ramp.title") }
+    static var rampHeadline: String { s("ramp.headline") }
+    static var rampSub: String { s("ramp.sub") }
+    static var rampValueOff: String { s("ramp.valueOff") }
+    static func rampValue(_ ms: Int) -> String { s("ramp.value", ms) }
     static func uptime(_ sec: Int) -> String {
         if sec < 60 { return s("uptime.sec", sec) }
         if sec < 3600 { return s("uptime.min", sec / 60) }

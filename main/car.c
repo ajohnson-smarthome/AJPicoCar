@@ -3,7 +3,7 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 #include "esp_err.h"
-#include "pca9685.h"
+#include "ramp.h"
 #include "mixer.h"
 #include "motors.h"
 #include "calibration.h"
@@ -21,24 +21,14 @@ static motors_config_t g_cfg = {
     .deadzone = 0.05f,
 };
 
-// Serializes the 8-channel I2C write so concurrent callers (console + WebSocket
-// tasks) can't interleave transactions on the shared PCA9685 handle.
+// Serializes g_cfg access and target planning for concurrent callers (console + WS + httpd).
+// The PCA9685 itself is written only by the ramp task (ramp.c).
 static SemaphoreHandle_t g_lock;
 
 static float clamp_unit(float v) {
     if (v > 1.0f) return 1.0f;
     if (v < -1.0f) return -1.0f;
     return v;
-}
-
-// Write planned PWM to the 8 PCA9685 channels.
-static void motors_apply(const motor_outputs_t *out) {
-    for (uint8_t ch = 0; ch < 8; ch++) {
-        esp_err_t e = pca9685_set_pwm(ch, out->duty[ch]);
-        if (e != ESP_OK) {
-            ESP_LOGE(TAG, "ch%d write failed: %s", ch, esp_err_to_name(e));
-        }
-    }
 }
 
 void car_drive(float throttle, float yaw) {
@@ -54,7 +44,7 @@ void car_drive(float throttle, float yaw) {
         return;
     }
     motor_outputs_t out = motors_plan(s.left, s.right, &g_cfg);
-    motors_apply(&out);
+    ramp_set_target(out.duty);
     if (g_lock) xSemaphoreGive(g_lock);
 
     ESP_LOGD(TAG, "drive t=%.2f y=%.2f -> L=%.2f R=%.2f", throttle, yaw, s.left, s.right);
@@ -82,7 +72,7 @@ void car_spin_pair(uint8_t pair, bool forward) {
     out.duty[pair * 2]     = forward ? duty : 0;
     out.duty[pair * 2 + 1] = forward ? 0 : duty;
     if (g_lock && xSemaphoreTake(g_lock, pdMS_TO_TICKS(200)) != pdTRUE) return;
-    motors_apply(&out);
+    ramp_set_target(out.duty);
     if (g_lock) xSemaphoreGive(g_lock);
 }
 

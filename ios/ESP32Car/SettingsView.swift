@@ -24,6 +24,13 @@ struct SettingsView: View {
                             .foregroundStyle(palette.text)
                     }
                     .listRowBackground(palette.panel)
+                    NavigationLink {
+                        RampView(palette: palette)
+                    } label: {
+                        Label(L.rampTitle, systemImage: "gauge.with.needle")
+                            .foregroundStyle(palette.text)
+                    }
+                    .listRowBackground(palette.panel)
                 }
                 .scrollContentBackground(.hidden)
             }

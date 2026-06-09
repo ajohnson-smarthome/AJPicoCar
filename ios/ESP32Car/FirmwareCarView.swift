@@ -11,8 +11,7 @@ struct FirmwareCarView: View {
     let phase: FwPhase
     let palette: Palette
 
-    // Reference palette (mockup hex)
-    private let metal = Color(red: 0.227, green: 0.188, blue: 0.141)   // #3a3024 — body edge + wheels
+    private var metal: Color { palette.metal }
 
     private enum WaveMode { case none, deco, wait, active, ping }
     private var mode: WaveMode {
