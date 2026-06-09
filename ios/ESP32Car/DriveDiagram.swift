@@ -1,17 +1,19 @@
 import SwiftUI
 
-/// Animated top-down car diagram driven by the current command (t, y):
-/// chevron-tread wheels + predicted-trajectory rails (driving) or a spin indicator.
+/// Animated top-down car diagram (1:1 with the firmware/calibration car) driven by (t, y):
+/// dark corner wheels that colour by side speed + run a chevron tread, predicted-trajectory rails,
+/// or a gradient "comet" spin indicator.
 struct DriveDiagram: View {
     let t: Double
     let y: Double
     let palette: Palette
 
-    private let carW: CGFloat = 44
-    private let carLen: CGFloat = 70
-    private let wheelW: CGFloat = 10
-    private let wheelH: CGFloat = 24
-    private let railGap: CGFloat = 12
+    private let metal = Color(red: 0.227, green: 0.188, blue: 0.141)  // #3a3024
+    private let carW: CGFloat = 36
+    private let carLen: CGFloat = 74
+    private let wheelW: CGFloat = 12
+    private let wheelH: CGFloat = 20
+    private let railGap: CGFloat = 14
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -23,7 +25,7 @@ struct DriveDiagram: View {
     }
 
     private func render(_ ctx: inout GraphicsContext, _ size: CGSize, time: Double) {
-        let center = CGPoint(x: size.width / 2, y: size.height * 0.56)
+        let center = CGPoint(x: size.width / 2, y: size.height * 0.55)
         let sides = ControlModel.sides(t: t, y: y)
         switch ControlModel.diagramState(t: t, y: y) {
         case .drive: drawRails(&ctx, center: center)
@@ -31,30 +33,28 @@ struct DriveDiagram: View {
         case .idle:  break
         }
         drawCar(&ctx, center: center)
-        let halfL = carLen / 2
-        let frontY = center.y - halfL + 6 + wheelH / 2
-        let rearY  = center.y + halfL - 6 - wheelH / 2
-        let leftX  = center.x - carW / 2 - wheelW / 2 + 1
-        let rightX = center.x + carW / 2 + wheelW / 2 - 1
-        drawWheel(&ctx, cx: leftX,  cy: frontY, speed: sides.left,  time: time)
-        drawWheel(&ctx, cx: leftX,  cy: rearY,  speed: sides.left,  time: time)
-        drawWheel(&ctx, cx: rightX, cy: frontY, speed: sides.right, time: time)
-        drawWheel(&ctx, cx: rightX, cy: rearY,  speed: sides.right, time: time)
+        let wx = carW / 2 + 1
+        let wy = carLen / 2 - 16
+        drawWheel(&ctx, cx: center.x - wx, cy: center.y - wy, speed: sides.left,  time: time)
+        drawWheel(&ctx, cx: center.x - wx, cy: center.y + wy, speed: sides.left,  time: time)
+        drawWheel(&ctx, cx: center.x + wx, cy: center.y - wy, speed: sides.right, time: time)
+        drawWheel(&ctx, cx: center.x + wx, cy: center.y + wy, speed: sides.right, time: time)
     }
 
     private func wheelColor(_ s: Double) -> Color {
         if s > 0.03 { return palette.accent }
         if s < -0.03 { return palette.warn }
-        return palette.idleWheel
+        return metal
     }
 
     private func drawCar(_ ctx: inout GraphicsContext, center: CGPoint) {
         let body = CGRect(x: center.x - carW / 2, y: center.y - carLen / 2, width: carW, height: carLen)
         let bp = Path(roundedRect: body, cornerRadius: 11)
+        ctx.fill(bp, with: .color(palette.bg))      // opaque base so rails/spin under the car are covered
         ctx.fill(bp, with: .color(palette.panel))
-        ctx.stroke(bp, with: .color(palette.line), lineWidth: 1)
-        let wind = CGRect(x: center.x - 14, y: body.minY + 6, width: 28, height: 11)
-        ctx.fill(Path(roundedRect: wind, cornerRadius: 3), with: .color(palette.bg.opacity(0.7)))
+        ctx.stroke(bp, with: .color(metal), lineWidth: 1)
+        let wind = CGRect(x: center.x - 11, y: body.minY + 7, width: 22, height: 9)
+        ctx.fill(Path(roundedRect: wind, cornerRadius: 3), with: .color(palette.bg.opacity(0.85)))
     }
 
     private func drawWheel(_ ctx: inout GraphicsContext, cx: CGFloat, cy: CGFloat, speed: Double, time: Double) {
@@ -67,10 +67,10 @@ struct DriveDiagram: View {
         var c = ctx
         c.clip(to: wp)
         let up = speed > 0
-        let spacing = 14 - 7 * CGFloat(mag)
+        let spacing = 13 - 6 * CGFloat(mag)
         let tempo = 70 * mag
         let offset = (CGFloat(time) * tempo).truncatingRemainder(dividingBy: spacing)
-        let ch: CGFloat = 4.5
+        let ch: CGFloat = 4
         var k = -2
         while CGFloat(k) * spacing < wheelH + spacing {
             let base = up ? (rect.maxY - CGFloat(k) * spacing + offset)
@@ -99,7 +99,7 @@ struct DriveDiagram: View {
                              : (center.y + carLen / 2 + railGap)
         let pts = ControlModel.trajectoryPoints(t: t, y: y, length: length, steps: 24)
         let endY = startY + CGFloat(forward ? -length : length)
-        let grad = Gradient(colors: [railColor.opacity(0.95), railColor.opacity(0.05)])
+        let grad = Gradient(colors: [railColor.opacity(0.95), railColor.opacity(0.04)])
         for side in [CGFloat(-1), CGFloat(1)] {
             var path = Path()
             for (i, pt) in pts.enumerated() {
@@ -117,16 +117,14 @@ struct DriveDiagram: View {
     private func drawSpin(_ ctx: inout GraphicsContext, center: CGPoint, time: Double) {
         var c = ctx
         c.translateBy(x: center.x, y: center.y)
-        let sp: Double = y >= 0 ? 1 : -1                       // rotation direction
-        // gentle continuous rotation so it reads as "spinning"
-        let spin = time.truncatingRemainder(dividingBy: 3.0) / 3.0 * 360.0 * sp
+        let sp: Double = y >= 0 ? 1 : -1
+        let spin = time.truncatingRemainder(dividingBy: 4.0) / 4.0 * 360.0 * sp
         c.rotate(by: .degrees(spin))
 
-        let r = 50.0
-        let sweep = 110.0 * Double.pi / 180                   // arc span
-        let n = 20
-        for base in [0.0, Double.pi] {                        // two arcs 180° apart = ↻
-            // sample the arc as a polyline so the end + tangent are unambiguous
+        let r = 46.0
+        let sweep = 115.0 * Double.pi / 180
+        let n = 24
+        for base in [0.0, Double.pi] {
             let start = base - sp * sweep / 2
             var pts: [CGPoint] = []
             for i in 0...n {
@@ -135,19 +133,21 @@ struct DriveDiagram: View {
             }
             var path = Path()
             path.move(to: pts[0])
-            for p in pts.dropFirst() { path.addLine(to: p) }
-            c.stroke(path, with: .color(palette.accent), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-            // arrowhead whose BASE sits at the arc end, tip extending beyond (travel direction)
+            for pt in pts.dropFirst() { path.addLine(to: pt) }
+            // gradient comet: faint tail (pts[0]) → bright head (pts.last), like the rails
+            let grad = Gradient(colors: [palette.accent.opacity(0.0), palette.accent.opacity(0.9)])
+            c.stroke(path, with: .linearGradient(grad, startPoint: pts[0], endPoint: pts[pts.count - 1]),
+                     style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+            // arrowhead: base at arc end, tip extending along the tangent
             let last = pts[pts.count - 1], prev = pts[pts.count - 2]
             let dir = Foundation.atan2(Double(last.y - prev.y), Double(last.x - prev.x))
-            let aLen = 13.0
+            let aLen = 11.0
             let tip = CGPoint(x: last.x + CGFloat(Foundation.cos(dir) * aLen),
                               y: last.y + CGFloat(Foundation.sin(dir) * aLen))
             c.fill(arrowHead(tip: tip, angle: dir, size: aLen), with: .color(palette.accent))
         }
     }
 
-    /// Filled triangular arrowhead with its tip at `tip`, pointing toward `angle` (radians).
     private func arrowHead(tip: CGPoint, angle: Double, size: CGFloat) -> Path {
         let back = angle + Double.pi
         var p = Path()

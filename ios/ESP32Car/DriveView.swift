@@ -61,12 +61,12 @@ struct DriveView: View {
                     SchemeToggle(scheme: $schemeRaw, palette: p)
                     Button { showSettings = true } label: {
                         Image(systemName: "gearshape")
-                            .font(.system(size: 15))
-                            .foregroundStyle(p.muted)
-                            .frame(width: 34, height: 28)
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(p.text)
+                            .frame(width: 40, height: 32)
                             .background(p.panel)
-                            .clipShape(RoundedRectangle(cornerRadius: 9))
-                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(p.line))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(p.line))
                     }
                     .padding(.leading, 8)
                 }
