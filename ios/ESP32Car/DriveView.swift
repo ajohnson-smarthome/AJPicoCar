@@ -26,6 +26,8 @@ struct DriveView: View {
 
     private var scheme: Scheme { Scheme(rawValue: schemeRaw) ?? .arcade }
     private var p: Palette { Theme.current(colorScheme) }
+    private var signalLevel: Int { ControlModel.signalLevel(online: status.online, pingMs: status.pingMs) }
+    private var signalColor: Color { signalLevel == 0 ? .red : (signalLevel == 1 ? p.warn : p.accent) }
 
     private func push() {
         let c: (t: Double, y: Double)
@@ -51,7 +53,7 @@ struct DriveView: View {
             VStack {
                 HStack {
                     HStack(spacing: 7) {
-                        Circle().fill(status.online ? p.accent : Color.orange).frame(width: 8, height: 8)
+                        SignalBars(level: signalLevel, color: signalColor)
                         Text(status.online ? L.driveConnected(status.pingMs ?? 0) : L.driveSearching)
                             .font(.system(size: 12)).foregroundStyle(p.muted)
                     }
@@ -80,7 +82,7 @@ struct DriveView: View {
 
             VStack {
                 Spacer()
-                Text(statusLine).font(.system(size: 10)).foregroundStyle(p.muted).padding(.bottom, 20)
+                statusBar.padding(.bottom, 20)
             }
 
             if scheme == .arcade {
@@ -123,11 +125,22 @@ struct DriveView: View {
         }
     }
 
-    private var statusLine: String {
-        let up = status.uptimeS.map { L.driveUptime($0) } ?? L.driveUptimeUnknown
-        let cal = (status.calibrated ?? false) ? L.driveCalibYes : L.driveCalibNo
-        let fw = status.fw.map { L.driveFw($0) } ?? L.driveFwUnknown
-        return "\(up) · \(cal) · \(fw)"
+    private var statusBar: some View {
+        HStack(spacing: 16) {
+            statusItem("clock", status.uptimeS.map { L.uptime($0) } ?? "—", p.muted)
+            let ok = status.calibrated ?? false
+            statusItem(ok ? "checkmark.circle.fill" : "xmark.circle",
+                       ok ? L.driveCalibratedYes : L.driveCalibratedNo,
+                       ok ? p.accent : p.warn)
+            statusItem("cpu", status.fw ?? "—", p.muted)
+        }
+        .font(.system(size: 10))
+    }
+    private func statusItem(_ icon: String, _ text: String, _ color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon).foregroundStyle(color.opacity(0.85))
+            Text(text).foregroundStyle(color)
+        }
     }
 
     private func sideLabel(_ name: String, _ v: Double) -> some View {

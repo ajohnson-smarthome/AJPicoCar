@@ -63,4 +63,12 @@ final class ControlModelTests: XCTestCase {
         let a: [Corner: (pair: Int, sign: Int)] = [.fl: (0, 1), .fr: (1, -1), .rl: (2, 1), .rr: (3, -1)]
         XCTAssertEqual(ControlModel.calibSaveBody(a), "0:1,1:-1,2:1,3:-1")
     }
+    func testSignalLevel() {
+        XCTAssertEqual(ControlModel.signalLevel(online: false, pingMs: 10), 0)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, pingMs: nil), 0)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, pingMs: 10), 4)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, pingMs: 100), 3)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, pingMs: 200), 2)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, pingMs: 400), 1)
+    }
 }
