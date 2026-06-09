@@ -18,16 +18,16 @@ struct SettingsView: View {
                     }
                     .listRowBackground(palette.panel)
                     NavigationLink {
-                        FirmwareView(palette: palette, status: status)
+                        RampView(palette: palette)
                     } label: {
-                        Label(L.settingsFirmware, systemImage: "arrow.down.circle")
+                        Label(L.rampTitle, systemImage: "gauge.with.needle")
                             .foregroundStyle(palette.text)
                     }
                     .listRowBackground(palette.panel)
                     NavigationLink {
-                        RampView(palette: palette)
+                        FirmwareView(palette: palette, status: status)
                     } label: {
-                        Label(L.rampTitle, systemImage: "gauge.with.needle")
+                        Label(L.settingsFirmware, systemImage: "arrow.down.circle")
                             .foregroundStyle(palette.text)
                     }
                     .listRowBackground(palette.panel)
