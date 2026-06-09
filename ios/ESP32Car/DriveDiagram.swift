@@ -22,6 +22,7 @@ struct DriveDiagram: View {
             }
         }
         .frame(width: 150, height: 200)
+        .scaleEffect(1.1)   // car +10%
     }
 
     private func render(_ ctx: inout GraphicsContext, _ size: CGSize, time: Double) {
