@@ -17,10 +17,11 @@ struct CalibrationView: View {
     var body: some View {
         ZStack {
             palette.bg.ignoresSafeArea()
-            HStack(spacing: 20) {
+            HStack(spacing: 24) {
                 carPanel
                 rightPanel
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(20)
         }
         .navigationTitle(L.calibTitle)
@@ -33,7 +34,7 @@ struct CalibrationView: View {
 
     // MARK: left — car (with concentric pulse)
     private var carPanel: some View {
-        carDiagram.frame(maxWidth: .infinity)
+        carDiagram.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var carDiagram: some View {
@@ -53,8 +54,8 @@ struct CalibrationView: View {
                 .frame(width: 34, height: 12).offset(y: -31)
             ForEach(Corner.allCases, id: \.self) { wheelButton($0) }
         }
-        .scaleEffect(1.4)
-        .frame(width: 150, height: 190)
+        .scaleEffect(1.75)
+        .frame(width: 190, height: 240)
     }
 
     private func wheelButton(_ c: Corner) -> some View {
@@ -104,9 +105,8 @@ struct CalibrationView: View {
             if let e = errMsg {
                 Text(e).font(.caption).foregroundStyle(palette.warn)
             }
-            Spacer()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 
     private var segments: some View {
