@@ -5,7 +5,7 @@ import time
 from aiohttp import web, WSMsgType
 
 START = time.monotonic()
-STATE = {"calibrated": False}
+STATE = {"calibrated": False, "ramp_ms": 300}
 
 
 async def status(request):
@@ -47,6 +47,23 @@ async def calib_save(request):
     return web.Response(text="ok")
 
 
+async def ramp_get(request):
+    return web.json_response({"ramp_ms": STATE["ramp_ms"]})
+
+
+async def ramp_post(request):
+    body = (await request.text()).strip()
+    try:
+        v = int(body)
+        if not 0 <= v <= 2000:
+            raise ValueError
+    except ValueError:
+        return web.Response(status=400, text="ramp_ms must be 0..2000")
+    STATE["ramp_ms"] = v
+    print(f"ramp: set {v} ms")
+    return web.Response(text="ok")
+
+
 async def ota(request):
     data = await request.read()
     print(f"ota: received {len(data)} bytes")
@@ -62,6 +79,8 @@ def main():
         web.post("/calib/spin", calib_spin),
         web.post("/calib/save", calib_save),
         web.post("/ota", ota),
+        web.get("/ramp", ramp_get),
+        web.post("/ramp", ramp_post),
     ])
     print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*)")
     web.run_app(app, host="127.0.0.1", port=8080)
