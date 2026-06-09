@@ -2,7 +2,6 @@
 "connect.body"       = "Подключись к Wi-Fi «ESP32-Car» (пароль drive1234), затем вернись в приложение.";
 "common.openSettings"= "Открыть настройки";
 "common.close"       = "Закрыть";
-"common.later"       = "Позже";
 "settings.title"     = "Настройки";
 "settings.calibration"= "Калибровка";
 "calib.title"        = "Калибровка";
@@ -21,10 +20,8 @@
 "calib.failTitle"    = "Не удалось";
 "calib.failSub"      = "Проверь связь и повтори.";
 "calib.retry"        = "Повторить";
-"drive.connected"    = "На связи · %d мс";
+"drive.connected"    = "%d мс";
 "drive.searching"    = "Поиск…";
-"drive.calibratedYes"= "откалибрована";
-"drive.calibratedNo" = "не откалибрована";
 "uptime.sec"         = "%d с";
 "uptime.min"         = "%d мин";
 "uptime.hourMin"     = "%d ч %d мин";
@@ -62,4 +59,4 @@
 "trim.center"   = "Ровно";
 "trim.left"     = "Влево %d%%";
 "trim.right"    = "Вправо %d%%";
-"drive.wdtTrips"     = "обрывов: %d";
+"drive.wdtTrips"     = "Обрывов: %d";

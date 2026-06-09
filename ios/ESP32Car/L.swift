@@ -10,7 +10,6 @@ enum L {
     static var connectBody: String { s("connect.body") }
     static var openSettings: String { s("common.openSettings") }
     static var close: String { s("common.close") }
-    static var later: String { s("common.later") }
     static var settingsTitle: String { s("settings.title") }
     static var settingsCalibration: String { s("settings.calibration") }
     static var calibTitle: String { s("calib.title") }
@@ -29,8 +28,6 @@ enum L {
     static var calibRetry: String { s("calib.retry") }
     static func calibWheel(_ w: String) -> String { s("calib.wheel", w) }
     static var driveSearching: String { s("drive.searching") }
-    static var driveCalibratedYes: String { s("drive.calibratedYes") }
-    static var driveCalibratedNo: String { s("drive.calibratedNo") }
     static var schemeArcade: String { s("scheme.arcade") }
     static var schemeTank: String { s("scheme.tank") }
     static func calibStep(_ n: Int) -> String { s("calib.step", n) }
