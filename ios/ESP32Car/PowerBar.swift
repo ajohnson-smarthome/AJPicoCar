@@ -7,7 +7,7 @@ struct PowerBar: View {
     let palette: Palette
 
     private let count = 5
-    private let off = Color(red: 0.141, green: 0.122, blue: 0.090)  // #241f17
+    private var off: Color { palette.segOff }
 
     var body: some View {
         let lit = min(count, Int((abs(value) * Double(count)).rounded()))
