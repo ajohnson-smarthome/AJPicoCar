@@ -46,13 +46,13 @@ struct CalibrationView: View {
             let ringS = 1.0 + 0.07 * (0.5 + 0.5 * sin(t * 2 * .pi / 1.4))
             let glow = 0.5 + 0.5 * sin(t * 2 * .pi / 1.0)
             ZStack {
-                if ringsActive {
-                    ForEach(0..<3, id: \.self) { i in
-                        Circle().stroke(p.accent, lineWidth: 1.5)
-                            .frame(width: CGFloat(56 + i * 24), height: CGFloat(56 + i * 24))
-                            .opacity([0.42, 0.24, 0.11][i])
-                            .scaleEffect(ringS)
-                    }
+                // Rings stay in the layout always (opacity-gated) so the ZStack keeps a stable
+                // size — otherwise removing them on tap re-centres the wheels (they "fly in").
+                ForEach(0..<3, id: \.self) { i in
+                    Circle().stroke(p.accent, lineWidth: 1.5)
+                        .frame(width: CGFloat(56 + i * 24), height: CGFloat(56 + i * 24))
+                        .opacity(ringsActive ? [0.42, 0.24, 0.11][i] : 0)
+                        .scaleEffect(ringsActive ? ringS : 1)
                 }
                 carBody
                 ForEach(Corner.allCases, id: \.self) { wheelButton($0, glow: glow) }
@@ -60,6 +60,7 @@ struct CalibrationView: View {
         }
         .scaleEffect(1.9)
         .frame(width: 200, height: 240)
+        .transaction { $0.animation = nil }   // no implicit animation on tap → wheels don't "fly in"
     }
 
     private var carBody: some View {
