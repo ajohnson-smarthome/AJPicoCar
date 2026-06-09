@@ -64,7 +64,16 @@ struct FirmwareView: View {
         guard let url = binURL else { return }
         phase = .uploading
         let ok = await client.upload(url)
-        if ok { phase = .rebooting; try? await Task.sleep(nanoseconds: 6_000_000_000); phase = .done }
-        else { phase = .failed }
+        guard ok else { phase = .failed; return }
+        phase = .rebooting
+        // Confirm the car actually rebooted and came back (saw offline → online), not a false "done".
+        var sawOffline = false
+        let deadline = Date.now.addingTimeInterval(25)
+        while Date.now < deadline {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            if !status.online { sawOffline = true }
+            else if sawOffline { phase = .done; return }
+        }
+        phase = .failed
     }
 }
