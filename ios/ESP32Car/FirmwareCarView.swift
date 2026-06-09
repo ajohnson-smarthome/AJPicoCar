@@ -5,10 +5,10 @@ enum FwPhase { case checking, upToDate, available, downloading, downloaded, uplo
 
 /// Top-down car + center chip + OTA rings. Rings pulse while waiting, ping while rebooting,
 /// sit static as decoration when idle, or vanish on terminal info screens.
+/// Animations run via TimelineView so they keep going across phase transitions.
 struct FirmwareCarView: View {
     let phase: FwPhase
     let palette: Palette
-    @State private var pulse = false
 
     private enum WaveMode { case none, deco, wait, active, ping }
     private var mode: WaveMode {
@@ -28,7 +28,6 @@ struct FirmwareCarView: View {
         }
     }
     private var chipColor: Color { phase == .failed ? palette.warn : palette.accent }
-    private var animating: Bool { mode == .wait || mode == .active }
 
     var body: some View {
         ZStack {
@@ -51,41 +50,49 @@ struct FirmwareCarView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .shadow(color: chipColor.opacity(0.7), radius: phase == .done ? 11 : 5)
         }
-        .scaleEffect(1.75)
-        .frame(width: 190, height: 240)
+        .scaleEffect(1.45)
+        .frame(width: 175, height: 220)
         .opacity(phase == .rebooting ? 0.6 : 1)
-        .onAppear { pulse = true }
     }
 
     @ViewBuilder private var waves: some View {
         switch mode {
         case .none:
             EmptyView()
-        case .ping:
-            ForEach(0..<2, id: \.self) { i in
-                Circle().stroke(palette.accent, lineWidth: 2)
-                    .frame(width: 60, height: 60)
-                    .scaleEffect(pulse ? 1.7 : 0.4)
-                    .opacity(pulse ? 0 : 0.7)
-                    .animation(.easeOut(duration: 1.8).repeatForever(autoreverses: false).delay(Double(i) * 0.9), value: pulse)
+        case .deco:
+            rings(scale: 1.0, opacity: [0.20, 0.11, 0.045])
+        case .wait, .active:
+            let op: [Double] = mode == .active ? [0.62, 0.38, 0.20] : [0.42, 0.24, 0.11]
+            let period = mode == .active ? 1.05 : 1.4
+            TimelineView(.animation) { ctx in
+                let t = ctx.date.timeIntervalSinceReferenceDate
+                let s = 1.0 + 0.10 * (0.5 + 0.5 * sin(t * 2 * .pi / period))
+                rings(scale: s, opacity: op)
             }
-        default:
-            ForEach(0..<3, id: \.self) { i in
-                Circle().stroke(palette.accent, lineWidth: 2)
-                    .frame(width: CGFloat(64 + i * 28), height: CGFloat(64 + i * 28))
-                    .opacity(ringOpacity(i))
-                    .scaleEffect(animating && pulse ? 1.10 : 1.0)
-                    .animation(animating ? .easeInOut(duration: mode == .active ? 1.05 : 1.3).repeatForever(autoreverses: true) : .default, value: pulse)
+        case .ping:
+            TimelineView(.animation) { ctx in
+                let t = ctx.date.timeIntervalSinceReferenceDate
+                ZStack {
+                    ForEach(0..<2, id: \.self) { i in
+                        let ph = ((t + Double(i) * 0.9) / 1.8).truncatingRemainder(dividingBy: 1)
+                        Circle().stroke(palette.accent, lineWidth: 2)
+                            .frame(width: 60, height: 60)
+                            .scaleEffect(0.4 + 1.3 * ph)
+                            .opacity(0.7 * (1 - ph))
+                    }
+                }
             }
         }
     }
 
-    private func ringOpacity(_ i: Int) -> Double {
-        switch mode {
-        case .active: return [0.62, 0.38, 0.20][i]
-        case .wait: return [0.42, 0.24, 0.11][i]
-        case .deco: return [0.20, 0.11, 0.045][i]
-        default: return 0
+    private func rings(scale: Double, opacity: [Double]) -> some View {
+        ZStack {
+            ForEach(0..<3, id: \.self) { i in
+                Circle().stroke(palette.accent, lineWidth: 2)
+                    .frame(width: CGFloat(64 + i * 28), height: CGFloat(64 + i * 28))
+                    .opacity(opacity[i])
+                    .scaleEffect(scale)
+            }
         }
     }
 }
