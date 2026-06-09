@@ -21,6 +21,10 @@ void car_stop(void);
 // Replace the active calibration table (e.g. after the user saves a new one).
 void car_set_calibration(const motors_config_t *cfg);
 
+// Straight-line trim: pct in [-30..30]; positive slows the left side. Persisted by the API layer.
+void car_set_trim(int8_t pct);
+int8_t car_get_trim(void);
+
 // Calibration helper: spin ONE raw PCA9685 channel pair (0..3) at low duty to
 // identify which physical wheel it is. Bypasses the calibration table.
 // forward=true drives CH_A, false drives CH_B. Call car_stop() to halt.
