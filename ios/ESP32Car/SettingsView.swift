@@ -25,6 +25,13 @@ struct SettingsView: View {
                     }
                     .listRowBackground(palette.panel)
                     NavigationLink {
+                        TrimView(palette: palette)
+                    } label: {
+                        Label(L.trimTitle, systemImage: "arrow.up.to.line")
+                            .foregroundStyle(palette.text)
+                    }
+                    .listRowBackground(palette.panel)
+                    NavigationLink {
                         FirmwareView(palette: palette, status: status)
                     } label: {
                         Label(L.settingsFirmware, systemImage: "arrow.down.circle")
