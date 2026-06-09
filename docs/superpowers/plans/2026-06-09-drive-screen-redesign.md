@@ -1,3 +1,30 @@
+# Главный экран — единый стиль машинки — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Привести машинку `DriveDiagram` к силуэту прошивки/калибровки (1:1) с сохранением функции (шевроны по скорости, рельсы, спин), переделать индикатор вращения в градиентные дуги-кометы со стрелками; ⚙ крупнее.
+
+**Architecture:** Рерайт Canvas-отрисовки в `DriveDiagram.swift` (силуэт+позиции колёс, тёмный idle, рельсы-зазор, spin → градиент-дуги). Мелкая правка ⚙ в `DriveView.swift`. `ControlModel` без изменений.
+
+**Tech Stack:** Swift 6 / SwiftUI Canvas + TimelineView. Ветка `drive-redesign`. SDK `iphonesimulator26.2`, `iPhone 17`, мок.
+
+---
+
+## File Structure
+
+| Файл | Изменение |
+|---|---|
+| `ios/ESP32Car/DriveDiagram.swift` | силуэт 1:1, колёса по углам/тёмный idle, рельсы-зазор, spin → градиент-дуги-кометы |
+| `ios/ESP32Car/DriveView.swift` | ⚙ крупнее |
+
+---
+
+## Task 1: `DriveDiagram` рерайт
+
+**Files:** Modify `ios/ESP32Car/DriveDiagram.swift` (rewrite drawing; `body`/`render` structure kept).
+
+- [ ] **Step 1: Заменить весь файл на:**
+```swift
 import SwiftUI
 
 /// Animated top-down car diagram (1:1 with the firmware/calibration car) driven by (t, y):
@@ -160,3 +187,92 @@ struct DriveDiagram: View {
         return p
     }
 }
+```
+
+- [ ] **Step 2: Regenerate + compile-check**
+```bash
+cd /Users/adamjohnson/VSCode/esp32-p4-car/ios && xcodegen generate && xcodebuild build -target ESP32Car -sdk iphonesimulator26.2 ARCHS=arm64 2>&1 | grep -iE "error:|BUILD SUCCEEDED|BUILD FAILED" | head -6
+```
+Expected: `** BUILD SUCCEEDED **`.
+
+- [ ] **Step 3: Commit**
+```bash
+cd /Users/adamjohnson/VSCode/esp32-p4-car
+git add ios/ESP32Car/DriveDiagram.swift
+git commit -m "feat(ios): drive diagram — 1:1 car, dark corner wheels + treads, gap rails, comet spin arcs"
+```
+
+---
+
+## Task 2: `DriveView` — ⚙ крупнее
+
+**Files:** Modify `ios/ESP32Car/DriveView.swift`.
+
+- [ ] **Step 1: Увеличить иконку настроек** — заменить блок кнопки:
+```swift
+                    Button { showSettings = true } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 15))
+                            .foregroundStyle(p.muted)
+                            .frame(width: 34, height: 28)
+                            .background(p.panel)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(p.line))
+                    }
+```
+на:
+```swift
+                    Button { showSettings = true } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(p.text)
+                            .frame(width: 40, height: 32)
+                            .background(p.panel)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(p.line))
+                    }
+```
+
+- [ ] **Step 2: Regenerate + build**
+```bash
+cd /Users/adamjohnson/VSCode/esp32-p4-car/ios && xcodegen generate && xcodebuild build -target ESP32Car -sdk iphonesimulator26.2 ARCHS=arm64 2>&1 | grep -iE "error:|BUILD SUCCEEDED|BUILD FAILED" | head -4
+```
+Expected: `** BUILD SUCCEEDED **`.
+
+- [ ] **Step 3: Commit**
+```bash
+cd /Users/adamjohnson/VSCode/esp32-p4-car
+git add ios/ESP32Car/DriveView.swift
+git commit -m "feat(ios): larger settings gear on drive screen"
+```
+
+---
+
+## Task 3: Проверка (форс-харнесс)
+
+**Files:** (временные правки, откатываются)
+
+- [ ] **Step 1: Харнесс-галерея** — временно в `ESP32CarApp.swift` корень → вертикальный стек из `DriveDiagram(t:y:palette:)` с разными командами на тёмном фоне:
+```swift
+            ZStack { Color.black.ignoresSafeArea()
+                HStack(spacing: 6) {
+                    DriveDiagram(t: 1, y: 0, palette: Theme.dark)
+                    DriveDiagram(t: 0.8, y: 0.5, palette: Theme.dark)
+                    DriveDiagram(t: -1, y: 0, palette: Theme.dark)
+                    DriveDiagram(t: 0, y: 1, palette: Theme.dark)
+                    DriveDiagram(t: 0, y: 0, palette: Theme.dark)
+                }
+            }
+```
+- [ ] **Step 2: Билд + скриншот** для `iPhone 17`; проверить: силуэт=прошивке (узкий корпус, тёмные колёса по углам), шевроны ▲/▼ по скорости, рельсы с зазором (вперёд/назад), спин = градиент-дуги-кометы со стрелками компактные. Скриншот `/tmp/drive_states.png`.
+- [ ] **Step 3: Откатить харнесс** — вернуть `ESP32CarApp.swift`; `grep -rn "DriveDiagram(t: 1" ios/ESP32Car` → нет; финальный build SUCCEEDED. Запустить продакшн в симуляторе.
+
+---
+
+## Self-Review заметки
+
+- **Покрытие спеки:** силуэт 1:1 (`drawCar` body 36×74 + metal-stroke + windshield, opaque bg-base) (Task 1); колёса по углам тёмные idle (`wheelColor` metal) + шевроны (`drawWheel`); рельсы-зазор (`railGap`=14); spin → градиентные дуги-кометы со стрелками компактные r=46 (`drawSpin`); ⚙ крупнее (Task 2). Проверка (Task 3).
+- **Тип-консистентность:** `metal`, `carW/carLen/wheelW/wheelH/railGap`; `ControlModel.sides/diagramState/trajectoryPoints`; `palette.accent/warn/panel/bg/line`. `DriveDiagram(t:y:palette:)` сигнатура не менялась (DriveView вызывает как есть).
+- **Тесты:** чистой логики нет (Canvas); проверка — сборка + скриншот-галерея (Task 3).
+- **Замечания:** позиции/размеры колёс и радиус спина подгоняются по скриншоту. Рельсы/спин рисуются ДО машинки → опак-корпус перекрывает то, что под ним.
+```
