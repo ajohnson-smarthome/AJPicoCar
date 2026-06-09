@@ -1,5 +1,17 @@
 import SwiftUI
 
+/// Accumulates a rotation angle by integrating angular velocity over time, so the spin arrows
+/// keep their position when speed changes (no jump back to the start).
+final class SpinClock {
+    var angle = 0.0
+    private var last: Double?
+    func tick(_ time: Double, omega: Double) -> Double {
+        if let last, time - last < 0.5 { angle += omega * (time - last) }   // ignore gaps (spin paused)
+        last = time
+        return angle
+    }
+}
+
 /// Animated top-down car diagram (1:1 with the firmware/calibration car) driven by (t, y):
 /// dark corner wheels that colour by side speed + run a chevron tread, predicted-trajectory rails,
 /// or a gradient "comet" spin indicator.
@@ -8,6 +20,7 @@ struct DriveDiagram: View {
     let y: Double
     let palette: Palette
 
+    @State private var spinClock = SpinClock()
     private let metal = Color(red: 0.227, green: 0.188, blue: 0.141)  // #3a3024
     private let carW: CGFloat = 36
     private let carLen: CGFloat = 74
@@ -120,12 +133,11 @@ struct DriveDiagram: View {
         c.translateBy(x: center.x, y: center.y)
         let sp: Double = y >= 0 ? 1 : -1
         let spinColor = sp >= 0 ? palette.accent : palette.warn   // colour by rotation direction
-        // rotation speed ∝ spin power: full deflection ≈ 1.5 s/turn, slower at lower power
+        // angle is *accumulated* (∫ω dt) so changing speed keeps the arrow where it is — no jump.
         let s = ControlModel.sides(t: t, y: y)
         let mag = min(max(abs(s.left), abs(s.right)), 1.0)
-        let period = 1.5 / max(mag, 0.05)
-        let spin = time.truncatingRemainder(dividingBy: period) / period * 360.0 * sp
-        c.rotate(by: .degrees(spin))
+        let omega = 360.0 * mag / 1.5 * sp        // deg/s, signed (full deflection ≈ 1.5 s/turn)
+        c.rotate(by: .degrees(spinClock.tick(time, omega: omega)))
 
         let r = 46.0
         let sweep = 115.0 * Double.pi / 180
