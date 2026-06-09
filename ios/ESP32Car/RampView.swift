@@ -3,14 +3,15 @@ import SwiftUI
 /// Dedicated ramp screen: demo car on the left, slider on the right (calib/firmware layout).
 struct RampView: View {
     let palette: Palette
-    @State private var rampMs = 300
+    @State private var rampMs = 300        // live slider value (label)
+    @State private var demoMs = 300        // applied on release — keeps the demo from jumping mid-drag
     private var p: Palette { palette }
 
     var body: some View {
         ZStack {
             p.bg.ignoresSafeArea()
             HStack(spacing: 24) {
-                RampCarView(rampMs: rampMs, palette: p)
+                RampCarView(rampMs: demoMs, palette: p)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 rightPanel
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -21,7 +22,7 @@ struct RampView: View {
         .navigationTitle(L.rampTitle)
         .navigationBarTitleDisplayMode(.inline)
         .tint(p.accent)
-        .task { if let v = await RampClient().get() { rampMs = v } }
+        .task { if let v = await RampClient().get() { rampMs = v; demoMs = v } }
     }
 
     private var rightPanel: some View {
@@ -33,7 +34,10 @@ struct RampView: View {
                 get: { Double(rampMs) },
                 set: { rampMs = Int($0 / 50) * 50 }
             ), in: 0...1000) { editing in
-                if !editing { Task { await RampClient().set(rampMs) } }
+                if !editing {
+                    demoMs = rampMs
+                    Task { await RampClient().set(rampMs) }
+                }
             }
             .tint(p.accent)
             .frame(width: 220)
