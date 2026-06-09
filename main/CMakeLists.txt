@@ -3,5 +3,4 @@ idf_component_register(
     INCLUDE_DIRS "."
     REQUIRES esp_wifi esp_netif esp_event nvs_flash esp_http_server esp_timer heap esp_app_format app_update
     PRIV_REQUIRES esp_driver_usb_serial_jtag esp_driver_i2c
-    EMBED_TXTFILES "web/index.html"
 )
