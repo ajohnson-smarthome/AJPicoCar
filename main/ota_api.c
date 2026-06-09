@@ -32,15 +32,17 @@ static esp_err_t ota_post(httpd_req_t *req) {
 
     char buf[1024];
     int remaining = (int)req->content_len;
+    int timeouts = 0;  // bound stalls: a silent client must not wedge the single httpd task forever
     while (remaining > 0) {
         int chunk = remaining < (int)sizeof(buf) ? remaining : (int)sizeof(buf);
         int r = httpd_req_recv(req, buf, chunk);
         if (r <= 0) {
-            if (r == HTTPD_SOCK_ERR_TIMEOUT) continue;
+            if (r == HTTPD_SOCK_ERR_TIMEOUT && ++timeouts <= 6) continue;  // ~6×5s grace, then abort
             esp_ota_abort(handle);
             httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "recv error");
             return ESP_FAIL;
         }
+        timeouts = 0;  // progress resets the stall budget
         if (esp_ota_write(handle, buf, r) != ESP_OK) {
             esp_ota_abort(handle);
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "ota write failed");
