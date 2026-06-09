@@ -31,8 +31,6 @@ enum L {
     static var driveSearching: String { s("drive.searching") }
     static var driveCalibratedYes: String { s("drive.calibratedYes") }
     static var driveCalibratedNo: String { s("drive.calibratedNo") }
-    static var sideLeft: String { s("drive.sideLeft") }
-    static var sideRight: String { s("drive.sideRight") }
     static var schemeArcade: String { s("scheme.arcade") }
     static var schemeTank: String { s("scheme.tank") }
     static func calibStep(_ n: Int) -> String { s("calib.step", n) }
