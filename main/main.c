@@ -14,6 +14,9 @@
 #include "watchdog.h"
 #include "calib_api.h"
 #include "status_api.h"
+#include "ota_api.h"
+#include "esp_ota_ops.h"
+#include "esp_partition.h"
 
 static const char *TAG = "main";
 
@@ -73,7 +76,16 @@ void app_main(void) {
     ESP_ERROR_CHECK(ws_control_start());
     ESP_ERROR_CHECK(calib_api_start());
     ESP_ERROR_CHECK(status_api_start());
+    ESP_ERROR_CHECK(ota_api_start());
     watchdog_init(WDT_TIMEOUT_MS);
+
+    // OTA rollback: mark this freshly-flashed image valid so the bootloader won't roll back.
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    esp_ota_img_states_t ota_state;
+    if (esp_ota_get_state_partition(running, &ota_state) == ESP_OK &&
+        ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
+        esp_ota_mark_app_valid_cancel_rollback();
+    }
 
     console_init();
     ESP_LOGI(TAG, "Ready. Enter 'mix <throttle> <yaw>' (each -1..1), e.g. 'mix 0.5 0.2':");
