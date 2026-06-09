@@ -14,7 +14,6 @@ struct DriveView: View {
     @State private var curY = 0.0
     @State private var showSettings = false
     @State private var showCalib = false
-    @State private var didPromptCalib = false
 
     @StateObject private var pad = Gamepad()
     @State private var haptics = Haptics()
@@ -113,26 +112,19 @@ struct DriveView: View {
         .onReceive(pad.$connected) { _ in push() }
         .sheet(isPresented: $showSettings) { SettingsView(palette: p, status: status) }
         .onReceive(status.$calibrated) { cal in
-            if cal == false && !didPromptCalib { didPromptCalib = true; showCalib = true }
+            if cal == false { showCalib = true }        // mandatory: reopens until calibrated
         }
         .sheet(isPresented: $showCalib) {
             NavigationStack {
                 CalibrationView(palette: p)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) { Button(L.later) { showCalib = false } }
-                    }
             }
+            .interactiveDismissDisabled(true)
         }
     }
 
+    // Empty in the normal case: only amber warnings ever appear here.
     private var statusBar: some View {
         HStack(spacing: 16) {
-            statusItem("clock", status.uptimeS.map { L.uptime($0) } ?? "—", p.muted)
-            let ok = status.calibrated ?? false
-            statusItem(ok ? "checkmark.circle.fill" : "xmark.circle",
-                       ok ? L.driveCalibratedYes : L.driveCalibratedNo,
-                       ok ? p.accent : p.warn)
-            statusItem("cpu", status.fw ?? "—", p.muted)
             if let trips = status.wdtTrips, trips > 0 {
                 statusItem("exclamationmark.triangle", L.driveWdtTrips(trips), p.warn)
             }

@@ -9,6 +9,7 @@ struct SettingsView: View {
         NavigationStack {
             ZStack {
                 palette.bg.ignoresSafeArea()
+                VStack(spacing: 0) {
                 List {
                     NavigationLink {
                         CalibrationView(palette: palette)
@@ -40,6 +41,21 @@ struct SettingsView: View {
                     .listRowBackground(palette.panel)
                 }
                 .scrollContentBackground(.hidden)
+                // Reference info lives here, off the drive screen: uptime + firmware version.
+                HStack(spacing: 12) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                        Text(status.uptimeS.map { L.uptime($0) } ?? "—")
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "cpu")
+                        Text(status.fw ?? "—")
+                    }
+                }
+                .font(.system(size: 11))
+                .foregroundStyle(palette.muted)
+                .padding(.bottom, 10)
+                }
             }
             .navigationTitle(L.settingsTitle)
             .navigationBarTitleDisplayMode(.inline)
