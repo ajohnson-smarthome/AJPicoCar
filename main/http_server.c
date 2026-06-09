@@ -5,14 +5,12 @@
 static const char *TAG = "http";
 static httpd_handle_t s_server = NULL;
 
-// Embedded via EMBED_TXTFILES "web/index.html" in CMakeLists (NUL-terminated).
-extern const char index_html_start[] asm("_binary_index_html_start");
-
+// The car is driven by the native iOS app over /ws + REST (/status, /calib*, /ramp, /trim, /ota).
+// There is no web UI: GET / answers with a short plain-text identity so a stray browser
+// (or a human poking around) understands what this device is.
 static esp_err_t root_get_handler(httpd_req_t *req) {
-    httpd_resp_set_type(req, "text/html");
-    // EMBED_TXTFILES NUL-terminates the data, so HTTPD_RESP_USE_STRLEN sends
-    // exactly the file length (excluding the trailing NUL).
-    return httpd_resp_send(req, index_html_start, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_set_type(req, "text/plain");
+    return httpd_resp_sendstr(req, "ESP32-Car: use the iOS app (control via /ws + REST).\n");
 }
 
 httpd_handle_t http_server_get_handle(void) {
@@ -31,6 +29,6 @@ esp_err_t http_server_start(void) {
     };
     ESP_RETURN_ON_ERROR(httpd_register_uri_handler(s_server, &root), TAG, "register /");
 
-    ESP_LOGI(TAG, "HTTP server started, serving / on the softAP");
+    ESP_LOGI(TAG, "HTTP server started (API only, no web UI)");
     return ESP_OK;
 }

@@ -187,6 +187,11 @@ joystick deflection = `t,y = ±1` = duty 4095 = 100% PWM (max the firmware comma
 request — join `ESP32-Car`, then open `http://192.168.4.1/` manually. `app_main` no longer calls it; `lwip`
 dropped from REQUIRES.
 
+**Removed — web pult (2026-06-10):** `main/web/index.html` deleted entirely — the native iOS app is the
+only pult. `GET /` now returns a one-line plain-text identity; httpd stays (the app needs `/ws` + REST:
+`/status`, `/calib*`, `/ramp`, `/trim`, `/ota`). Freed ~9.5 KB of the OTA app slot. NOTE: with free Apple-ID
+signing the app expires every 7 days — re-Run from Xcode; there is no browser fallback anymore.
+
 **🎉 Roadmap complete — Phases 1–6 merged and verified on hardware: a WiFi-controlled 4WD RC car with
 tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA, redesigned landscape pult.**
 
