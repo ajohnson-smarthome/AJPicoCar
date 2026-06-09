@@ -8,102 +8,121 @@ struct CalibrationView: View {
     @State private var assign: [Corner: (pair: Int, sign: Int)] = [:]
     @State private var pending: Corner?
     @State private var saving = false
-    @State private var errMsg: String?
-    @State private var pulse = false
+    @State private var failed = false
     private let client = CalibClient()
 
-    private var identifying: Bool { pending == nil && step < 4 }
+    private let metal = Color(red: 0.227, green: 0.188, blue: 0.141)  // #3a3024
+
+    private enum CalState { case spin, direction, done, saving, failed }
+    private var state: CalState {
+        if saving { return .saving }
+        if failed { return .failed }
+        if pending != nil { return .direction }
+        if step >= 4 { return .done }
+        return .spin
+    }
+    private var ringsActive: Bool { state == .spin || state == .saving }
+    private var p: Palette { palette }
 
     var body: some View {
         ZStack {
-            palette.bg.ignoresSafeArea()
+            p.bg.ignoresSafeArea()
             HStack(spacing: 24) {
-                carPanel
-                rightPanel
+                carDiagram.frame(maxWidth: .infinity, maxHeight: .infinity)
+                rightPanel.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(20)
         }
         .navigationTitle(L.calibTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .tint(palette.accent)
-        .onAppear {
-            withAnimation(.easeOut(duration: 1.1).repeatForever(autoreverses: false)) { pulse = true }
-        }
+        .tint(p.accent)
     }
 
-    // MARK: left — car (with concentric pulse)
-    private var carPanel: some View {
-        carDiagram.frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
+    // MARK: left — car (1:1 reference) + interactive wheels + pulse rings
     private var carDiagram: some View {
-        ZStack {
-            // pulse halo — concentric with the body, expands outward while identifying
-            if identifying {
-                RoundedRectangle(cornerRadius: 13).stroke(palette.warn, lineWidth: 2)
-                    .frame(width: 64, height: 98)
-                    .scaleEffect(pulse ? 1.32 : 1.0)
-                    .opacity(pulse ? 0 : 0.55)
-                    .animation(.easeOut(duration: 1.1).repeatForever(autoreverses: false), value: pulse)
+        TimelineView(.animation) { ctx in
+            let t = ctx.date.timeIntervalSinceReferenceDate
+            let ringS = 1.0 + 0.07 * (0.5 + 0.5 * sin(t * 2 * .pi / 1.4))
+            let glow = 0.5 + 0.5 * sin(t * 2 * .pi / 1.0)
+            ZStack {
+                if ringsActive {
+                    ForEach(0..<3, id: \.self) { i in
+                        Circle().stroke(p.accent, lineWidth: 1.5)
+                            .frame(width: CGFloat(56 + i * 24), height: CGFloat(56 + i * 24))
+                            .opacity([0.42, 0.24, 0.11][i])
+                            .scaleEffect(ringS)
+                    }
+                }
+                carBody
+                ForEach(Corner.allCases, id: \.self) { wheelButton($0, glow: glow) }
             }
-            RoundedRectangle(cornerRadius: 13).fill(palette.panel)
-                .overlay(RoundedRectangle(cornerRadius: 13).stroke(palette.line))
-                .frame(width: 64, height: 98)
-            RoundedRectangle(cornerRadius: 4).fill(palette.bg.opacity(0.7))
-                .frame(width: 34, height: 12).offset(y: -31)
-            ForEach(Corner.allCases, id: \.self) { wheelButton($0) }
         }
-        .scaleEffect(1.75)
-        .frame(width: 190, height: 240)
+        .scaleEffect(1.9)
+        .frame(width: 200, height: 240)
     }
 
-    private func wheelButton(_ c: Corner) -> some View {
-        let assigned = assign[c] != nil
-        let isPending = pending == c
-        let fill = assigned ? palette.accent : (isPending ? palette.warn : palette.idleWheel)
-        return Button { tap(c) } label: {
-            Text(assigned ? "✓" : c.label)
-                .font(.system(size: 10, weight: .bold))
-                .frame(width: 22, height: 32)
-                .background(fill)
-                .foregroundStyle(palette.bg)
-                .clipShape(RoundedRectangle(cornerRadius: 5))
-                .shadow(color: isPending ? palette.warn.opacity(0.9) : .clear, radius: 6)
+    private var carBody: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10).fill(p.bg)
+                .overlay(RoundedRectangle(cornerRadius: 10).fill(p.panel))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(metal, lineWidth: 1))
+                .frame(width: 34, height: 72)
+            RoundedRectangle(cornerRadius: 3).fill(p.bg)
+                .frame(width: 20, height: 8).offset(y: -25)
         }
-        .disabled(assigned)
+    }
+
+    private func wheelFill(_ c: Corner) -> Color {
+        if state == .failed { return p.warn }
+        if assign[c] != nil { return p.accent }
+        if pending == c { return p.warn }
+        return metal
+    }
+    private func wheelGlyph(_ c: Corner) -> String {
+        if state == .failed { return "✕" }
+        if assign[c] != nil { return "✓" }
+        return ""
+    }
+    private func wheelButton(_ c: Corner, glow: Double) -> some View {
+        Button { tap(c) } label: {
+            Text(wheelGlyph(c))
+                .font(.system(size: 8, weight: .heavy))
+                .foregroundStyle(p.bg)
+                .frame(width: 11, height: 15)
+                .background(RoundedRectangle(cornerRadius: 3).fill(wheelFill(c)))
+                .shadow(color: pending == c ? p.warn.opacity(0.9) : .clear,
+                        radius: pending == c ? 2 + 4 * glow : 0)
+        }
+        .buttonStyle(.plain)
+        .disabled(assign[c] != nil || state == .saving || state == .failed)
         .offset(x: c.dx, y: c.dy)
     }
 
-    // MARK: right — steps / actions
+    // MARK: right — unified template
     private var rightPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 9) {
             segments
-            Text(L.calibStep(min(step + 1, 4))).font(.headline).foregroundStyle(palette.text)
-
-            if let c = pending {
-                Text(L.calibWhichDir(c.label))
-                    .font(.subheadline).foregroundStyle(palette.muted)
-                HStack(spacing: 10) {
-                    Button { assignDir(1) } label: { Label(L.calibForward, systemImage: "arrow.up") }
-                        .buttonStyle(.bordered).tint(palette.accent)
-                    Button { assignDir(-1) } label: { Label(L.calibBack, systemImage: "arrow.down") }
-                        .buttonStyle(.bordered).tint(palette.warn)
+            switch state {
+            case .spin:
+                title(L.calibStep(min(step + 1, 4))); sub(L.calibSpinSub)
+                pill(L.calibSpin, p.accent) { spin() }
+            case .direction:
+                if let c = pending {
+                    title(L.calibWheel(c.label)); sub(L.calibWhichDir2)
+                    HStack(spacing: 8) {
+                        pill(L.calibForward, p.accent) { assignDir(1) }
+                        pill(L.calibBack, p.warn) { assignDir(-1) }
+                    }
                 }
-            } else if step < 4 {
-                Text(L.calibSpinPrompt(step + 1))
-                    .font(.subheadline).foregroundStyle(palette.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button { spin() } label: { Label(L.calibSpin, systemImage: "play.fill") }
-                    .buttonStyle(.borderedProminent).tint(palette.accent)
-            } else {
-                Text(L.calibAllSet).font(.subheadline).foregroundStyle(palette.muted)
-                Button { save() } label: { Label(L.calibSave, systemImage: "checkmark") }
-                    .buttonStyle(.borderedProminent).tint(palette.accent).disabled(saving)
-            }
-
-            if let e = errMsg {
-                Text(e).font(.caption).foregroundStyle(palette.warn)
+            case .done:
+                title(L.calibDoneTitle); sub(L.calibAllSet)
+                pill(L.calibSave, p.accent) { save() }
+            case .saving:
+                title(L.calibSaving); sub(L.calibSavingSub)
+            case .failed:
+                title(L.calibFailTitle); sub(L.calibFailSub)
+                pill(L.calibRetry, p.accent) { failed = false; save() }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -113,22 +132,32 @@ struct CalibrationView: View {
         HStack(spacing: 5) {
             ForEach(0..<4, id: \.self) { i in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(i <= step && step < 4 || i < step ? palette.accent : palette.line)
-                    .frame(width: 28, height: 4)
-                    .shadow(color: i == step && step < 4 ? palette.accent.opacity(0.8) : .clear, radius: 4)
+                    .fill((i <= step && step < 4) || i < step ? p.accent : p.line)
+                    .frame(width: 26, height: 4)
+                    .shadow(color: i == step && step < 4 ? p.accent.opacity(0.8) : .clear, radius: 4)
             }
         }
     }
 
+    private func title(_ t: String) -> some View {
+        Text(t).font(.system(size: 18, weight: .semibold)).foregroundStyle(p.text)
+    }
+    private func sub(_ t: String) -> some View {
+        Text(t).font(.system(size: 12)).foregroundStyle(p.muted).fixedSize(horizontal: false, vertical: true)
+    }
+    private func pill(_ text: String, _ tint: Color, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text).font(.system(size: 14, weight: .semibold)).foregroundStyle(tint)
+                .padding(.horizontal, 16).padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 10).fill(tint.opacity(0.15)))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(tint.opacity(0.55), lineWidth: 1))
+        }
+        .buttonStyle(.plain).padding(.top, 2)
+    }
+
     // MARK: logic (unchanged behavior)
-    private func spin() {
-        errMsg = nil
-        Task { await client.spin(pair: step, dir: 1) }
-    }
-    private func tap(_ c: Corner) {
-        guard assign[c] == nil else { return }
-        pending = c
-    }
+    private func spin() { Task { await client.spin(pair: step, dir: 1) } }
+    private func tap(_ c: Corner) { guard assign[c] == nil else { return }; pending = c }
     private func assignDir(_ sign: Int) {
         guard let c = pending else { return }
         assign[c] = (pair: step, sign: sign)
@@ -136,18 +165,17 @@ struct CalibrationView: View {
         step += 1
     }
     private func save() {
-        saving = true
-        errMsg = nil
+        saving = true; failed = false
         Task {
             let ok = await client.save(body: ControlModel.calibSaveBody(assign))
             saving = false
-            if ok { dismiss() } else { errMsg = L.calibSaveFailed }
+            if ok { dismiss() } else { failed = true }
         }
     }
 }
 
 private extension Corner {
     var label: String { rawValue.uppercased() }
-    var dx: CGFloat { (self == .fl || self == .rl) ? -33 : 33 }
-    var dy: CGFloat { (self == .fl || self == .fr) ? -36 : 36 }
+    var dx: CGFloat { (self == .fl || self == .rl) ? -18.5 : 18.5 }
+    var dy: CGFloat { (self == .fl || self == .fr) ? -20.5 : 20.5 }
 }

@@ -19,7 +19,15 @@ enum L {
     static var calibSpin: String { s("calib.spin") }
     static var calibAllSet: String { s("calib.allSet") }
     static var calibSave: String { s("calib.save") }
-    static var calibSaveFailed: String { s("calib.saveFailed") }
+    static var calibSpinSub: String { s("calib.spinSub") }
+    static var calibWhichDir2: String { s("calib.whichDir2") }
+    static var calibDoneTitle: String { s("calib.doneTitle") }
+    static var calibSaving: String { s("calib.saving") }
+    static var calibSavingSub: String { s("calib.savingSub") }
+    static var calibFailTitle: String { s("calib.failTitle") }
+    static var calibFailSub: String { s("calib.failSub") }
+    static var calibRetry: String { s("calib.retry") }
+    static func calibWheel(_ w: String) -> String { s("calib.wheel", w) }
     static var driveSearching: String { s("drive.searching") }
     static var driveCalibratedYes: String { s("drive.calibratedYes") }
     static var driveCalibratedNo: String { s("drive.calibratedNo") }
@@ -28,8 +36,6 @@ enum L {
     static var schemeArcade: String { s("scheme.arcade") }
     static var schemeTank: String { s("scheme.tank") }
     static func calibStep(_ n: Int) -> String { s("calib.step", n) }
-    static func calibWhichDir(_ wheel: String) -> String { s("calib.whichDir", wheel) }
-    static func calibSpinPrompt(_ n: Int) -> String { s("calib.spinPrompt", n) }
     static var settingsFirmware: String { s("settings.firmware") }
     static var fwChecking: String { s("fw.checking") }
     static var fwUpToDate: String { s("fw.upToDate") }
