@@ -66,6 +66,7 @@ enum L {
     static var trimCenter: String { s("trim.center") }
     static func trimLeft(_ p: Int) -> String { s("trim.left", p) }
     static func trimRight(_ p: Int) -> String { s("trim.right", p) }
+    static func driveWdtTrips(_ n: Int) -> String { s("drive.wdtTrips", n) }
     static func uptime(_ sec: Int) -> String {
         if sec < 60 { return s("uptime.sec", sec) }
         if sec < 3600 { return s("uptime.min", sec / 60) }

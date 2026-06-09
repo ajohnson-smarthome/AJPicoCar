@@ -71,4 +71,12 @@ final class ControlModelTests: XCTestCase {
         XCTAssertEqual(ControlModel.signalLevel(online: true, pingMs: 200), 2)
         XCTAssertEqual(ControlModel.signalLevel(online: true, pingMs: 400), 1)
     }
+    func testSignalLevelRssi() {
+        XCTAssertEqual(ControlModel.signalLevel(online: true, rssi: -45, pingMs: 500), 4)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, rssi: -55, pingMs: 500), 3)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, rssi: -65, pingMs: 500), 2)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, rssi: -80, pingMs: 10), 1)
+        XCTAssertEqual(ControlModel.signalLevel(online: true, rssi: nil, pingMs: 10), 4)
+        XCTAssertEqual(ControlModel.signalLevel(online: false, rssi: -45, pingMs: 10), 0)
+    }
 }

@@ -62,3 +62,4 @@
 "trim.center"   = "Ровно";
 "trim.left"     = "Влево %d%%";
 "trim.right"    = "Вправо %d%%";
+"drive.wdtTrips"     = "обрывов: %d";
