@@ -22,7 +22,7 @@ struct DriveDiagram: View {
             }
         }
         .frame(width: 150, height: 200)
-        .scaleEffect(1.1)   // car +10%
+        .scaleEffect(1.32)   // car size (+10% then +20%)
     }
 
     private func render(_ ctx: inout GraphicsContext, _ size: CGSize, time: Double) {
@@ -119,6 +119,7 @@ struct DriveDiagram: View {
         var c = ctx
         c.translateBy(x: center.x, y: center.y)
         let sp: Double = y >= 0 ? 1 : -1
+        let spinColor = sp >= 0 ? palette.accent : palette.warn   // colour by rotation direction
         let spin = time.truncatingRemainder(dividingBy: 4.0) / 4.0 * 360.0 * sp
         c.rotate(by: .degrees(spin))
 
@@ -136,7 +137,7 @@ struct DriveDiagram: View {
             path.move(to: pts[0])
             for pt in pts.dropFirst() { path.addLine(to: pt) }
             // gradient comet: faint tail (pts[0]) → bright head (pts.last), like the rails
-            let grad = Gradient(colors: [palette.accent.opacity(0.0), palette.accent.opacity(0.9)])
+            let grad = Gradient(colors: [spinColor.opacity(0.0), spinColor.opacity(0.9)])
             c.stroke(path, with: .linearGradient(grad, startPoint: pts[0], endPoint: pts[pts.count - 1]),
                      style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
             // arrowhead: base at arc end, tip extending along the tangent
@@ -145,7 +146,7 @@ struct DriveDiagram: View {
             let aLen = 11.0
             let tip = CGPoint(x: last.x + CGFloat(Foundation.cos(dir) * aLen),
                               y: last.y + CGFloat(Foundation.sin(dir) * aLen))
-            c.fill(arrowHead(tip: tip, angle: dir, size: aLen), with: .color(palette.accent))
+            c.fill(arrowHead(tip: tip, angle: dir, size: aLen), with: .color(spinColor))
         }
     }
 
