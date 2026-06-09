@@ -74,10 +74,10 @@ struct DriveView: View {
                 Spacer()
             }
 
-            HStack(spacing: 34) {
-                sideLabel(L.sideLeft, sides.left)
+            HStack(spacing: 44) {
+                PowerBar(value: sides.left, palette: p)
                 DriveDiagram(t: curT, y: curY, palette: p)
-                sideLabel(L.sideRight, sides.right)
+                PowerBar(value: sides.right, palette: p)
             }
 
             VStack {
@@ -143,13 +143,4 @@ struct DriveView: View {
         }
     }
 
-    private func sideLabel(_ name: String, _ v: Double) -> some View {
-        VStack(spacing: 2) {
-            Text(name).font(.system(size: 13)).foregroundStyle(p.accent)
-            Text("\(Int(v * 100))%")
-                .font(.system(size: 15, weight: .semibold)).monospacedDigit()
-                .foregroundStyle(p.accent)
-        }
-        .frame(width: 64)  // fixed width so the car doesn't shift as the % text changes
-    }
 }

@@ -29,8 +29,6 @@
 "uptime.min"         = "%d мин";
 "uptime.hourMin"     = "%d ч %d мин";
 "uptime.day"         = "%d дн";
-"drive.sideLeft"     = "Л";
-"drive.sideRight"    = "П";
 "scheme.arcade"      = "Аркада";
 "scheme.tank"        = "Танк";
 "settings.firmware"  = "Прошивка";
