@@ -120,7 +120,11 @@ struct DriveDiagram: View {
         c.translateBy(x: center.x, y: center.y)
         let sp: Double = y >= 0 ? 1 : -1
         let spinColor = sp >= 0 ? palette.accent : palette.warn   // colour by rotation direction
-        let spin = time.truncatingRemainder(dividingBy: 4.0) / 4.0 * 360.0 * sp
+        // rotation speed ∝ spin power: full deflection ≈ 1.5 s/turn, slower at lower power
+        let s = ControlModel.sides(t: t, y: y)
+        let mag = min(max(abs(s.left), abs(s.right)), 1.0)
+        let period = 1.5 / max(mag, 0.05)
+        let spin = time.truncatingRemainder(dividingBy: period) / period * 360.0 * sp
         c.rotate(by: .degrees(spin))
 
         let r = 46.0
