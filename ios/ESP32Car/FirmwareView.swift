@@ -31,47 +31,62 @@ struct FirmwareView: View {
     }
 
     @ViewBuilder private var stateBlock: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 9) {
             switch phase {
             case .checking:
                 title(L.fwChecking); sub(L.fwCurrent(current))
             case .upToDate:
                 title(L.fwUpToDate); sub(L.fwVersionLine(current))
-                Button { Task { await check() } } label: { Text(L.fwRecheck) }
-                    .buttonStyle(.bordered).tint(p.muted).padding(.top, 2)
+                fwButton(L.fwRecheck, prominent: false) { Task { await check() } }
             case .available:
                 title(L.fwAvailable); sub(L.fwTransition(current, release?.tag ?? "—"))
-                Button { Task { await download() } } label: { Text(L.fwUpdate) }
-                    .buttonStyle(.borderedProminent).tint(p.accent).padding(.top, 2)
+                fwButton(L.fwUpdate, prominent: true) { Task { await download() } }
             case .downloading:
                 title(L.fwDownloadTitle)
                 sub("\(L.fwTransition(current, release?.tag ?? "")) · \(Int(client.downloadProgress * 100))%")
-                ProgressView(value: client.downloadProgress).tint(p.accent).frame(width: 150)
+                ProgressView(value: client.downloadProgress).tint(p.accent).frame(width: 160)
             case .downloaded:
                 title(L.fwConnectTitle); sub(L.fwConnectSub)
-                Button { Task { await flash() } } label: { Text(L.fwFlash) }
-                    .buttonStyle(.borderedProminent).tint(p.accent).disabled(!status.online).padding(.top, 2)
+                fwButton(L.fwFlash, prominent: true, disabled: !status.online) { Task { await flash() } }
             case .uploading:
                 title(L.fwUploadTitle)
                 sub("\(release?.tag ?? "") · \(Int(client.uploadProgress * 100))%")
-                ProgressView(value: client.uploadProgress).tint(p.accent).frame(width: 150)
+                ProgressView(value: client.uploadProgress).tint(p.accent).frame(width: 160)
             case .rebooting:
                 title(L.fwRebootTitle); sub(L.fwRebootWait)
             case .done:
                 title(L.fwDoneTitle); sub(L.fwDoneSub(current))
             case .failed:
                 title(L.fwFailTitle); sub(L.fwFailSub)
-                Button { Task { await check() } } label: { Text(L.fwRetry) }
-                    .buttonStyle(.borderedProminent).tint(p.accent).padding(.top, 2)
+                fwButton(L.fwRetry, prominent: true) { Task { await check() } }
             }
         }
     }
 
     private func title(_ t: String) -> some View {
-        Text(t).font(.system(size: 16, weight: .semibold)).foregroundStyle(p.text)
+        Text(t).font(.system(size: 22, weight: .semibold)).foregroundStyle(p.text)
     }
     private func sub(_ t: String) -> some View {
-        Text(t).font(.system(size: 12)).foregroundStyle(p.muted)
+        Text(t).font(.system(size: 14)).foregroundStyle(p.muted)
+    }
+
+    /// Custom pill button matching the mockups: accent-tinted fill + accent text (prominent),
+    /// or transparent + muted text with a line border (ghost). Dimmed when disabled.
+    private func fwButton(_ text: String, prominent: Bool, disabled: Bool = false,
+                          _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(disabled ? p.muted.opacity(0.5) : (prominent ? p.accent : p.muted))
+                .padding(.horizontal, 16).padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 10)
+                    .fill(prominent && !disabled ? p.accent.opacity(0.15) : Color.clear))
+                .overlay(RoundedRectangle(cornerRadius: 10)
+                    .stroke(disabled ? p.line.opacity(0.6) : (prominent ? p.accent.opacity(0.55) : p.line), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .padding(.top, 3)
     }
 
     private func check() async {
