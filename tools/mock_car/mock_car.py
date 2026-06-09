@@ -47,6 +47,12 @@ async def calib_save(request):
     return web.Response(text="ok")
 
 
+async def ota(request):
+    data = await request.read()
+    print(f"ota: received {len(data)} bytes")
+    return web.Response(text="ok")
+
+
 def main():
     app = web.Application()
     app.add_routes([
@@ -55,6 +61,7 @@ def main():
         web.get("/calib", calib),
         web.post("/calib/spin", calib_spin),
         web.post("/calib/save", calib_save),
+        web.post("/ota", ota),
     ])
     print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*)")
     web.run_app(app, host="127.0.0.1", port=8080)

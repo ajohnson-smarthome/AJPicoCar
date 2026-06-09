@@ -27,3 +27,15 @@
 "drive.sideRight"    = "П";
 "scheme.arcade"      = "Аркада";
 "scheme.tank"        = "Танк";
+"settings.firmware"  = "Прошивка";
+"fw.current"         = "Текущая: %@";
+"fw.latest"          = "Доступно: %@";
+"fw.upToDate"        = "Прошивка актуальна";
+"fw.download"        = "1. Скачать (нужен интернет)";
+"fw.connectCar"      = "2. Подключись к Wi-Fi ESP32-Car";
+"fw.flash"           = "3. Залить";
+"fw.downloading"     = "Скачиваю…";
+"fw.uploading"       = "Заливаю…";
+"fw.rebooting"       = "Перезагрузка машинки…";
+"fw.failed"          = "Не удалось — повтори.";
+"fw.done"            = "Готово ✓";

@@ -5,23 +5,24 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#include "esp_app_desc.h"
 #include "http_server.h"
 #include "calibration.h"
 #include "motors.h"
 
 static const char *TAG = "status_api";
-#define FW_VERSION "1.0"
 
 static esp_err_t status_get(httpd_req_t *req) {
     motors_config_t tmp;
     bool calibrated = calibration_load(&tmp);
     long uptime_s = (long)(esp_timer_get_time() / 1000000);
     uint32_t heap = (uint32_t)esp_get_free_heap_size();
+    const char *fw = esp_app_get_description()->version;
 
     char buf[160];
     int n = snprintf(buf, sizeof(buf),
         "{\"device\":\"esp32-car\",\"fw\":\"%s\",\"uptime_s\":%ld,\"calibrated\":%s,\"heap\":%u}",
-        FW_VERSION, uptime_s, calibrated ? "true" : "false", (unsigned)heap);
+        fw, uptime_s, calibrated ? "true" : "false", (unsigned)heap);
     if (n < 0 || n >= (int)sizeof(buf)) n = (int)sizeof(buf) - 1;  // guard against truncation
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, buf, n);

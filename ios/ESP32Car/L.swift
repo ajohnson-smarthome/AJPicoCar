@@ -30,6 +30,18 @@ enum L {
     static func calibStep(_ n: Int) -> String { s("calib.step", n) }
     static func calibWhichDir(_ wheel: String) -> String { s("calib.whichDir", wheel) }
     static func calibSpinPrompt(_ n: Int) -> String { s("calib.spinPrompt", n) }
+    static var settingsFirmware: String { s("settings.firmware") }
+    static var fwUpToDate: String { s("fw.upToDate") }
+    static var fwDownload: String { s("fw.download") }
+    static var fwConnectCar: String { s("fw.connectCar") }
+    static var fwFlash: String { s("fw.flash") }
+    static var fwDownloading: String { s("fw.downloading") }
+    static var fwUploading: String { s("fw.uploading") }
+    static var fwRebooting: String { s("fw.rebooting") }
+    static var fwFailed: String { s("fw.failed") }
+    static var fwDone: String { s("fw.done") }
+    static func fwCurrent(_ v: String) -> String { s("fw.current", v) }
+    static func fwLatest(_ v: String) -> String { s("fw.latest", v) }
     static func driveConnected(_ ms: Int) -> String { s("drive.connected", ms) }
     static func uptime(_ sec: Int) -> String {
         if sec < 60 { return s("uptime.sec", sec) }
