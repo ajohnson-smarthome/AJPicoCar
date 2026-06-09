@@ -111,7 +111,7 @@ struct DriveView: View {
         .onReceive(pad.$leftY) { _ in push() }
         .onReceive(pad.$rightY) { _ in push() }
         .onReceive(pad.$connected) { _ in push() }
-        .sheet(isPresented: $showSettings) { SettingsView(palette: p) }
+        .sheet(isPresented: $showSettings) { SettingsView(palette: p, status: status) }
         .onReceive(status.$calibrated) { cal in
             if cal == false && !didPromptCalib { didPromptCalib = true; showCalib = true }
         }
