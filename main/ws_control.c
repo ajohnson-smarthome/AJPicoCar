@@ -9,6 +9,10 @@
 
 static const char *TAG = "ws";
 
+static volatile uint32_t s_frames = 0;
+
+uint32_t ws_control_frames(void) { return s_frames; }
+
 static esp_err_t ws_handler(httpd_req_t *req) {
     if (req->method == HTTP_GET) {
         // WebSocket handshake completed; nothing to send back.
@@ -45,6 +49,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 
     float t, y;
     if (control_parse_ty((const char *)buf, &t, &y) == 0) {
+        s_frames++;
         watchdog_feed();
         car_drive(t, y);
     } else {

@@ -40,6 +40,18 @@ enum ControlModel {
         return 1
     }
 
+    /// RSSI-based link level when the car reports its AP-side RSSI; falls back to ping.
+    static func signalLevel(online: Bool, rssi: Int?, pingMs: Int?) -> Int {
+        guard online else { return 0 }
+        if let r = rssi, r != 0 {
+            if r >= -50 { return 4 }
+            if r >= -60 { return 3 }
+            if r >= -70 { return 2 }
+            return 1
+        }
+        return signalLevel(online: online, pingMs: pingMs)
+    }
+
     /// Build the /calib/save body "p:s,p:s,p:s,p:s" in FL,FR,RL,RR order.
     /// Missing corners default to (0, 1) — the wizard only calls this when all 4 are set.
     static func calibSaveBody(_ a: [Corner: (pair: Int, sign: Int)]) -> String {

@@ -5,7 +5,7 @@ import time
 from aiohttp import web, WSMsgType
 
 START = time.monotonic()
-STATE = {"calibrated": False, "ramp_ms": 300, "trim_pct": 0}
+STATE = {"calibrated": False, "ramp_ms": 300, "trim_pct": 0, "wdt_trips": 0}
 
 
 async def status(request):
@@ -15,6 +15,9 @@ async def status(request):
         "uptime_s": int(time.monotonic() - START),
         "calibrated": STATE["calibrated"],
         "heap": 200000,
+        "rssi": -58,
+        "ws_fps": 10,
+        "wdt_trips": STATE["wdt_trips"],
     })
 
 

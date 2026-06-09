@@ -7,6 +7,9 @@ final class CarStatus: ObservableObject {
     @Published var uptimeS: Int?
     @Published var calibrated: Bool?
     @Published var fw: String?
+    @Published var rssi: Int?
+    @Published var wdtTrips: Int?
+    @Published var wsFps: Int?
 
     private let url = URL(string: CarHost.statusURL)!
     private var timer: Timer?
@@ -28,6 +31,7 @@ final class CarStatus: ObservableObject {
         URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
             let ms = Int(Date().timeIntervalSince(started) * 1000)
             var ok = false; var up: Int?; var cal: Bool?; var fwv: String?
+            var rs: Int?; var trips: Int?; var fps: Int?
             if let data,
                let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                (j["device"] as? String) == "esp32-car" {
@@ -35,6 +39,9 @@ final class CarStatus: ObservableObject {
                 up = j["uptime_s"] as? Int
                 cal = j["calibrated"] as? Bool
                 fwv = j["fw"] as? String
+                if let r = j["rssi"] as? Int, r != 0 { rs = r }
+                trips = j["wdt_trips"] as? Int
+                fps = j["ws_fps"] as? Int
             }
             Task { @MainActor in
                 guard let self else { return }
@@ -45,6 +52,9 @@ final class CarStatus: ObservableObject {
                     self.uptimeS = up
                     self.calibrated = cal
                     self.fw = fwv
+                    self.rssi = rs
+                    self.wdtTrips = trips
+                    self.wsFps = fps
                 } else {
                     // Debounce: only drop offline after two consecutive misses so a single
                     // transient /status timeout can't hide the pad mid-drive.

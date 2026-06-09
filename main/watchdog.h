@@ -12,6 +12,9 @@ void watchdog_init(uint32_t timeout_ms);
 // Also "arms" the watchdog so it only acts once traffic has started.
 void watchdog_feed(void);
 
+// How many times the watchdog auto-stopped the car since boot.
+uint32_t watchdog_trips(void);
+
 // Pure: has more than timeout_ms elapsed between last_ms and now_ms?
 // Uses unsigned subtraction so 32-bit millisecond-counter rollover is handled.
 static inline bool watchdog_stale(uint32_t last_ms, uint32_t now_ms, uint32_t timeout_ms) {

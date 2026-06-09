@@ -26,7 +26,7 @@ struct DriveView: View {
 
     private var scheme: Scheme { Scheme(rawValue: schemeRaw) ?? .arcade }
     private var p: Palette { Theme.current(colorScheme) }
-    private var signalLevel: Int { ControlModel.signalLevel(online: status.online, pingMs: status.pingMs) }
+    private var signalLevel: Int { ControlModel.signalLevel(online: status.online, rssi: status.rssi, pingMs: status.pingMs) }
     private var signalColor: Color { signalLevel == 0 ? .red : (signalLevel == 1 ? p.warn : p.accent) }
 
     private func push() {
@@ -133,6 +133,9 @@ struct DriveView: View {
                        ok ? L.driveCalibratedYes : L.driveCalibratedNo,
                        ok ? p.accent : p.warn)
             statusItem("cpu", status.fw ?? "—", p.muted)
+            if let trips = status.wdtTrips, trips > 0 {
+                statusItem("exclamationmark.triangle", L.driveWdtTrips(trips), p.warn)
+            }
         }
         .font(.system(size: 10))
     }
