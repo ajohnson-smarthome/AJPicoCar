@@ -3,12 +3,16 @@ import SwiftUI
 /// Phases of the firmware-update screen, shared by FirmwareView and its car image.
 enum FwPhase { case checking, upToDate, available, downloading, downloaded, uploading, rebooting, done, failed }
 
-/// Top-down car + center chip + OTA rings. Rings pulse while waiting, ping while rebooting,
-/// sit static as decoration when idle, or vanish on terminal info screens.
+/// Top-down car + center chip + OTA rings, drawn 1:1 from the reference mockup.
+/// Rings sit behind the opaque car (so they ring around/under it). They pulse while waiting,
+/// ping while rebooting, sit static as decoration when idle, or vanish on terminal screens.
 /// Animations run via TimelineView so they keep going across phase transitions.
 struct FirmwareCarView: View {
     let phase: FwPhase
     let palette: Palette
+
+    // Reference palette (mockup hex)
+    private let metal = Color(red: 0.227, green: 0.188, blue: 0.141)   // #3a3024 — body edge + wheels
 
     private enum WaveMode { case none, deco, wait, active, ping }
     private var mode: WaveMode {
@@ -29,30 +33,45 @@ struct FirmwareCarView: View {
     }
     private var chipColor: Color { phase == .failed ? palette.warn : palette.accent }
 
+    private let ringD: [CGFloat] = [56, 80, 104]   // reference .w1/.w2/.w3
+
     var body: some View {
         ZStack {
-            waves
-            RoundedRectangle(cornerRadius: 13).fill(palette.panel)
-                .overlay(RoundedRectangle(cornerRadius: 13).stroke(palette.line))
-                .frame(width: 64, height: 98)
-            RoundedRectangle(cornerRadius: 4).fill(palette.bg.opacity(0.7))
-                .frame(width: 34, height: 12).offset(y: -31)
-            ForEach(0..<4, id: \.self) { i in
-                RoundedRectangle(cornerRadius: 5).fill(palette.idleWheel)
-                    .frame(width: 22, height: 32)
-                    .offset(x: i % 2 == 0 ? -33 : 33, y: i < 2 ? -36 : 36)
-            }
-            Image(systemName: chipIcon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(palette.bg)
-                .frame(width: 26, height: 26)
-                .background(chipColor)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .shadow(color: chipColor.opacity(0.7), radius: phase == .done ? 11 : 5)
+            waves       // behind
+            car         // opaque, on top
         }
-        .scaleEffect(1.45)
-        .frame(width: 175, height: 220)
-        .opacity(phase == .rebooting ? 0.6 : 1)
+        .scaleEffect(1.9)
+        .frame(width: 200, height: 240)
+        .opacity(phase == .rebooting ? 0.85 : 1)
+    }
+
+    // 1:1 reference car: body 34×72, 4 dark wheels at corners, windshield near top, chip center.
+    private var car: some View {
+        ZStack {
+            // body (opaque: bg base under panel so rings under it are covered)
+            RoundedRectangle(cornerRadius: 10).fill(palette.bg)
+                .overlay(RoundedRectangle(cornerRadius: 10).fill(palette.panel))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(metal, lineWidth: 1))
+                .frame(width: 34, height: 72)
+            // windshield
+            RoundedRectangle(cornerRadius: 3).fill(palette.bg)
+                .frame(width: 20, height: 8).offset(y: -25)
+            // wheels (dark, on top of the body — as in the reference)
+            ForEach(0..<4, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 3).fill(metal)
+                    .frame(width: 11, height: 15)
+                    .offset(x: i % 2 == 0 ? -18.5 : 18.5, y: i < 2 ? -20.5 : 20.5)
+            }
+            // chip — dark-green fill, accent border + icon, glow
+            ZStack {
+                RoundedRectangle(cornerRadius: 5).fill(palette.bg)
+                RoundedRectangle(cornerRadius: 5).fill(chipColor.opacity(0.18))
+                RoundedRectangle(cornerRadius: 5).stroke(chipColor, lineWidth: 1)
+                Image(systemName: chipIcon).font(.system(size: 11, weight: .bold)).foregroundStyle(chipColor)
+            }
+            .frame(width: 20, height: 20)
+            .shadow(color: chipColor.opacity(0.55), radius: phase == .done ? 8 : 5)
+        }
     }
 
     @ViewBuilder private var waves: some View {
@@ -66,7 +85,7 @@ struct FirmwareCarView: View {
             let period = mode == .active ? 1.05 : 1.4
             TimelineView(.animation) { ctx in
                 let t = ctx.date.timeIntervalSinceReferenceDate
-                let s = 1.0 + 0.10 * (0.5 + 0.5 * sin(t * 2 * .pi / period))
+                let s = 1.0 + 0.08 * (0.5 + 0.5 * sin(t * 2 * .pi / period))
                 rings(scale: s, opacity: op)
             }
         case .ping:
@@ -77,8 +96,8 @@ struct FirmwareCarView: View {
                         let ph = ((t + Double(i) * 0.9) / 1.8).truncatingRemainder(dividingBy: 1)
                         Circle().stroke(palette.accent, lineWidth: 2)
                             .frame(width: 60, height: 60)
-                            .scaleEffect(0.4 + 1.3 * ph)
-                            .opacity(0.7 * (1 - ph))
+                            .scaleEffect(0.9 + 1.0 * ph)
+                            .opacity(0.6 * (1 - ph))
                     }
                 }
             }
@@ -88,8 +107,8 @@ struct FirmwareCarView: View {
     private func rings(scale: Double, opacity: [Double]) -> some View {
         ZStack {
             ForEach(0..<3, id: \.self) { i in
-                Circle().stroke(palette.accent, lineWidth: 2)
-                    .frame(width: CGFloat(64 + i * 28), height: CGFloat(64 + i * 28))
+                Circle().stroke(palette.accent, lineWidth: 1.5)
+                    .frame(width: ringD[i], height: ringD[i])
                     .opacity(opacity[i])
                     .scaleEffect(scale)
             }
