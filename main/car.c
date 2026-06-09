@@ -45,13 +45,15 @@ void car_drive(float throttle, float yaw) {
     throttle = clamp_unit(throttle);
     yaw = clamp_unit(yaw);
     side_speeds_t s = mixer_mix(throttle, yaw);
-    motor_outputs_t out = motors_plan(s.left, s.right, &g_cfg);
 
+    // Take the lock BEFORE reading g_cfg: car_set_calibration writes it from the httpd
+    // task, and a torn read of the config could plan duties for invalid channel pairs.
     // Bounded timeout so a stuck holder can't wedge the watchdog task forever.
     if (g_lock && xSemaphoreTake(g_lock, pdMS_TO_TICKS(200)) != pdTRUE) {
         ESP_LOGW(TAG, "drive: mutex busy >200ms, skipping write");
         return;
     }
+    motor_outputs_t out = motors_plan(s.left, s.right, &g_cfg);
     motors_apply(&out);
     if (g_lock) xSemaphoreGive(g_lock);
 
@@ -63,7 +65,12 @@ void car_stop(void) {
 }
 
 void car_set_calibration(const motors_config_t *cfg) {
-    if (g_lock) xSemaphoreTake(g_lock, pdMS_TO_TICKS(200));
+    // Must own the lock before writing g_cfg (car_drive reads it under the same lock).
+    // On timeout, skip the update entirely — never write unlocked or give an un-taken mutex.
+    if (g_lock && xSemaphoreTake(g_lock, pdMS_TO_TICKS(200)) != pdTRUE) {
+        ESP_LOGW(TAG, "set_calibration: mutex busy >200ms, config NOT updated");
+        return;
+    }
     g_cfg = *cfg;
     if (g_lock) xSemaphoreGive(g_lock);
 }
