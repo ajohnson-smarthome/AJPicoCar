@@ -1,4 +1,4 @@
-"connect.title"      = "Машинка не найдена";
+"connect.title"      = "Поиск машинки…";
 "connect.body"       = "Подключись к Wi-Fi «ESP32-Car» (пароль drive1234), затем вернись в приложение.";
 "common.openSettings"= "Открыть настройки";
 "common.close"       = "Закрыть";
