@@ -81,27 +81,29 @@ struct ConnectCarView: View {
         beam.fill(sector, with: .conicGradient(
             Gradient(colors: [palette.accent.opacity(0.35), palette.accent.opacity(0.0)]),
             center: .zero, angle: .degrees(-70)))
-        // dimmed car on top — "not here yet"
-        var car = ctx
-        car.opacity = 0.55
-        drawCar(&car, center: center)
+        // dimmed car on top — opaque base so the beam reads as passing UNDER the car
+        drawCar(&ctx, center: center)
     }
 
     private func drawCar(_ ctx: inout GraphicsContext, center: CGPoint) {
+        // Opaque bg fills occlude the beam; the "dimmed" look comes from muted colour mixes,
+        // not from layer transparency (which would let the beam shine through the body).
         let body = CGRect(x: center.x - carW / 2, y: center.y - carLen / 2, width: carW, height: carLen)
         let bp = Path(roundedRect: body, cornerRadius: 11)
         ctx.fill(bp, with: .color(palette.bg))
-        ctx.fill(bp, with: .color(palette.panel))
-        ctx.stroke(bp, with: .color(metal), lineWidth: 1)
+        ctx.fill(bp, with: .color(palette.panel.opacity(0.6)))
+        ctx.stroke(bp, with: .color(metal.opacity(0.6)), lineWidth: 1)
         let wind = CGRect(x: center.x - 11, y: body.minY + 7, width: 22, height: 9)
         ctx.fill(Path(roundedRect: wind, cornerRadius: 3), with: .color(palette.bg.opacity(0.85)))
         let wx = carW / 2 + 1
         let wy = carLen / 2 - 16
-        for dx in [-wx, wx] {
+        for dx in [-wx, wx] {                       // wheels on top of the body, as in the reference
             for dy in [-wy, wy] {
                 let r = CGRect(x: center.x + dx - wheelW / 2, y: center.y + dy - wheelH / 2,
                                width: wheelW, height: wheelH)
-                ctx.fill(Path(roundedRect: r, cornerRadius: 3), with: .color(metal))
+                let wp = Path(roundedRect: r, cornerRadius: 3)
+                ctx.fill(wp, with: .color(palette.bg))
+                ctx.fill(wp, with: .color(metal.opacity(0.6)))
             }
         }
     }
