@@ -1,3 +1,36 @@
+# Экран подключения (радар) — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** `ConnectView` в общей стилистике: слева тусклая машинка с радаром (кольца + вращающийся луч), справа «Поиск машинки… / подсказка / пилюля «Открыть настройки»».
+
+**Architecture:** Рерайт `ConnectView.swift` (split-layout + Canvas-`ConnectCarView` с радаром через TimelineView) + правка строки `connect.title`. Логика online/offline не меняется.
+
+**Tech Stack:** Swift 6 / SwiftUI Canvas (`.conicGradient`). Ветка `connect-screen`. SDK `iphonesimulator26.2`, `iPhone 17`, мок.
+
+---
+
+## File Structure
+
+| Файл | Изменение |
+|---|---|
+| `ios/ESP32Car/ConnectView.swift` | полный рерайт + `ConnectCarView` |
+| `ios/ESP32Car/Resources/ru.lproj/Localizable.strings` | `connect.title` = "Поиск машинки…" |
+
+---
+
+## Task 1: Рерайт `ConnectView`
+
+**Files:** Modify `ios/ESP32Car/ConnectView.swift`, `ios/ESP32Car/Resources/ru.lproj/Localizable.strings`.
+
+- [ ] **Step 1: Строка** — в `Localizable.strings`:
+```
+"connect.title"      = "Поиск машинки…";
+```
+(было «Машинка не найдена»; `connect.body`/`common.openSettings` без изменений).
+
+- [ ] **Step 2: Заменить весь `ios/ESP32Car/ConnectView.swift` на:**
+```swift
 import SwiftUI
 import UIKit
 
@@ -106,3 +139,35 @@ struct ConnectCarView: View {
         }
     }
 }
+```
+
+- [ ] **Step 3: Build + grep**
+```bash
+cd /Users/adamjohnson/VSCode/esp32-p4-car/ios && xcodegen generate && xcodebuild build -target ESP32Car -sdk iphonesimulator26.2 ARCHS=arm64 2>&1 | grep -iE "error:|BUILD SUCCEEDED|BUILD FAILED" | head -6
+grep -rn '[А-Яа-яЁё]' --include='*.swift' ESP32Car && echo LEAK || echo "(чисто)"
+grep -rn 'Color(red:' --include='*.swift' ESP32Car | grep -v Theme.swift || echo "(цвета чистые)"
+```
+Expected: `** BUILD SUCCEEDED **`, чисто. (Геометрию луча/градиента при необходимости подогнать по скриншоту в Task 2.)
+
+- [ ] **Step 4: Commit**
+```bash
+cd /Users/adamjohnson/VSCode/esp32-p4-car
+git add ios/ESP32Car/ConnectView.swift ios/ESP32Car/Resources
+git commit -m "feat(ios): connect screen — unified style, radar search animation"
+```
+
+---
+
+## Task 2: Проверка в симуляторе
+
+- [ ] **Step 1:** убить мок → продакшн-апп: оверлей «Поиск машинки…» с радаром (кольца + луч за тусклой машинкой), пилюля «Открыть настройки». Скриншот `/tmp/connect_new.png`; геометрию луча подогнать по виду (угол/градиент).
+- [ ] **Step 2:** вернуть мок (+POST calib) → оверлей исчезает, главный экран в норме.
+- [ ] **Step 3:** дерево чистое; светлая тема — беглый скриншот.
+
+---
+
+## Self-Review заметки
+
+- **Покрытие спеки:** split-layout + радар (3 кольца 0.16 + луч-сектор 70° conic, оборот 2.6 с, машинка dim 0.55 поверх) (T1 Step 2); строка «Поиск машинки…» (Step 1); пилюля prominent (rightPanel); проверка offline/online + темы (T2).
+- **Тип-консистентность:** `ConnectCarView(palette:)`; `L.connectTitle/connectBody/openSettings` (существуют); `palette.metal` (есть).
+- **Замечания:** `GraphicsContext.Shading.conicGradient` доступен (iOS 15+); направление/фаза градиента луча — подгонка по скриншоту. `ConnectView` сам берёт палитру из `colorScheme` (как раньше) — реактивен к теме.
