@@ -113,6 +113,7 @@ struct DriveView: View {
         .sheet(isPresented: $showSettings) { SettingsView(palette: p, status: status) }
         .onReceive(status.$calibrated) { cal in
             if cal == false { showCalib = true }        // mandatory: reopens until calibrated
+            else if cal == true { showCalib = false }   // auto-close if calibrated externally
         }
         .sheet(isPresented: $showCalib) {
             NavigationStack {
