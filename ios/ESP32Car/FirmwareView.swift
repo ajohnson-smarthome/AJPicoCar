@@ -107,10 +107,15 @@ struct FirmwareView: View {
         phase = .uploading
         guard await client.upload(url) else { phase = .failed; return }
         phase = .rebooting
+        let oldFw = status.fw
         var sawOffline = false
         let deadline = Date.now.addingTimeInterval(25)
         while Date.now < deadline {
             try? await Task.sleep(nanoseconds: 500_000_000)
+            // Success = the firmware version changed (reboot confirmed) OR the classic
+            // offline→online bounce. The version check also catches a fast reboot that never
+            // tripped the offline debounce.
+            if let nf = status.fw, oldFw != nil, nf != oldFw { phase = .done; return }
             if !status.online { sawOffline = true }
             else if sawOffline { phase = .done; return }
         }

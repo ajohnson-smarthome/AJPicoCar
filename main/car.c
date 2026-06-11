@@ -81,7 +81,11 @@ void car_set_trim(int8_t pct) {
 }
 
 int8_t car_get_trim(void) {
-    return g_trim_pct;   // i8 read is atomic on riscv32
+    // Read under the same lock that guards writes (consistency with car_set_trim).
+    if (g_lock && xSemaphoreTake(g_lock, pdMS_TO_TICKS(200)) != pdTRUE) return 0;
+    int8_t val = g_trim_pct;
+    if (g_lock) xSemaphoreGive(g_lock);
+    return val;
 }
 
 void car_spin_pair(uint8_t pair, bool forward) {

@@ -23,6 +23,11 @@ final class CarStatus: ObservableObject {
         }
     }
 
+    /// Stop polling when the app backgrounds (re-armed by start()).
+    func stop() { timer?.invalidate(); timer = nil }
+
+    deinit { timer?.invalidate() }
+
     private func poll() {
         let started = Date()
         var req = URLRequest(url: url)

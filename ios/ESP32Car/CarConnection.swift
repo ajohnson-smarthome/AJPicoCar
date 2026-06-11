@@ -14,18 +14,33 @@ final class CarConnection: ObservableObject {
     /// Latest driving intent; streamed at 10 Hz while connected.
     func setCommand(_ s: String) { command = s }
 
-    /// Zero the streamed command — called when the app leaves the foreground so a
-    /// backgrounded-but-still-connected app can't keep the car driving.
-    func pause() { command = "0.00,0.00" }
+    /// Zero the streamed command and stop the 10 Hz timer — called when the app leaves the
+    /// foreground so a backgrounded app can't keep the car driving or burn battery.
+    func pause() {
+        command = "0.00,0.00"
+        timer?.invalidate(); timer = nil
+    }
+
+    /// Re-arm the stream timer when the app returns to the foreground.
+    func resume() {
+        guard started, timer == nil else { return }
+        armTimer()
+    }
 
     func start() {
         guard !started else { return }
         started = true
         connect()
+        armTimer()
+    }
+
+    private func armTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
     }
+
+    deinit { timer?.invalidate() }
 
     private func tick() {
         guard state == .connected, let task else { return }

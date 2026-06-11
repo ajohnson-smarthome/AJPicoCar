@@ -68,7 +68,11 @@ void ramp_set_ms(uint16_t ms) {
 }
 
 uint16_t ramp_get_ms(void) {
-    return s_ramp_ms;   // u16 read is atomic on riscv32
+    // Read under the same lock that guards writes (consistency with ramp_set_ms).
+    if (s_lock && xSemaphoreTake(s_lock, pdMS_TO_TICKS(200)) != pdTRUE) return s_ramp_ms;
+    uint16_t ms = s_ramp_ms;
+    if (s_lock) xSemaphoreGive(s_lock);
+    return ms;
 }
 
 esp_err_t ramp_init(void) {
