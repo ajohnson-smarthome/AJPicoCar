@@ -14,6 +14,7 @@ struct DriveView: View {
     @State private var curY = 0.0
     @State private var showSettings = false
     @State private var showCalib = false
+    @State private var lastCalibTrue = Date.distantPast
 
     @StateObject private var pad = Gamepad()
     @State private var haptics = Haptics()
@@ -27,6 +28,8 @@ struct DriveView: View {
     private var p: Palette { Theme.current(colorScheme) }
     private var signalLevel: Int { ControlModel.signalLevel(online: status.online, rssi: status.rssi, pingMs: status.pingMs) }
     private var signalColor: Color { signalLevel == 0 ? .red : (signalLevel == 1 ? p.warn : p.accent) }
+    // Car is truly drivable only when /status is reachable AND the WS control link is connected.
+    private var linkUp: Bool { status.online && conn.state == .connected }
 
     private func push() {
         let c: (t: Double, y: Double)
@@ -52,8 +55,10 @@ struct DriveView: View {
             VStack {
                 HStack {
                     HStack(spacing: 7) {
-                        SignalBars(level: signalLevel, color: signalColor)
-                        Text(status.online ? L.driveConnected(status.pingMs ?? 0) : L.driveSearching)
+                        SignalBars(level: linkUp ? signalLevel : 0, color: linkUp ? signalColor : .red)
+                        // "Connected" requires BOTH a reachable /status AND a live WS control link —
+                        // otherwise the joysticks would silently do nothing while the pill says connected.
+                        Text(linkUp ? L.driveConnected(status.pingMs ?? 0) : L.driveSearching)
                             .font(.system(size: 12)).foregroundStyle(p.muted)
                     }
                     Spacer()
@@ -68,6 +73,7 @@ struct DriveView: View {
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(p.line))
                     }
                     .padding(.leading, 8)
+                    .disabled(showCalib)   // can't bypass mandatory calibration via Settings
                 }
                 .padding(.horizontal, 18).padding(.top, 8)
                 Spacer()
@@ -112,8 +118,15 @@ struct DriveView: View {
         .onReceive(pad.$connected) { _ in push() }
         .sheet(isPresented: $showSettings) { SettingsView(palette: p, status: status) }
         .onReceive(status.$calibrated) { cal in
-            if cal == false { showCalib = true }        // mandatory: reopens until calibrated
-            else if cal == true { showCalib = false }   // auto-close if calibrated externally
+            if cal == true {
+                showCalib = false                       // calibrated → close
+                lastCalibTrue = Date()
+            } else if cal == false, Date().timeIntervalSince(lastCalibTrue) > 2 {
+                // Mandatory: reopen — but ignore the stale `false` that /status still reports for
+                // up to one poll (~1.5s) right after a successful save, which would re-open the
+                // sheet mid-dismiss and flicker.
+                showCalib = true
+            }
         }
         .sheet(isPresented: $showCalib) {
             NavigationStack {
