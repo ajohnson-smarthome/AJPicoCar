@@ -1,5 +1,4 @@
 #include "motors.h"
-#include <assert.h>
 
 static float absf(float x) { return x < 0.0f ? -x : x; }
 
@@ -18,7 +17,9 @@ motor_outputs_t motors_plan(float left, float right, const motors_config_t *cfg)
 
     for (int p = 0; p < POS_COUNT; p++) {
         const wheel_calib_t *w = &cfg->wheels[p];
-        assert(w->channel_pair < 4);  // channels index duty[8]; >=4 would write OOB
+        // Runtime guard (asserts are compiled out in release): channels index duty[8],
+        // so channel_pair >= 4 would write out of bounds. Skip the wheel instead (stays 0).
+        if (w->channel_pair >= 4) continue;
         float s = side_for((wheel_pos_t)p, left, right) * (float)w->sign;
 
         uint8_t ch_a = (uint8_t)(w->channel_pair * 2);

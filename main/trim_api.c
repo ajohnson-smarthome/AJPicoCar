@@ -20,17 +20,18 @@ static esp_err_t trim_get(httpd_req_t *req) {
 static esp_err_t trim_post(httpd_req_t *req) {
     char body[16] = {0};
     int len = httpd_req_recv(req, body, sizeof(body) - 1);
-    if (len <= 0) { httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty"); return ESP_FAIL; }
+    if (len <= 0) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty");
     char *end;
     long v = strtol(body, &end, 10);
     if (end == body || v < -30 || v > 30) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "trim_pct must be -30..30");
-        return ESP_FAIL;
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "trim_pct must be -30..30");
     }
     car_set_trim((int8_t)v);
     nvs_handle_t h;
     if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        if (nvs_set_i8(h, "trim_pct", (int8_t)v) == ESP_OK) nvs_commit(h);
+        esp_err_t e = nvs_set_i8(h, "trim_pct", (int8_t)v);
+        if (e == ESP_OK) e = nvs_commit(h);
+        if (e != ESP_OK) ESP_LOGW(TAG, "trim save failed: %s", esp_err_to_name(e));
         nvs_close(h);
     }
     return httpd_resp_sendstr(req, "ok");

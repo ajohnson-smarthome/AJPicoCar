@@ -20,17 +20,18 @@ static esp_err_t ramp_get(httpd_req_t *req) {
 static esp_err_t ramp_post(httpd_req_t *req) {
     char body[16] = {0};
     int len = httpd_req_recv(req, body, sizeof(body) - 1);
-    if (len <= 0) { httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty"); return ESP_FAIL; }
+    if (len <= 0) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty");
     char *end;
     long v = strtol(body, &end, 10);
     if (end == body || v < 0 || v > 2000) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ramp_ms must be 0..2000");
-        return ESP_FAIL;
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ramp_ms must be 0..2000");
     }
     ramp_set_ms((uint16_t)v);
     nvs_handle_t h;
     if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        if (nvs_set_u16(h, "ramp_ms", (uint16_t)v) == ESP_OK) nvs_commit(h);
+        esp_err_t e = nvs_set_u16(h, "ramp_ms", (uint16_t)v);
+        if (e == ESP_OK) e = nvs_commit(h);
+        if (e != ESP_OK) ESP_LOGW(TAG, "ramp save failed: %s", esp_err_to_name(e));
         nvs_close(h);
     }
     return httpd_resp_sendstr(req, "ok");
