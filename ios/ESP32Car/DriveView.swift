@@ -19,11 +19,12 @@ struct DriveView: View {
     @StateObject private var pad = Gamepad()
     @State private var haptics = Haptics()
 
-    var preview: Bool = false   // gallery: render statically, skip network start
+    let preview: Bool   // gallery: render statically, skip network start
 
-    init(conn: CarConnection, status: CarStatus) {
+    init(conn: CarConnection, status: CarStatus, preview: Bool = false) {
         _conn = ObservedObject(wrappedValue: conn)
         _status = ObservedObject(wrappedValue: status)
+        self.preview = preview
     }
 
     private var scheme: Scheme { Scheme(rawValue: schemeRaw) ?? .arcade }
