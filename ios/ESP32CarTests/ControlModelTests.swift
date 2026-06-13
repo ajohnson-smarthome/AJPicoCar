@@ -86,4 +86,13 @@ final class ControlModelTests: XCTestCase {
         XCTAssertNil(Telemetry.parse("nope"))
         XCTAssertNil(Telemetry.parse("{\"foo\":1}"))
     }
+    @MainActor func testBuildNumberAndUpdate() {
+        XCTAssertEqual(UpdateClient.buildNumber("v1.2+246"), 246)
+        XCTAssertNil(UpdateClient.buildNumber("v1.0"))
+        XCTAssertEqual(UpdateClient.buildNumber("v1.2+246-dirty"), 246)
+        XCTAssertTrue(UpdateClient.isUpdateAvailable(running: "v1.0+246", latest: "v1.0+250"))
+        XCTAssertFalse(UpdateClient.isUpdateAvailable(running: "v1.0+250", latest: "v1.0+250"))
+        XCTAssertFalse(UpdateClient.isUpdateAvailable(running: "v1.0+250", latest: "v1.0+240"))
+        XCTAssertTrue(UpdateClient.isUpdateAvailable(running: "v0.9", latest: "v1.0"))
+    }
 }
