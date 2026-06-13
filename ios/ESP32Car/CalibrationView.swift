@@ -74,7 +74,7 @@ struct CalibrationView: View {
                 ForEach(Corner.allCases, id: \.self) { wheelButton($0, glow: glow) }
             }
         }
-        .scaleEffect(1.9)
+        .scaleEffect(1.6)
         .frame(width: 200, height: 240)
         .transaction { $0.animation = nil }   // no implicit animation on tap → wheels don't "fly in"
     }

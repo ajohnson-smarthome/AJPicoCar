@@ -39,7 +39,7 @@ struct FirmwareCarView: View {
             waves       // behind
             car         // opaque, on top
         }
-        .scaleEffect(1.9)
+        .scaleEffect(1.6)
         .frame(width: 200, height: 240)
         .opacity(phase == .rebooting ? 0.85 : 1)
     }
