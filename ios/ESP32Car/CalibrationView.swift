@@ -61,10 +61,14 @@ struct CalibrationView: View {
                 // Rings stay in the layout always (opacity-gated) so the ZStack keeps a stable
                 // size — otherwise removing them on tap re-centres the wheels (they "fly in").
                 ForEach(0..<3, id: \.self) { i in
+                    // Pulse via animated frame size (NOT .scaleEffect): scaleEffect makes each ring a
+                    // separate compositing layer that draws OVER the car; a plain frame keeps the rings
+                    // flat in the ZStack so the car/wheels (drawn after) stay on top. Outer frame is
+                    // fixed (200×240) so per-ring size changes don't re-centre the wheels.
+                    let d = CGFloat(56 + i * 24) * (ringsActive ? ringS : 1)
                     Circle().stroke(p.accent, lineWidth: 1.5)
-                        .frame(width: CGFloat(56 + i * 24), height: CGFloat(56 + i * 24))
+                        .frame(width: d, height: d)
                         .opacity(ringsActive ? [0.42, 0.24, 0.11][i] : 0)
-                        .scaleEffect(ringsActive ? ringS : 1)
                 }
                 carBody
                 ForEach(Corner.allCases, id: \.self) { wheelButton($0, glow: glow) }

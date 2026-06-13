@@ -12,7 +12,10 @@ struct GalleryView: View {
         let frames = makeFrames(p)
         ZStack {
             p.bg.ignoresSafeArea()
-            frames[index].view
+            // .id forces SwiftUI to tear down + recreate on every switch — otherwise same-type frames
+            // (FirmwareView/UpdateCheckView/CalibrationView) reuse @State and the .task/.onAppear that
+            // seeds debugPhase/debugState never re-runs, so they'd all show one stale state.
+            frames[index].view.id(index)
             HStack(spacing: 0) {
                 Color.clear.contentShape(Rectangle())
                     .onTapGesture { index = (index - 1 + frames.count) % frames.count }
