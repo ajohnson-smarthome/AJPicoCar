@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Startup gate screen: GitHub unreachable. Amber pulsing Wi-Fi glyph + retry.
+/// Startup gate screen: GitHub unreachable. Car with an amber Wi-Fi-warning chip + retry.
 struct NoInternetView: View {
     let palette: Palette
     let onRetry: () -> Void
@@ -10,7 +10,7 @@ struct NoInternetView: View {
         ZStack {
             p.bg.ignoresSafeArea()
             HStack(spacing: 24) {
-                WifiGlyph(color: p.warn)
+                NoInternetCarView(palette: p)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 VStack(alignment: .leading, spacing: 9) {
                     Text(L.gateNoInternetTitle).font(.system(size: 22, weight: .semibold)).foregroundStyle(p.text)
@@ -30,30 +30,62 @@ struct NoInternetView: View {
     }
 }
 
-/// Concentric Wi-Fi arcs sharing one bottom-centre origin, pulsing outward (amber).
-private struct WifiGlyph: View {
-    let color: Color
+/// Reference car bearing an amber Wi-Fi-warning chip, ringed by pulsing amber waves.
+/// Mirrors FirmwareCarView geometry but in `palette.warn`. Rings pulse via animated
+/// frame size (NOT .scaleEffect) so they stay flat in the ZStack — under the opaque car.
+private struct NoInternetCarView: View {
+    let palette: Palette
+    private var metal: Color { palette.metal }
+    private var warn: Color { palette.warn }
+    private let ringD: [CGFloat] = [56, 80, 104]
+
     var body: some View {
-        TimelineView(.animation) { tl in
-            Canvas { ctx, size in
-                let t = tl.date.timeIntervalSinceReferenceDate
-                let origin = CGPoint(x: size.width / 2, y: size.height / 2)
-                let radii: [CGFloat] = [16, 33, 50]
-                for (i, r) in radii.enumerated() {
-                    let phase = (t / 1.8 - Double(i) * 0.16).truncatingRemainder(dividingBy: 1)
-                    let op = 0.16 + 0.84 * (0.5 - 0.5 * cos(2 * .pi * phase))
-                    var path = Path()
-                    path.addArc(center: origin, radius: r,
-                                startAngle: .degrees(-145), endAngle: .degrees(-35), clockwise: false)
-                    ctx.stroke(path, with: .color(color.opacity(op)),
-                               style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                }
-                let dotPhase = (t / 1.8).truncatingRemainder(dividingBy: 1)
-                let dotOp = 0.45 + 0.55 * (0.5 - 0.5 * cos(2 * .pi * dotPhase))
-                let dot = CGRect(x: origin.x - 5.5, y: origin.y - 5.5, width: 11, height: 11)
-                ctx.fill(Path(ellipseIn: dot), with: .color(color.opacity(dotOp)))
+        TimelineView(.animation) { ctx in
+            let t = ctx.date.timeIntervalSinceReferenceDate
+            let s = 1.0 + 0.08 * (0.5 + 0.5 * sin(t * 2 * .pi / 1.4))
+            ZStack {
+                waves(scale: s)   // behind
+                car               // opaque, on top
             }
         }
-        .frame(width: 130, height: 120)
+        .scaleEffect(1.6)
+        .frame(width: 200, height: 240)
+    }
+
+    private func waves(scale: Double) -> some View {
+        let op: [Double] = [0.42, 0.24, 0.11]
+        return ZStack {
+            ForEach(0..<3, id: \.self) { i in
+                let d = ringD[i] * scale
+                Circle().stroke(warn, lineWidth: 1.5)
+                    .frame(width: d, height: d)
+                    .opacity(op[i])
+            }
+        }
+    }
+
+    private var car: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10).fill(palette.bg)
+                .overlay(RoundedRectangle(cornerRadius: 10).fill(palette.panel))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(metal, lineWidth: 1))
+                .frame(width: 34, height: 72)
+            RoundedRectangle(cornerRadius: 3).fill(palette.bg)
+                .frame(width: 20, height: 8).offset(y: -25)
+            ForEach(0..<4, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 3).fill(metal)
+                    .frame(width: 11, height: 15)
+                    .offset(x: i % 2 == 0 ? -18.5 : 18.5, y: i < 2 ? -20.5 : 20.5)
+            }
+            ZStack {
+                RoundedRectangle(cornerRadius: 5).fill(palette.bg)
+                RoundedRectangle(cornerRadius: 5).fill(warn.opacity(0.18))
+                RoundedRectangle(cornerRadius: 5).stroke(warn, lineWidth: 1)
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.system(size: 11, weight: .bold)).foregroundStyle(warn)
+            }
+            .frame(width: 20, height: 20)
+            .shadow(color: warn.opacity(0.55), radius: 5)
+        }
     }
 }
