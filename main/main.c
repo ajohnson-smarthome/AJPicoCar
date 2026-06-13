@@ -18,6 +18,7 @@
 #include "ramp.h"
 #include "ramp_api.h"
 #include "trim_api.h"
+#include "telemetry.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
 
@@ -83,6 +84,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(ota_api_start());
     ESP_ERROR_CHECK(ramp_api_start());
     ESP_ERROR_CHECK(trim_api_start());
+    ESP_ERROR_CHECK(telemetry_start());
     watchdog_init(WDT_TIMEOUT_MS);
 
     // OTA rollback: mark this freshly-flashed image valid so the bootloader won't roll back.
