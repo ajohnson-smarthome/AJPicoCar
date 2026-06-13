@@ -5,6 +5,9 @@ final class CarConnection: ObservableObject {
     enum State { case connecting, connected, offline }
     @Published private(set) var state: State = .connecting
 
+    /// Called on the main actor for each telemetry frame pushed by the car.
+    var onTelemetry: ((Telemetry) -> Void)?
+
     private let url = URL(string: CarHost.wsURL)!
     private var task: URLSessionWebSocketTask?
     private var timer: Timer?
@@ -64,12 +67,16 @@ final class CarConnection: ObservableObject {
         receive(on: t)
     }
 
-    private func receive(on t: URLSessionWebSocketTask) {
-        t.receive { [weak self] result in
+    private func receive(on t2: URLSessionWebSocketTask) {
+        t2.receive { [weak self] result in
             Task { @MainActor in
-                guard let self, self.task === t else { return }
+                guard let self, self.task === t2 else { return }
                 switch result {
-                case .success: self.receive(on: t)
+                case .success(let message):
+                    if case .string(let s) = message, let tele = Telemetry.parse(s) {
+                        self.onTelemetry?(tele)
+                    }
+                    self.receive(on: t2)
                 case .failure: self.drop()
                 }
             }
