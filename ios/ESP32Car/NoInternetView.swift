@@ -31,8 +31,8 @@ struct NoInternetView: View {
 }
 
 /// Reference car bearing an amber Wi-Fi-warning chip, ringed by pulsing amber waves.
-/// Mirrors FirmwareCarView geometry but in `palette.warn`. Rings pulse via animated
-/// frame size (NOT .scaleEffect) so they stay flat in the ZStack — under the opaque car.
+/// Mirrors FirmwareCarView geometry but in `palette.warn`. Rings pulse inside a single
+/// Canvas (one GPU layer, no per-frame layout → no jitter), drawn behind the opaque car.
 private struct NoInternetCarView: View {
     let palette: Palette
     private var metal: Color { palette.metal }
@@ -40,28 +40,29 @@ private struct NoInternetCarView: View {
     private let ringD: [CGFloat] = [56, 80, 104]
 
     var body: some View {
-        TimelineView(.animation) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            let s = 1.0 + 0.08 * (0.5 + 0.5 * sin(t * 2 * .pi / 1.4))
-            ZStack {
-                waves(scale: s)   // behind
-                car               // opaque, on top
-            }
+        ZStack {
+            waves     // Canvas, animates internally — behind
+            car       // static, opaque — on top
         }
         .scaleEffect(1.6)
         .frame(width: 200, height: 240)
     }
 
-    private func waves(scale: Double) -> some View {
+    private var waves: some View {
         let op: [Double] = [0.42, 0.24, 0.11]
-        return ZStack {
-            ForEach(0..<3, id: \.self) { i in
-                let d = ringD[i] * scale
-                Circle().stroke(warn, lineWidth: 1.5)
-                    .frame(width: d, height: d)
-                    .opacity(op[i])
+        return TimelineView(.animation) { ctx in
+            let t = ctx.date.timeIntervalSinceReferenceDate
+            let s = 1.0 + 0.08 * (0.5 + 0.5 * sin(t * 2 * .pi / 1.4))
+            Canvas { gc, size in
+                let c = CGPoint(x: size.width / 2, y: size.height / 2)
+                for i in 0..<3 {
+                    let r = ringD[i] / 2 * CGFloat(s)
+                    let rect = CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r)
+                    gc.stroke(Path(ellipseIn: rect), with: .color(warn.opacity(op[i])), lineWidth: 1.5)
+                }
             }
         }
+        .frame(width: 200, height: 240)
     }
 
     private var car: some View {
