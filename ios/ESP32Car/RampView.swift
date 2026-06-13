@@ -54,10 +54,10 @@ struct RampCarView: View {
     let palette: Palette
 
     private var metal: Color { palette.metal }
-    private let carW: CGFloat = 36
-    private let carLen: CGFloat = 74
-    private let wheelW: CGFloat = 12
-    private let wheelH: CGFloat = 20
+    private let carW: CGFloat = 34
+    private let carLen: CGFloat = 72
+    private let wheelW: CGFloat = 11
+    private let wheelH: CGFloat = 15
     private let railGap: CGFloat = 12
     private let railMax: CGFloat = 52
 
@@ -68,7 +68,7 @@ struct RampCarView: View {
             }
         }
         .frame(width: 120, height: 210)
-        .scaleEffect(1.45)
+        .scaleEffect(1.6)
     }
 
     private func render(_ ctx: inout GraphicsContext, _ size: CGSize, time: Double) {
@@ -89,8 +89,8 @@ struct RampCarView: View {
         else if t < pause + accelT { let u = t - pause; phase = tempo * u * u / (2 * accelT) }
         else { phase = tempo * (accelT / 2 + (t - pause - accelT)) }
 
-        // Composition: rails above the car; car sits below centre so the whole group is centred.
-        let center = CGPoint(x: size.width / 2, y: size.height * 0.62)
+        // Car centred in the half; rails grow upward from the roof.
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
 
         if progress > 0.01 { drawRails(&ctx, center: center, progress: progress) }
         drawCar(&ctx, center: center)

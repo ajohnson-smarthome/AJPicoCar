@@ -58,10 +58,10 @@ struct TrimCarView: View {
     let palette: Palette
 
     private var metal: Color { palette.metal }
-    private let carW: CGFloat = 36
-    private let carLen: CGFloat = 74
-    private let wheelW: CGFloat = 12
-    private let wheelH: CGFloat = 20
+    private let carW: CGFloat = 34
+    private let carLen: CGFloat = 72
+    private let wheelW: CGFloat = 11
+    private let wheelH: CGFloat = 15
     private let railGap: CGFloat = 12
     private let railLen: CGFloat = 52
 
@@ -72,11 +72,11 @@ struct TrimCarView: View {
             }
         }
         .frame(width: 120, height: 210)
-        .scaleEffect(1.45)
+        .scaleEffect(1.6)
     }
 
     private func render(_ ctx: inout GraphicsContext, _ size: CGSize, time: Double) {
-        let center = CGPoint(x: size.width / 2, y: size.height * 0.62)
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
         drawRails(&ctx, center: center)
         drawCar(&ctx, center: center)
         let wx = carW / 2 + 1
