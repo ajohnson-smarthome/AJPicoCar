@@ -7,25 +7,20 @@ struct NoInternetView: View {
     private var p: Palette { palette }
 
     var body: some View {
-        ZStack {
-            p.bg.ignoresSafeArea()
-            HStack(spacing: 24) {
-                NoInternetCarView(palette: p)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                VStack(alignment: .leading, spacing: 9) {
-                    Text(L.gateNoInternetTitle).font(.system(size: 22, weight: .semibold)).foregroundStyle(p.text)
-                    Text(L.gateNoInternetSub).font(.system(size: 13)).foregroundStyle(p.muted)
-                        .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 260, alignment: .leading)
-                    Button(action: onRetry) {
-                        Text(L.fwRetry).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.warn)
-                            .padding(.horizontal, 16).padding(.vertical, 8)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(p.warn.opacity(0.15)))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(p.warn.opacity(0.55), lineWidth: 1))
-                    }.buttonStyle(.plain).padding(.top, 3)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        SplitScreen(palette: p) {
+            NoInternetCarView(palette: p)
+        } right: {
+            VStack(alignment: .leading, spacing: 9) {
+                Text(L.gateNoInternetTitle).font(.system(size: 22, weight: .semibold)).foregroundStyle(p.text)
+                Text(L.gateNoInternetSub).font(.system(size: 13)).foregroundStyle(p.muted)
+                    .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 260, alignment: .leading)
+                Button(action: onRetry) {
+                    Text(L.fwRetry).font(.system(size: 14, weight: .semibold)).foregroundStyle(p.warn)
+                        .padding(.horizontal, 16).padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(p.warn.opacity(0.15)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(p.warn.opacity(0.55), lineWidth: 1))
+                }.buttonStyle(.plain).padding(.top, 3)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity).padding(20)
         }
     }
 }
