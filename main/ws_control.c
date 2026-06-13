@@ -10,13 +10,14 @@
 static const char *TAG = "ws";
 
 static volatile uint32_t s_frames = 0;
+static volatile int s_client_fd = -1;   // single phone client; last connect wins
 
 uint32_t ws_control_frames(void) { return s_frames; }
 
 static esp_err_t ws_handler(httpd_req_t *req) {
     if (req->method == HTTP_GET) {
-        // WebSocket handshake completed; nothing to send back.
-        ESP_LOGI(TAG, "ws client connected");
+        s_client_fd = httpd_req_to_sockfd(req);
+        ESP_LOGI(TAG, "ws client connected (fd=%d)", s_client_fd);
         return ESP_OK;
     }
 
@@ -73,4 +74,19 @@ esp_err_t ws_control_start(void) {
     ESP_RETURN_ON_ERROR(httpd_register_uri_handler(server, &ws), TAG, "register /ws");
     ESP_LOGI(TAG, "WebSocket endpoint registered at /ws");
     return ESP_OK;
+}
+
+esp_err_t ws_control_send(const char *data, size_t len) {
+    int fd = s_client_fd;
+    if (fd < 0) return ESP_OK;  // no client — nothing to do
+    httpd_handle_t server = http_server_get_handle();
+    if (server == NULL) return ESP_FAIL;
+    httpd_ws_frame_t frame = {
+        .type = HTTPD_WS_TYPE_TEXT,
+        .payload = (uint8_t *)data,
+        .len = len,
+    };
+    esp_err_t e = httpd_ws_send_frame_async(server, fd, &frame);
+    if (e != ESP_OK) s_client_fd = -1;  // client gone — stop pushing until next connect
+    return e;
 }
