@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Minimal mock of the ESP32-Car firmware HTTP/WS API for running the iOS app
 in the simulator without hardware. Serves /status, /ws, and /calib* on 127.0.0.1:8080."""
+import asyncio
+import json
 import time
 from aiohttp import web, WSMsgType
 
@@ -25,11 +27,32 @@ async def ws(request):
     wsr = web.WebSocketResponse()
     await wsr.prepare(request)
     print("ws: client connected")
-    async for msg in wsr:
-        if msg.type == WSMsgType.TEXT:
-            print(f"ws rx: {msg.data}")
-        elif msg.type == WSMsgType.ERROR:
-            print(f"ws error: {wsr.exception()}")
+
+    async def pusher():
+        while not wsr.closed:
+            payload = {
+                "rssi": -58,
+                "ws_fps": 10,
+                "wdt_trips": STATE.get("wdt_trips", 0),
+                "uptime_s": int(time.monotonic() - START),
+                "heap": 200000,
+                "calibrated": STATE.get("calibrated", False),
+            }
+            try:
+                await wsr.send_str(json.dumps(payload))
+            except Exception:
+                break
+            await asyncio.sleep(0.2)  # 5 Hz
+
+    push_task = asyncio.create_task(pusher())
+    try:
+        async for msg in wsr:
+            if msg.type == WSMsgType.TEXT:
+                print(f"ws rx: {msg.data}")
+            elif msg.type == WSMsgType.ERROR:
+                print(f"ws error: {wsr.exception()}")
+    finally:
+        push_task.cancel()
     print("ws: client disconnected")
     return wsr
 
