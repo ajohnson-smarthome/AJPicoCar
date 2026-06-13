@@ -132,7 +132,7 @@ struct DriveView: View {
         }
         .sheet(isPresented: $showCalib) {
             NavigationStack {
-                CalibrationView(palette: p)
+                CalibrationView(palette: p, dismissible: false)
             }
             .interactiveDismissDisabled(true)
         }

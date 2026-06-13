@@ -6,16 +6,10 @@ struct ConnectView: View {
     private var p: Palette { Theme.current(colorScheme) }
 
     var body: some View {
-        ZStack {
-            p.bg.ignoresSafeArea()
-            HStack(spacing: 24) {
-                ConnectCarView(palette: p)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                rightPanel
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(20)
+        SplitScreen(palette: p) {
+            ConnectCarView(palette: p)
+        } right: {
+            rightPanel
         }
     }
 
