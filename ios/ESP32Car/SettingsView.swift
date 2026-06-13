@@ -10,6 +10,7 @@ struct SettingsView: View {
             ZStack {
                 palette.bg.ignoresSafeArea()
                 VStack(spacing: 0) {
+                header
                 List {
                     NavigationLink {
                         CalibrationView(palette: palette)
@@ -57,15 +58,23 @@ struct SettingsView: View {
                 .padding(.bottom, 10)
                 }
             }
-            .navigationTitle(L.settingsTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L.close) { dismiss() }
-                }
-            }
+            // Hide the system nav bar across the whole stack so it never toggles when a
+            // SplitScreen child (which also hides it) is pushed/popped — otherwise the
+            // reappearing bar re-insets this list and the content jumps on return.
+            .toolbar(.hidden, for: .navigationBar)
         }
         .tint(palette.accent)
+    }
+
+    // Custom header matching the SplitScreen children (no system nav bar): title + Close.
+    private var header: some View {
+        HStack {
+            Text(L.settingsTitle).font(.system(size: 17, weight: .semibold)).foregroundStyle(palette.text)
+            Spacer()
+            Button(L.close) { dismiss() }
+                .font(.system(size: 16)).foregroundStyle(palette.accent)
+        }
+        .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 8)
     }
 }
 
