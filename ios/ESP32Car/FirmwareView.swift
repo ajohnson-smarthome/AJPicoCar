@@ -2,6 +2,8 @@ import SwiftUI
 
 struct FirmwareView: View {
     let palette: Palette
+    var forced: Bool = false
+    var onDone: (() -> Void)? = nil
     @ObservedObject var status: CarStatus
     @StateObject private var client = UpdateClient()
 
@@ -37,9 +39,11 @@ struct FirmwareView: View {
                 title(L.fwChecking); sub(L.fwCurrent(current))
             case .upToDate:
                 title(L.fwUpToDate); sub(L.fwVersionLine(current))
-                fwButton(L.fwRecheck, prominent: false) { Task { await check() } }
+                if forced { Color.clear.frame(width: 0, height: 0).onAppear { onDone?() } }
+                else { fwButton(L.fwRecheck, prominent: false) { Task { await check() } } }
             case .available:
-                title(L.fwAvailable); sub(L.fwTransition(current, release?.tag ?? "—"))
+                title(forced ? L.gateUpdateTitle : L.fwAvailable)
+                sub(forced ? L.gateUpdateSub : L.fwTransition(current, release?.tag ?? "—"))
                 fwButton(L.fwUpdate, prominent: true) { Task { await download() } }
             case .downloading:
                 title(L.fwDownloadTitle)
@@ -56,6 +60,7 @@ struct FirmwareView: View {
                 title(L.fwRebootTitle); sub(L.fwRebootWait)
             case .done:
                 title(L.fwDoneTitle); sub(L.fwDoneSub(current))
+                if forced { Color.clear.frame(width: 0, height: 0).onAppear { onDone?() } }
             case .failed:
                 title(L.fwFailTitle); sub(L.fwFailSub)
                 fwButton(L.fwRetry, prominent: true) { Task { await check() } }
