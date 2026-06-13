@@ -11,17 +11,29 @@ struct ESP32CarApp: App {
 
     var body: some Scene {
         WindowGroup {
-            root
-                .statusBarHidden(true)
-                .persistentSystemOverlays(.hidden)
-                // Forward WS telemetry to CarStatus in every phase (not just DriveView) so the
-                // car stays "online" during the connect/update gates, not only while driving.
-                .task { conn.onTelemetry = { status.apply($0) }; await flow.startupCheck() }
-                .onChange(of: phase) { newPhase in
-                    if newPhase == .active { conn.resume(); status.start() }
-                    else { conn.pause(); status.stop() }
-                }
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-gallery") {
+                GalleryView()
+            } else {
+                appRoot
+            }
+            #else
+            appRoot
+            #endif
         }
+    }
+
+    private var appRoot: some View {
+        root
+            .statusBarHidden(true)
+            .persistentSystemOverlays(.hidden)
+            // Forward WS telemetry to CarStatus in every phase (not just DriveView) so the
+            // car stays "online" during the connect/update gates, not only while driving.
+            .task { conn.onTelemetry = { status.apply($0) }; await flow.startupCheck() }
+            .onChange(of: phase) { newPhase in
+                if newPhase == .active { conn.resume(); status.start() }
+                else { conn.pause(); status.stop() }
+            }
     }
 
     @ViewBuilder private var root: some View {
