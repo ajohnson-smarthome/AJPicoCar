@@ -60,3 +60,9 @@
 "trim.left"     = "Влево %d%%";
 "trim.right"    = "Вправо %d%%";
 "drive.wdtTrips"     = "Обрывов: %d";
+"gate.noInternetTitle"     = "Нет интернета";
+"gate.noInternetSub"       = "Подключись к интернету, чтобы проверить обновление прошивки перед поездкой.";
+"gate.checkFailedTitle"    = "Не удалось проверить";
+"gate.checkFailedSub"      = "Не получилось проверить обновления. Повтори.";
+"gate.updateTitle"         = "Требуется обновление";
+"gate.updateSub"           = "Прошивка устарела — обнови, чтобы продолжить.";
