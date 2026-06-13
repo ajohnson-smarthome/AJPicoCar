@@ -14,7 +14,9 @@ struct ESP32CarApp: App {
             root
                 .statusBarHidden(true)
                 .persistentSystemOverlays(.hidden)
-                .task { await flow.startupCheck() }
+                // Forward WS telemetry to CarStatus in every phase (not just DriveView) so the
+                // car stays "online" during the connect/update gates, not only while driving.
+                .task { conn.onTelemetry = { status.apply($0) }; await flow.startupCheck() }
                 .onChange(of: phase) { newPhase in
                     if newPhase == .active { conn.resume(); status.start() }
                     else { conn.pause(); status.stop() }
@@ -33,7 +35,7 @@ struct ESP32CarApp: App {
                 p.bg.ignoresSafeArea()
                 ConnectView()
             }
-            .onAppear { conn.start(); status.start() }
+            .onAppear { conn.start(); status.start(); tryCarConnected() }  // fw may already be known
             .onChange(of: status.online) { _ in tryCarConnected() }
             .onChange(of: status.fw) { _ in tryCarConnected() }
         case .updateRequired:
@@ -50,6 +52,8 @@ struct ESP32CarApp: App {
     }
 
     private func tryCarConnected() {
-        if status.online, status.fw != nil { flow.carConnected(carFw: status.fw) }
+        // fw is set only by a successful /status bootstrap → it's a reliable "car reached" signal
+        // and (unlike `online`) isn't cleared by the telemetry-freshness timer.
+        if status.fw != nil { flow.carConnected(carFw: status.fw) }
     }
 }
