@@ -4,6 +4,7 @@ struct CalibrationView: View {
     let palette: Palette
     enum CalDebug { case spin, direction, done, saving, failed }   // gallery preview seed
     var debugState: CalDebug? = nil
+    var dismissible: Bool = true   // Settings push = back chevron; mandatory auto-prompt = none
     @Environment(\.dismiss) private var dismiss
 
     @State private var step = 0
@@ -27,18 +28,11 @@ struct CalibrationView: View {
     private var p: Palette { palette }
 
     var body: some View {
-        ZStack {
-            p.bg.ignoresSafeArea()
-            HStack(spacing: 24) {
-                carDiagram.frame(maxWidth: .infinity, maxHeight: .infinity)
-                rightPanel.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(20)
+        SplitScreen(palette: p, title: L.calibTitle, onBack: dismissible ? { dismiss() } : nil) {
+            carDiagram
+        } right: {
+            rightPanel
         }
-        .navigationTitle(L.calibTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .tint(p.accent)
         .onAppear {
             guard let d = debugState else { return }
             switch d {
