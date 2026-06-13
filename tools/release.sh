@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Cut a GitHub release whose tag carries the firmware build number (v<semver>+<count>).
+# Usage: tools/release.sh [--dry-run] ["release notes"]
+set -euo pipefail
+cd "$(dirname "$0")/.."   # repo root
+
+DRY_RUN=0
+if [ "${1:-}" = "--dry-run" ]; then DRY_RUN=1; shift; fi
+
+SEMVER=$(tr -d '[:space:]' < version.txt)
+BUILD_NUM=$(git rev-list --count HEAD)
+VER="v${SEMVER}+${BUILD_NUM}"
+TITLE="v${SEMVER} (build ${BUILD_NUM})"
+BIN="build/esp32-p4-car.bin"
+NOTES="${1:-Release ${VER}}"
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "ERROR: working tree not clean — build number would not match the release commit"; exit 1
+fi
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" != "main" ]; then echo "ERROR: not on main (on $BRANCH)"; exit 1; fi
+
+if [ "$DRY_RUN" = 1 ]; then
+    echo "[dry-run] version : $VER"
+    echo "[dry-run] tag     : $VER"
+    echo "[dry-run] title   : $TITLE"
+    echo "[dry-run] asset   : $BIN"
+    echo "[dry-run] notes   : $NOTES"
+    echo "[dry-run] would run: idf.py fullclean && idf.py build && gh release create '$VER' '$BIN' --title '$TITLE' --notes '...'"
+    exit 0
+fi
+
+mkdir -p /tmp/py313bin && ln -sf /opt/homebrew/bin/python3.13 /tmp/py313bin/python3
+export PATH=/tmp/py313bin:$PATH
+source ~/esp/esp-idf/export.sh >/dev/null 2>&1
+idf.py fullclean >/dev/null
+idf.py build
+[ -f "$BIN" ] || { echo "ERROR: $BIN not built"; exit 1; }
+
+gh release create "$VER" "$BIN" --title "$TITLE" --notes "$NOTES"
+echo "Released $VER"
