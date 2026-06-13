@@ -47,6 +47,35 @@ final class UpdateClient: NSObject, ObservableObject {
         return latest > car
     }
 
+    // MARK: - Internet reachability + firmware cache
+
+    /// Lightweight reachability probe to GitHub (distinguishes "no internet" from "API failed").
+    static func internetReachable() async -> Bool {
+        guard let url = URL(string: "https://api.github.com") else { return false }
+        var req = URLRequest(url: url); req.httpMethod = "HEAD"; req.timeoutInterval = 4
+        if let (_, resp) = try? await URLSession.shared.data(for: req) {
+            return (resp as? HTTPURLResponse) != nil
+        }
+        return false
+    }
+
+    private static let kBuild = "cachedLatestBuild"
+    private static let kTag   = "cachedLatestTag"
+
+    static var cachedBinURL: URL {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("firmware-latest.bin")
+    }
+    static var cachedBuild: Int? {
+        let v = UserDefaults.standard.integer(forKey: kBuild); return v == 0 ? nil : v
+    }
+    static var cachedTag: String? { UserDefaults.standard.string(forKey: kTag) }
+    static var hasCachedFile: Bool { FileManager.default.fileExists(atPath: cachedBinURL.path) }
+    static func recordCache(build: Int, tag: String) {
+        UserDefaults.standard.set(build, forKey: kBuild)
+        UserDefaults.standard.set(tag, forKey: kTag)
+    }
+
     func latestRelease() async -> Release? {
         guard let url = URL(string: "https://api.github.com/repos/\(repo)/releases/latest") else { return nil }
         do {
@@ -66,7 +95,7 @@ final class UpdateClient: NSObject, ObservableObject {
         defer { session.finishTasksAndInvalidate() }
         do {
             let (tmp, _) = try await session.download(from: url)
-            let dest = FileManager.default.temporaryDirectory.appendingPathComponent("firmware.bin")
+            let dest = UpdateClient.cachedBinURL
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.moveItem(at: tmp, to: dest)
             return dest
