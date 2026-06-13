@@ -45,10 +45,10 @@ struct ConnectView: View {
 struct ConnectCarView: View {
     let palette: Palette
     private var metal: Color { palette.metal }
-    private let carW: CGFloat = 36
-    private let carLen: CGFloat = 74
-    private let wheelW: CGFloat = 12
-    private let wheelH: CGFloat = 20
+    private let carW: CGFloat = 34
+    private let carLen: CGFloat = 72
+    private let wheelW: CGFloat = 11
+    private let wheelH: CGFloat = 15
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -57,7 +57,7 @@ struct ConnectCarView: View {
             }
         }
         .frame(width: 160, height: 210)
-        .scaleEffect(1.45)
+        .scaleEffect(1.6)
     }
 
     private func render(_ ctx: inout GraphicsContext, _ size: CGSize, time: Double) {

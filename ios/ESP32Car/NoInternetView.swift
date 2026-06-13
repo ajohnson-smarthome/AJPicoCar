@@ -37,7 +37,7 @@ private struct WifiGlyph: View {
         TimelineView(.animation) { tl in
             Canvas { ctx, size in
                 let t = tl.date.timeIntervalSinceReferenceDate
-                let origin = CGPoint(x: size.width / 2, y: size.height / 2 + 26)
+                let origin = CGPoint(x: size.width / 2, y: size.height / 2)
                 let radii: [CGFloat] = [16, 33, 50]
                 for (i, r) in radii.enumerated() {
                     let phase = (t / 1.8 - Double(i) * 0.16).truncatingRemainder(dividingBy: 1)
