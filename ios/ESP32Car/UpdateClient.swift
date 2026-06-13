@@ -18,6 +18,20 @@ final class UpdateClient: NSObject, ObservableObject {
         return s
     }
 
+    /// Build number after the first "+" (e.g. "v1.2+246" -> 246); nil if absent/non-numeric.
+    static func buildNumber(_ version: String?) -> Int? {
+        guard let version, let plus = version.firstIndex(of: "+") else { return nil }
+        let digits = version[version.index(after: plus)...].prefix { $0.isNumber }
+        return digits.isEmpty ? nil : Int(digits)
+    }
+
+    /// Update available iff both versions carry a build number and latest > running.
+    /// Falls back to normalized string inequality when a build number is missing (legacy firmware/releases).
+    static func isUpdateAvailable(running: String?, latest: String?) -> Bool {
+        if let r = buildNumber(running), let l = buildNumber(latest) { return l > r }
+        return normalize(latest) != normalize(running)
+    }
+
     func latestRelease() async -> Release? {
         guard let url = URL(string: "https://api.github.com/repos/\(repo)/releases/latest") else { return nil }
         do {

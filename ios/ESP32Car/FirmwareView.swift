@@ -94,7 +94,7 @@ struct FirmwareView: View {
         let r = await client.latestRelease()
         release = r
         guard let r else { phase = .failed; return }
-        phase = (UpdateClient.normalize(r.tag) != UpdateClient.normalize(status.fw)) ? .available : .upToDate
+        phase = UpdateClient.isUpdateAvailable(running: status.fw, latest: r.tag) ? .available : .upToDate
     }
     private func download() async {
         guard let r = release else { return }

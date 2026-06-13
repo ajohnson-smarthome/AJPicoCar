@@ -13,7 +13,7 @@ STATE = {"calibrated": False, "ramp_ms": 300, "trim_pct": 0, "wdt_trips": 0}
 async def status(request):
     return web.json_response({
         "device": "esp32-car",
-        "fw": "mock",
+        "fw": "v1.0+9000",
         "uptime_s": int(time.monotonic() - START),
         "calibrated": STATE["calibrated"],
         "heap": 200000,

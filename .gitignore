@@ -14,3 +14,7 @@ ios/ESP32Car.xcodeproj/
 ios/DerivedData/
 *.xcuserstate
 tools/mock_car/.venv/
+
+# compiled host-test binaries (sources stay tracked)
+test/test_*
+!test/test_*.c
