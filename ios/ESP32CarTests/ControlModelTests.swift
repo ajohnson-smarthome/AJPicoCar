@@ -95,4 +95,16 @@ final class ControlModelTests: XCTestCase {
         XCTAssertFalse(UpdateClient.isUpdateAvailable(running: "v1.0+250", latest: "v1.0+240"))
         XCTAssertTrue(UpdateClient.isUpdateAvailable(running: "v0.9", latest: "v1.0"))
     }
+    @MainActor func testGateLogic() {
+        XCTAssertFalse(UpdateClient.needsDownload(latestBuild: nil, cachedBuild: nil, hasCachedFile: false))
+        XCTAssertTrue(UpdateClient.needsDownload(latestBuild: 254, cachedBuild: nil, hasCachedFile: false))
+        XCTAssertFalse(UpdateClient.needsDownload(latestBuild: 254, cachedBuild: 254, hasCachedFile: true))
+        XCTAssertTrue(UpdateClient.needsDownload(latestBuild: 260, cachedBuild: 254, hasCachedFile: true))
+        XCTAssertTrue(UpdateClient.needsDownload(latestBuild: 254, cachedBuild: 254, hasCachedFile: false))
+        XCTAssertFalse(UpdateClient.mustUpdate(carFw: "v1.0+250", latestTag: "v1.0"))
+        XCTAssertTrue(UpdateClient.mustUpdate(carFw: "v0.9", latestTag: "v1.0+254"))
+        XCTAssertFalse(UpdateClient.mustUpdate(carFw: "v1.0+254", latestTag: "v1.0+254"))
+        XCTAssertTrue(UpdateClient.mustUpdate(carFw: "v1.0+250", latestTag: "v1.0+254"))
+        XCTAssertFalse(UpdateClient.mustUpdate(carFw: "v1.0+260", latestTag: "v1.0+254"))
+    }
 }
