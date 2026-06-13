@@ -79,4 +79,11 @@ final class ControlModelTests: XCTestCase {
         XCTAssertEqual(ControlModel.signalLevel(online: true, rssi: nil, pingMs: 10), 4)
         XCTAssertEqual(ControlModel.signalLevel(online: false, rssi: -45, pingMs: 10), 0)
     }
+    func testTelemetryParse() {
+        let ok = Telemetry.parse("{\"rssi\":-55,\"ws_fps\":10,\"wdt_trips\":2,\"uptime_s\":123,\"heap\":198000,\"calibrated\":true}")!
+        XCTAssertEqual(ok.rssi, -55); XCTAssertEqual(ok.uptimeS, 123); XCTAssertEqual(ok.calibrated, true)
+        XCTAssertNil(Telemetry.parse("{\"rssi\":0}")!.rssi)
+        XCTAssertNil(Telemetry.parse("nope"))
+        XCTAssertNil(Telemetry.parse("{\"foo\":1}"))
+    }
 }

@@ -1,6 +1,30 @@
 import Foundation
 import CoreGraphics
 
+struct Telemetry {
+    var rssi: Int?
+    var wsFps: Int?
+    var wdtTrips: Int?
+    var uptimeS: Int?
+    var heap: Int?
+    var calibrated: Bool?
+
+    /// Parse a WS telemetry frame; nil if not JSON or missing the core shape.
+    static func parse(_ json: String) -> Telemetry? {
+        guard let data = json.data(using: .utf8),
+              let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        guard j["rssi"] != nil || j["uptime_s"] != nil || j["calibrated"] != nil else { return nil }
+        var t = Telemetry()
+        if let r = j["rssi"] as? Int, r != 0 { t.rssi = r }
+        t.wsFps = j["ws_fps"] as? Int
+        t.wdtTrips = j["wdt_trips"] as? Int
+        t.uptimeS = j["uptime_s"] as? Int
+        t.heap = j["heap"] as? Int
+        t.calibrated = j["calibrated"] as? Bool
+        return t
+    }
+}
+
 enum Scheme: String { case arcade, tank }
 
 enum Corner: String, CaseIterable { case fl, fr, rl, rr }

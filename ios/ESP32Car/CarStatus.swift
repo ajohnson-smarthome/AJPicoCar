@@ -3,7 +3,6 @@ import Foundation
 @MainActor
 final class CarStatus: ObservableObject {
     @Published var online = false
-    @Published var pingMs: Int?
     @Published var uptimeS: Int?
     @Published var calibrated: Bool?
     @Published var fw: String?
@@ -12,63 +11,52 @@ final class CarStatus: ObservableObject {
     @Published var wsFps: Int?
 
     private let url = URL(string: CarHost.statusURL)!
-    private var timer: Timer?
-    private var failCount = 0
+    private var freshTimer: Timer?
+    private var lastFrame = Date.distantPast
+    private let staleAfter: TimeInterval = 1.0
 
+    /// One-shot bootstrap probe (identity + fw + initial calibrated); then liveness comes from WS.
     func start() {
-        guard timer == nil else { return }
-        poll()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.poll() }
+        bootstrap()
+        guard freshTimer == nil else { return }
+        freshTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                if self.online && Date().timeIntervalSince(self.lastFrame) > self.staleAfter {
+                    self.online = false
+                }
+            }
         }
     }
 
-    /// Stop polling when the app backgrounds (re-armed by start()).
-    func stop() { timer?.invalidate(); timer = nil }
+    func stop() { freshTimer?.invalidate(); freshTimer = nil }
+    deinit { freshTimer?.invalidate() }
 
-    deinit { timer?.invalidate() }
+    /// Apply a telemetry frame pushed over WS.
+    func apply(_ t: Telemetry) {
+        lastFrame = Date()
+        online = true
+        rssi = t.rssi
+        wsFps = t.wsFps
+        wdtTrips = t.wdtTrips
+        uptimeS = t.uptimeS
+        if let c = t.calibrated { calibrated = c }
+    }
 
-    private func poll() {
-        let started = Date()
+    private func bootstrap() {
         var req = URLRequest(url: url)
         req.timeoutInterval = 2
         req.cachePolicy = .reloadIgnoringLocalCacheData
         URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
-            let ms = Int(Date().timeIntervalSince(started) * 1000)
-            var ok = false; var up: Int?; var cal: Bool?; var fwv: String?
-            var rs: Int?; var trips: Int?; var fps: Int?
+            var ok = false; var cal: Bool?; var fwv: String?; var up: Int?
             if let data,
                let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                (j["device"] as? String) == "esp32-car" {
-                ok = true
-                up = j["uptime_s"] as? Int
-                cal = j["calibrated"] as? Bool
-                fwv = j["fw"] as? String
-                if let r = j["rssi"] as? Int, r != 0 { rs = r }
-                trips = j["wdt_trips"] as? Int
-                fps = j["ws_fps"] as? Int
+                ok = true; cal = j["calibrated"] as? Bool; fwv = j["fw"] as? String; up = j["uptime_s"] as? Int
             }
             Task { @MainActor in
                 guard let self else { return }
-                if ok {
-                    self.failCount = 0
-                    self.online = true
-                    self.pingMs = ms
-                    self.uptimeS = up
-                    self.calibrated = cal
-                    self.fw = fwv
-                    self.rssi = rs
-                    self.wdtTrips = trips
-                    self.wsFps = fps
-                } else {
-                    // Debounce: only drop offline after two consecutive misses so a single
-                    // transient /status timeout can't hide the pad mid-drive.
-                    self.failCount += 1
-                    if self.failCount >= 2 {
-                        self.online = false
-                        self.pingMs = nil
-                    }
-                }
+                if ok { self.online = true; self.calibrated = cal; self.fw = fwv; self.uptimeS = up; self.lastFrame = Date() }
             }
         }.resume()
     }

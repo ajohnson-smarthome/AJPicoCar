@@ -20,7 +20,7 @@
 "calib.failTitle"    = "Не удалось";
 "calib.failSub"      = "Проверь связь и повтори.";
 "calib.retry"        = "Повторить";
-"drive.connected"    = "%d мс";
+"drive.connected"    = "На связи";
 "drive.searching"    = "Поиск…";
 "uptime.sec"         = "%d с";
 "uptime.min"         = "%d мин";

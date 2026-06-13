@@ -26,10 +26,9 @@ struct DriveView: View {
 
     private var scheme: Scheme { Scheme(rawValue: schemeRaw) ?? .arcade }
     private var p: Palette { Theme.current(colorScheme) }
-    private var signalLevel: Int { ControlModel.signalLevel(online: status.online, rssi: status.rssi, pingMs: status.pingMs) }
+    private var signalLevel: Int { ControlModel.signalLevel(online: status.online, rssi: status.rssi, pingMs: nil) }
     private var signalColor: Color { signalLevel == 0 ? .red : (signalLevel == 1 ? p.warn : p.accent) }
-    // Car is truly drivable only when /status is reachable AND the WS control link is connected.
-    private var linkUp: Bool { status.online && conn.state == .connected }
+    private var linkUp: Bool { status.online }
 
     private func push() {
         let c: (t: Double, y: Double)
@@ -58,7 +57,7 @@ struct DriveView: View {
                         SignalBars(level: linkUp ? signalLevel : 0, color: linkUp ? signalColor : .red)
                         // "Connected" requires BOTH a reachable /status AND a live WS control link —
                         // otherwise the joysticks would silently do nothing while the pill says connected.
-                        Text(linkUp ? L.driveConnected(status.pingMs ?? 0) : L.driveSearching)
+                        Text(linkUp ? L.driveConnected : L.driveSearching)
                             .font(.system(size: 12)).foregroundStyle(p.muted)
                     }
                     Spacer()
@@ -111,7 +110,7 @@ struct DriveView: View {
                 .frame(maxHeight: .infinity, alignment: .bottom)
             }
         }
-        .onAppear { conn.start(); status.start() }
+        .onAppear { conn.onTelemetry = { status.apply($0) }; conn.start(); status.start() }
         .onReceive(pad.$leftX) { _ in push() }
         .onReceive(pad.$leftY) { _ in push() }
         .onReceive(pad.$rightY) { _ in push() }
