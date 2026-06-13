@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CalibrationView: View {
     let palette: Palette
+    enum CalDebug { case spin, direction, done, saving, failed }   // gallery preview seed
+    var debugState: CalDebug? = nil
     @Environment(\.dismiss) private var dismiss
 
     @State private var step = 0
@@ -37,6 +39,16 @@ struct CalibrationView: View {
         .navigationTitle(L.calibTitle)
         .navigationBarTitleDisplayMode(.inline)
         .tint(p.accent)
+        .onAppear {
+            guard let d = debugState else { return }
+            switch d {
+            case .spin:      step = 0; pending = nil; saving = false; failed = false
+            case .direction: pending = Corner.allCases.first
+            case .done:      step = 4
+            case .saving:    saving = true
+            case .failed:    failed = true
+            }
+        }
     }
 
     // MARK: left — car (1:1 reference) + interactive wheels + pulse rings

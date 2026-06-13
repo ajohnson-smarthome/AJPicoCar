@@ -19,9 +19,12 @@ struct DriveView: View {
     @StateObject private var pad = Gamepad()
     @State private var haptics = Haptics()
 
-    init(conn: CarConnection, status: CarStatus) {
+    let preview: Bool   // gallery: render statically, skip network start
+
+    init(conn: CarConnection, status: CarStatus, preview: Bool = false) {
         _conn = ObservedObject(wrappedValue: conn)
         _status = ObservedObject(wrappedValue: status)
+        self.preview = preview
     }
 
     private var scheme: Scheme { Scheme(rawValue: schemeRaw) ?? .arcade }
@@ -110,7 +113,7 @@ struct DriveView: View {
                 .frame(maxHeight: .infinity, alignment: .bottom)
             }
         }
-        .onAppear { conn.onTelemetry = { status.apply($0) }; conn.start(); status.start() }
+        .onAppear { conn.onTelemetry = { status.apply($0) }; if !preview { conn.start(); status.start() } }
         .onReceive(pad.$leftX) { _ in push() }
         .onReceive(pad.$leftY) { _ in push() }
         .onReceive(pad.$rightY) { _ in push() }
