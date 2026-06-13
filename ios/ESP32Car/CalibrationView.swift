@@ -58,18 +58,20 @@ struct CalibrationView: View {
             let ringS = 1.0 + 0.07 * (0.5 + 0.5 * sin(t * 2 * .pi / 1.4))
             let glow = 0.5 + 0.5 * sin(t * 2 * .pi / 1.0)
             ZStack {
-                // Rings stay in the layout always (opacity-gated) so the ZStack keeps a stable
-                // size — otherwise removing them on tap re-centres the wheels (they "fly in").
-                ForEach(0..<3, id: \.self) { i in
-                    // Pulse via animated frame size (NOT .scaleEffect): scaleEffect makes each ring a
-                    // separate compositing layer that draws OVER the car; a plain frame keeps the rings
-                    // flat in the ZStack so the car/wheels (drawn after) stay on top. Outer frame is
-                    // fixed (200×240) so per-ring size changes don't re-centre the wheels.
-                    let d = CGFloat(56 + i * 24) * (ringsActive ? ringS : 1)
-                    Circle().stroke(p.accent, lineWidth: 1.5)
-                        .frame(width: d, height: d)
-                        .opacity(ringsActive ? [0.42, 0.24, 0.11][i] : 0)
+                // Rings drawn in a single Canvas (one GPU layer, no per-frame layout → no jitter),
+                // behind the car. Fixed 200×240 frame keeps the ZStack size stable whether rings
+                // show or not — otherwise the wheels would re-centre on tap ("fly in").
+                Canvas { gc, size in
+                    guard ringsActive else { return }
+                    let c = CGPoint(x: size.width / 2, y: size.height / 2)
+                    let op: [Double] = [0.42, 0.24, 0.11]
+                    for i in 0..<3 {
+                        let r = CGFloat(56 + i * 24) / 2 * CGFloat(ringS)
+                        let rect = CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r)
+                        gc.stroke(Path(ellipseIn: rect), with: .color(p.accent.opacity(op[i])), lineWidth: 1.5)
+                    }
                 }
+                .frame(width: 200, height: 240)
                 carBody
                 ForEach(Corner.allCases, id: \.self) { wheelButton($0, glow: glow) }
             }
