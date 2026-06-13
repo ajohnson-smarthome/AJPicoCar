@@ -51,10 +51,8 @@ struct ESP32CarApp: App {
             .onChange(of: status.online) { _ in tryCarConnected() }
             .onChange(of: status.fw) { _ in tryCarConnected() }
         case .updateRequired:
-            NavigationStack {
-                FirmwareView(palette: p, forced: true, onDone: { flow.updateFinished() }, status: status)
-            }
-            .onAppear { conn.start(); status.start() }
+            FirmwareView(palette: p, forced: true, onDone: { flow.updateFinished() }, status: status)
+                .onAppear { conn.start(); status.start() }
         case .drive:
             ZStack {
                 DriveView(conn: conn, status: status)
