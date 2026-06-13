@@ -4,6 +4,7 @@ struct FirmwareView: View {
     let palette: Palette
     var forced: Bool = false
     var onDone: (() -> Void)? = nil
+    var debugPhase: FwPhase? = nil   // gallery: render a static phase, skip the network check
     @ObservedObject var status: CarStatus
     @StateObject private var client = UpdateClient()
 
@@ -29,7 +30,10 @@ struct FirmwareView: View {
         .navigationTitle(L.settingsFirmware)
         .navigationBarTitleDisplayMode(.inline)
         .tint(p.accent)
-        .task { await check() }
+        .task {
+            if let dp = debugPhase { phase = dp; return }
+            await check()
+        }
     }
 
     @ViewBuilder private var stateBlock: some View {
