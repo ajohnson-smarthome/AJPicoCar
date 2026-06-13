@@ -14,8 +14,10 @@ TITLE="v${SEMVER} (build ${BUILD_NUM})"
 BIN="build/esp32-p4-car.bin"
 NOTES="${1:-Release ${VER}}"
 
-if [ -n "$(git status --porcelain)" ]; then
-    echo "ERROR: working tree not clean — build number would not match the release commit"; exit 1
+# Only tracked changes matter — the build number comes from committed history; untracked
+# build artifacts (host-test binaries, generated dirs) don't change the release commit.
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    echo "ERROR: tracked changes present — commit them so the build number matches the release commit"; exit 1
 fi
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$BRANCH" != "main" ]; then echo "ERROR: not on main (on $BRANCH)"; exit 1; fi
