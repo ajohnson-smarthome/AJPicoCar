@@ -5,23 +5,15 @@ struct RampView: View {
     let palette: Palette
     @State private var rampMs = 300        // live slider value (label)
     @State private var demoMs = 300        // applied on release — keeps the demo from jumping mid-drag
+    @Environment(\.dismiss) private var dismiss
     private var p: Palette { palette }
 
     var body: some View {
-        ZStack {
-            p.bg.ignoresSafeArea()
-            HStack(spacing: 24) {
-                RampCarView(rampMs: demoMs, palette: p)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                rightPanel
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(20)
+        SplitScreen(palette: p, title: L.rampTitle, onBack: { dismiss() }) {
+            RampCarView(rampMs: demoMs, palette: p)
+        } right: {
+            rightPanel
         }
-        .navigationTitle(L.rampTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .tint(p.accent)
         .task { if let v = await RampClient().get() { rampMs = v; demoMs = v } }
     }
 
