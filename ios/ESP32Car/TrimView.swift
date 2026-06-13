@@ -5,23 +5,15 @@ struct TrimView: View {
     let palette: Palette
     @State private var trimPct = 0          // live slider value
     @State private var demoPct = 0          // applied on release (keeps the demo steady mid-drag)
+    @Environment(\.dismiss) private var dismiss
     private var p: Palette { palette }
 
     var body: some View {
-        ZStack {
-            p.bg.ignoresSafeArea()
-            HStack(spacing: 24) {
-                TrimCarView(trimPct: demoPct, palette: p)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                rightPanel
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(20)
+        SplitScreen(palette: p, title: L.trimTitle, onBack: { dismiss() }) {
+            TrimCarView(trimPct: demoPct, palette: p)
+        } right: {
+            rightPanel
         }
-        .navigationTitle(L.trimTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .tint(p.accent)
         .task { if let v = await TrimClient().get() { trimPct = v; demoPct = v } }
     }
 
