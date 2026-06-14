@@ -71,6 +71,9 @@ enum L {
     static var recoverSubOn: String { s("recover.subOn") }
     static var recoverSubOff: String { s("recover.subOff") }
     static func trickName(_ key: String) -> String { s(key) }
+    static var tricksTitle: String { s("tricks.title") }
+    static func trickSec(_ v: Double) -> String { s("tricks.sec", v) }
+    static func trickMult(_ v: Double) -> String { s("tricks.mult", v) }
     static func driveWdtTrips(_ n: Int) -> String { s("drive.wdtTrips", n) }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }
