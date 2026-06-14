@@ -17,6 +17,8 @@ in-app over-the-air firmware updates from GitHub Releases, and warm dual themes 
 - **WiFi softAP** — `ESP32-Car` (WPA2), `http://192.168.4.1`; no internet/captive portal — join and open manually
 - **Native iOS app** (`ios/`) — SwiftUI pult: warm light/dark themes, live telemetry, predicted-trajectory diagram with chevron-tread wheels, arcade + tank joysticks, calibration wizard, ping-derived signal bars, Russian-localized
 - **Launch gate + OTA** — the app checks the internet, fetches the latest firmware from GitHub Releases, connects to the car, and force-updates it over `POST /ota` if the on-board build is older — then drives
+- **Link-loss auto-return** — `recovery.{c,h}` keeps a breadcrumb buffer of recent commands; on link loss the watchdog replays it in reverse to retrace the car back into range (configurable 1–10 s window + on/off via `GET/POST /recover`; iOS «Авто-возврат» screen)
+- **Tricks** — one-tap maneuver macros (spin / figure-8 / wiggle / donut) streamed from the app over `/ws` (no firmware change); joystick touch interrupts; ⏹ + a trick-time progress ring; per-trick duration multiplier (0.5×–12×) in a «Трюки» settings screen; the Drive diagram + power bars visualize the maneuver
 - **Firmware versioning** — `v<semver>+<build>` (build = git commit count), set in CMake `PROJECT_VER`; `tools/release.sh` cuts a GitHub release; the app compares the numeric build
 - **`GET /status` + WS telemetry** — signed identity (`{"device":"esp32-car","fw":..,"uptime_s":..,"calibrated":..,"heap":..}`) for the app's "am I on the car?" check, plus 5 Hz telemetry pushed over `/ws`
 - **Pure, host-tested modules** — `mixer` / `motors` / `control_proto` / `watchdog` / `calibration` compile with plain `cc` and run on the host (`cd test && make run`)

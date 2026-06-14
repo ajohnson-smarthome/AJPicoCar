@@ -199,6 +199,20 @@ drive) with `NoInternetView`/`UpdateCheckView`/`FirmwareView`; the unified `Spli
 system nav bar so all screens centre identically + custom headers; Settings matches); the informative
 `DownloadBar`; and a debug screen gallery (`-gallery`). See "Native iOS app" above.
 
+**Done — link-loss auto-return (merged):** `main/recovery.{c,h}` keeps a breadcrumb ring buffer of the last
+N seconds of WS commands; the watchdog now calls `recovery_on_link_lost()` instead of `car_stop()`, and a
+retreat task replays the buffer in reverse (each command negated) until a frame returns — retracing the path
+back into range, aborting the instant the link is back. Configurable window (1–10 s) + on/off via `GET/POST
+/recover` (NVS) and the iOS «Авто-возврат» screen (`RecoverView`/`RecoverClient`). Pure `recovery_reverse`/
+`recovery_evict` host-tested. (`/recover` brings the httpd handler count to 13 — `max_uri_handlers = 20`.)
+
+**Done — tricks (iOS-only, merged):** one-tap maneuver macros (spin/figure-8/wiggle/donut). A ✦ FAB on Drive
+opens a popover (`TricksControl`); each trick is a `{t,y,ms}` timeline **streamed from the app over `/ws`** (no
+firmware change). Joystick touch interrupts without stopping; ⏹ stops; the stop button shows a trick-time
+progress ring. Per-trick duration multiplier (0.5×–12× log, 5 s base) in the «Трюки» settings screen
+(`TricksSettingsView`, `TrickSettings` in `UserDefaults`). During playback the Drive diagram + power bars
+visualize the maneuver. Pure `Tricks` scale/log helpers host-tested.
+
 **🎉 Roadmap complete — Phases 1–6 merged and verified on hardware: a WiFi-controlled 4WD RC car with
 tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA, redesigned landscape pult.**
 
@@ -229,6 +243,9 @@ Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-local
 - **Launch gate** (`AppFlow.swift`, a `@MainActor ObservableObject` state machine): on start →
   internet probe (GitHub HEAD) → fetch latest release / download+cache the `.bin` → connect to the car →
   version gate (force update if the car's build is older) → drive. Phases map to screens in `ESP32CarApp.root`.
+- **Link-loss auto-return:** `main/recovery.{c,h}` — breadcrumb ring buffer + reverse-replay retreat task;
+  watchdog calls `recovery_on_link_lost()`. `main/recovery_api.{c,h}` — `GET/POST /recover` (enabled + 1–10 s
+  window, NVS). The iOS «Авто-возврат» screen tunes it. Pure `recovery_reverse`/`recovery_evict` host-tested.
 
 ### iOS structure (`ios/ESP32Car/`)
 - `ControlModel.swift` — **pure** (Foundation/CoreGraphics): scheme math (`arcade`/`tank`/`sides`/`frame`),
@@ -247,6 +264,13 @@ Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-local
   `UpdateCheckView` (checking/downloading/check-failed; reuses `FirmwareCarView`), `FirmwareView` (manual + forced
   OTA, 9-state flow), `ConnectView` (radar search). `UpdateClient.swift` (GitHub release fetch, download+cache,
   `/ota` upload, version math) + `AppFlow.swift` (the gate state machine).
+- **Auto-return:** `RecoverView.swift` (toggle + 1–10 s window slider, animated reverse-trail car) +
+  `RecoverClient.swift` (`GET/POST /recover`). Talks to the firmware `recovery` module above.
+- **Tricks (iOS-only, no firmware):** `Tricks.swift` (pure macro definitions + `scale`/`clampScale`/log-slider
+  helpers, host-tested), `TricksControl.swift` (✦ FAB + C4 popover + trick-time progress ring), `TrickSettings.swift`
+  (per-trick duration multiplier in `UserDefaults`), `TricksSettingsView.swift` (settings list, log slider 0.5×–12×,
+  per-row reset). `DriveView` streams a trick's `{t,y,ms}` timeline over `/ws`, drives the diagram + power bars
+  from it (sets `curT/curY`), and interrupts on joystick touch (seamless takeover, no stop).
 - **`SplitScreen.swift`** — the shared split layout (car/graphic left, text panel right) used by ALL split
   screens. It **suppresses the system nav bar** (`.toolbar(.hidden, for: .navigationBar)`) so no screen carries a
   nav-bar inset → car+text centre identically everywhere; draws an optional custom header (title + back chevron)
