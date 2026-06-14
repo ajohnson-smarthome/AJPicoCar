@@ -3,7 +3,7 @@
 #include "freertos/timers.h"
 #include "esp_log.h"
 #include "esp_err.h"
-#include "car.h"
+#include "recovery.h"
 
 static const char *TAG = "wdt";
 
@@ -35,7 +35,7 @@ static void wdt_cb(TimerHandle_t t) {
     if (watchdog_stale(s_last_feed_ms, now_ms(), s_timeout_ms)) {
         ESP_LOGW(TAG, "no control frame for >%ums — stopping car", (unsigned)s_timeout_ms);
         s_trips++;
-        car_stop();
+        recovery_on_link_lost();
         s_armed = false;  // disarm until traffic resumes
     }
 }
