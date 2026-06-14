@@ -34,6 +34,13 @@ struct SettingsView: View {
                     }
                     .listRowBackground(palette.panel)
                     NavigationLink {
+                        RecoverView(palette: palette)
+                    } label: {
+                        Label(L.recoverTitle, systemImage: "arrow.uturn.backward")
+                            .foregroundStyle(palette.text)
+                    }
+                    .listRowBackground(palette.panel)
+                    NavigationLink {
                         FirmwareView(palette: palette, status: status)
                     } label: {
                         Label(L.settingsFirmware, systemImage: "arrow.down.circle")

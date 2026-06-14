@@ -63,6 +63,13 @@ enum L {
     static var trimCenter: String { s("trim.center") }
     static func trimLeft(_ p: Int) -> String { s("trim.left", p) }
     static func trimRight(_ p: Int) -> String { s("trim.right", p) }
+    static var recoverTitle: String { s("recover.title") }
+    static var recoverHeadline: String { s("recover.headline") }
+    static var recoverEnable: String { s("recover.enable") }
+    static var recoverWindow: String { s("recover.window") }
+    static func recoverWindowValue(_ sec: Int) -> String { s("recover.windowValue", sec) }
+    static var recoverSubOn: String { s("recover.subOn") }
+    static var recoverSubOff: String { s("recover.subOff") }
     static func driveWdtTrips(_ n: Int) -> String { s("drive.wdtTrips", n) }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }
