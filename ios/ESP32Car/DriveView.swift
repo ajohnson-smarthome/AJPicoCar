@@ -62,16 +62,19 @@ struct DriveView: View {
         trickTask = Task {
             for step in trick.steps {
                 conn.setCommand(ControlModel.frame(t: step.t, y: step.y))
+                curT = step.t; curY = step.y                  // drive the on-screen diagram/power bars
                 try? await Task.sleep(nanoseconds: UInt64(step.ms) * 1_000_000)
                 if Task.isCancelled { return }
             }
             conn.setCommand(ControlModel.frame(t: 0, y: 0))   // natural end → stop
+            curT = 0; curY = 0
             runningTrick = nil; trickStartedAt = nil
         }
     }
 
     private func cancelTrick(stop: Bool) {
         trickTask?.cancel(); trickTask = nil; runningTrick = nil; trickStartedAt = nil
+        curT = 0; curY = 0                                    // diagram back to idle (joystick reasserts if taking over)
         if stop { conn.setCommand(ControlModel.frame(t: 0, y: 0)) }
         // stop == false: leave the command — the joystick is about to set it (seamless takeover)
     }
