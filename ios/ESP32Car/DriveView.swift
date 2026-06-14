@@ -113,11 +113,6 @@ struct DriveView: View {
                 PowerBar(value: sides.right, palette: p)
             }
 
-            VStack {
-                Spacer()
-                statusBar.padding(.bottom, 20)
-            }
-
             if scheme == .arcade {
                 HStack {
                     Spacer()
@@ -140,13 +135,14 @@ struct DriveView: View {
                 .frame(maxHeight: .infinity, alignment: .bottom)
             }
 
-            VStack {
+            VStack(spacing: 6) {
                 Spacer()
                 TricksControl(palette: p, running: runningTrick,
                               onSelect: { startTrick($0) },
                               onStop: { cancelTrick(stop: true) })
-                    .padding(.bottom, 26)
+                statusBar          // «Обрывов: N» sits directly under the FAB
             }
+            .padding(.bottom, 16)
         }
         .onAppear { conn.onTelemetry = { status.apply($0) }; if !preview { conn.start(); status.start() } }
         .onDisappear { trickTask?.cancel() }
