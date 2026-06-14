@@ -15,6 +15,9 @@ struct DriveView: View {
     @State private var showSettings = false
     @State private var showCalib = false
     @State private var lastCalibTrue = Date.distantPast
+    @State private var runningTrick: Trick?
+    @State private var trickStartedAt: Date?
+    @State private var trickTask: Task<Void, Never>?
 
     @StateObject private var pad = Gamepad()
     @State private var haptics = Haptics()
@@ -36,6 +39,7 @@ struct DriveView: View {
     private func push() {
         let c: (t: Double, y: Double)
         let padActive = pad.connected && (abs(pad.leftX) > 0.03 || abs(pad.leftY) > 0.03 || abs(pad.rightY) > 0.03)
+        if padActive { manualOverride() }   // genuine gamepad deflection → drop any running trick
         if padActive {
             if scheme == .arcade { c = ControlModel.arcade(stickX: pad.leftX, stickY: -pad.leftY) }
             else { c = ControlModel.tank(leftStickY: -pad.leftY, rightStickY: -pad.rightY) }
@@ -49,6 +53,30 @@ struct DriveView: View {
     }
 
     private var sides: (left: Double, right: Double) { ControlModel.sides(t: curT, y: curY) }
+
+    private func startTrick(_ trick: Trick) {
+        trickTask?.cancel()
+        runningTrick = trick
+        trickStartedAt = Date()
+        trickTask = Task {
+            for step in trick.steps {
+                conn.setCommand(ControlModel.frame(t: step.t, y: step.y))
+                try? await Task.sleep(nanoseconds: UInt64(step.ms) * 1_000_000)
+                if Task.isCancelled { return }
+            }
+            conn.setCommand(ControlModel.frame(t: 0, y: 0))   // natural end → stop
+            runningTrick = nil; trickStartedAt = nil
+        }
+    }
+
+    private func cancelTrick(stop: Bool) {
+        trickTask?.cancel(); trickTask = nil; runningTrick = nil; trickStartedAt = nil
+        if stop { conn.setCommand(ControlModel.frame(t: 0, y: 0)) }
+        // stop == false: leave the command — the joystick is about to set it (seamless takeover)
+    }
+
+    /// Genuine manual input → drop any running trick without stopping (joystick takes over).
+    private func manualOverride() { if runningTrick != nil { cancelTrick(stop: false) } }
 
     var body: some View {
         ZStack {
@@ -87,15 +115,11 @@ struct DriveView: View {
                 PowerBar(value: sides.right, palette: p)
             }
 
-            VStack {
-                Spacer()
-                statusBar.padding(.bottom, 20)
-            }
-
             if scheme == .arcade {
                 HStack {
                     Spacer()
                     JoystickView(palette: p) { x, y in
+                        manualOverride()
                         if arcX == 0 && arcY == 0 && (x != 0 || y != 0) { haptics.tick() }
                         arcX = x; arcY = y; push()
                     }
@@ -105,15 +129,25 @@ struct DriveView: View {
                 .frame(maxHeight: .infinity, alignment: .bottom)
             } else {
                 HStack {
-                    JoystickView(vertical: true, palette: p) { _, y in leftY = y; push() }.padding(.leading, 24)
+                    JoystickView(vertical: true, palette: p) { _, y in manualOverride(); leftY = y; push() }.padding(.leading, 24)
                     Spacer()
-                    JoystickView(vertical: true, palette: p) { _, y in rightY = y; push() }.padding(.trailing, 24)
+                    JoystickView(vertical: true, palette: p) { _, y in manualOverride(); rightY = y; push() }.padding(.trailing, 24)
                 }
                 .padding(.bottom, 16)
                 .frame(maxHeight: .infinity, alignment: .bottom)
             }
+
+            VStack(spacing: 6) {
+                Spacer()
+                TricksControl(palette: p, running: runningTrick, startedAt: trickStartedAt,
+                              onSelect: { startTrick($0) },
+                              onStop: { cancelTrick(stop: true) })
+                statusBar          // «Обрывов: N» sits directly under the FAB
+            }
+            .padding(.bottom, 16)
         }
         .onAppear { conn.onTelemetry = { status.apply($0) }; if !preview { conn.start(); status.start() } }
+        .onDisappear { trickTask?.cancel() }
         .onReceive(pad.$leftX) { _ in push() }
         .onReceive(pad.$leftY) { _ in push() }
         .onReceive(pad.$rightY) { _ in push() }
