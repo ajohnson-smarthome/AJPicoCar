@@ -70,6 +70,7 @@ enum L {
     static func recoverWindowValue(_ sec: Int) -> String { s("recover.windowValue", sec) }
     static var recoverSubOn: String { s("recover.subOn") }
     static var recoverSubOff: String { s("recover.subOff") }
+    static func trickName(_ key: String) -> String { s(key) }
     static func driveWdtTrips(_ n: Int) -> String { s("drive.wdtTrips", n) }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }
