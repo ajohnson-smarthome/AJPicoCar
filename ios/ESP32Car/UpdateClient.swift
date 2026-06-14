@@ -7,6 +7,16 @@ final class UpdateClient: NSObject, ObservableObject {
     @Published var uploadProgress: Double = 0
     @Published var downloadProgress: Double = 0
 
+    /// Minimum on-screen duration for the download phase — also the synthetic fill
+    /// time for DownloadBar, so the bar reaches 100% just as the screen advances.
+    static let downloadMinDisplay: Double = 1.2
+
+    /// Sleep for whatever remains of `seconds` since `start` (no-op if already elapsed).
+    static func holdAtLeast(_ seconds: Double, since start: Date) async {
+        let remaining = seconds - Date().timeIntervalSince(start)
+        if remaining > 0 { try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) }
+    }
+
     private let repo = "ajohnson-smarthome/AJPicoCar"
 
     /// Normalize a version like "v1.2" / "v1.2-3-gabc" → "1.2" for comparison.
