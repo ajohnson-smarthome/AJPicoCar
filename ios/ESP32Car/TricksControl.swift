@@ -2,36 +2,49 @@ import SwiftUI
 
 /// Bottom-centre tricks control: a ✦ FAB that opens a C4 popover card of tricks.
 /// Presentational — the parent owns playback state and passes `running`.
-/// FAB: idle ✦ (toggle popover) · open ✕ (close) · running ⏹ (stop).
+/// FAB: idle ✦ (toggle popover) · open ✕ (close) · running ⏹ (stop, with a time-progress ring).
 struct TricksControl: View {
     let palette: Palette
     let running: Trick?
     let onSelect: (Trick) -> Void
     let onStop: () -> Void
     @State private var open = false
+    @State private var ringProgress: CGFloat = 0
     private var p: Palette { palette }
 
-    // Debug seed for gallery screenshots (default false).
+    // Debug seeds for gallery screenshots.
     var debugOpen: Bool = false
+    var debugRingProgress: CGFloat? = nil   // force a static progress-ring fill
+
+    private var isRunning: Bool { running != nil || debugRingProgress != nil }
+    private var shownRing: CGFloat { debugRingProgress ?? ringProgress }
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            if (open || debugOpen) && running == nil {
+            if (open || debugOpen) && !isRunning {
                 card.padding(.bottom, 56)
                     .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .bottom)))
             }
             fab
         }
         .animation(.easeOut(duration: 0.15), value: open)
-        .onChange(of: running == nil) { _ in if running != nil { open = false } }
+        .onChange(of: running?.id) { _ in
+            if let r = running {
+                open = false
+                ringProgress = 0
+                withAnimation(.linear(duration: Double(r.totalMs) / 1000)) { ringProgress = 1 }
+            } else {
+                withAnimation(.easeOut(duration: 0.12)) { ringProgress = 0 }
+            }
+        }
     }
 
-    private var fabTint: Color { running != nil ? p.warn : p.accent }
-    private var fabIcon: String { running != nil ? "stop.fill" : ((open || debugOpen) ? "xmark" : "sparkles") }
+    private var fabTint: Color { isRunning ? p.warn : p.accent }
+    private var fabIcon: String { isRunning ? "stop.fill" : ((open || debugOpen) ? "xmark" : "sparkles") }
 
     private var fab: some View {
         Button {
-            if running != nil { onStop() } else { open.toggle() }
+            if isRunning { onStop() } else { open.toggle() }
         } label: {
             Image(systemName: fabIcon)
                 .font(.system(size: 18, weight: .semibold))
@@ -39,6 +52,13 @@ struct TricksControl: View {
                 .frame(width: 46, height: 46)
                 .background(Circle().fill(fabTint.opacity(0.16)))
                 .overlay(Circle().stroke(fabTint.opacity(0.6), lineWidth: 1))
+                .overlay {   // trick-time progress ring while running
+                    if isRunning {
+                        Circle().trim(from: 0, to: shownRing)
+                            .stroke(p.warn, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                    }
+                }
         }
         .buttonStyle(.plain)
     }
