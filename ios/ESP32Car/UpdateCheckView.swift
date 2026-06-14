@@ -25,8 +25,8 @@ struct UpdateCheckView: View {
                 switch phase {
                 case .downloading:
                     Text(L.fwDownloadTitle).font(.system(size: 22, weight: .semibold)).foregroundStyle(p.text)
-                    Text("\(Int(client.downloadProgress * 100))%").font(.system(size: 14)).foregroundStyle(p.muted)
-                    ProgressView(value: client.downloadProgress).tint(p.accent).frame(width: 160)
+                    DownloadBar(progress: client.downloadProgress,
+                                caption: { "\(Int($0 * 100))%" }, palette: p)
                 case .checkFailed:
                     Text(L.gateCheckFailedTitle).font(.system(size: 22, weight: .semibold)).foregroundStyle(p.text)
                     Text(L.gateCheckFailedSub).font(.system(size: 14)).foregroundStyle(p.muted)

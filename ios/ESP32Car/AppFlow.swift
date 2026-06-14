@@ -22,7 +22,9 @@ final class AppFlow: ObservableObject {
                                       cachedBuild: UpdateClient.cachedBuild,
                                       hasCachedFile: UpdateClient.hasCachedFile) {
             phase = .downloading
+            let t0 = Date()
             guard await client.download(rel.assetURL) != nil else { phase = .checkFailed; return }
+            await UpdateClient.holdAtLeast(UpdateClient.downloadMinDisplay, since: t0)
             if let b = latestBuild { UpdateClient.recordCache(build: b, tag: rel.tag) }
         }
         phase = .connectToCar

@@ -43,8 +43,9 @@ struct FirmwareView: View {
                 fwButton(L.fwUpdate, prominent: true) { Task { await download() } }
             case .downloading:
                 title(L.fwDownloadTitle)
-                sub("\(L.fwTransition(current, release?.tag ?? "")) · \(Int(client.downloadProgress * 100))%")
-                ProgressView(value: client.downloadProgress).tint(p.accent).frame(width: 160)
+                DownloadBar(progress: client.downloadProgress,
+                            caption: { "\(L.fwTransition(current, release?.tag ?? "")) · \(Int($0 * 100))%" },
+                            palette: p)
             case .downloaded:
                 title(L.fwConnectTitle); sub(L.fwConnectSub)
                 fwButton(L.fwFlash, prominent: true, disabled: !status.online) { Task { await flash() } }
@@ -100,8 +101,12 @@ struct FirmwareView: View {
     private func download() async {
         guard let r = release else { return }
         phase = .downloading
-        if let url = await client.download(r.assetURL) { binURL = url; phase = .downloaded }
-        else { phase = .failed }
+        let t0 = Date()
+        if let url = await client.download(r.assetURL) {
+            binURL = url
+            await UpdateClient.holdAtLeast(UpdateClient.downloadMinDisplay, since: t0)
+            phase = .downloaded
+        } else { phase = .failed }
     }
     private func flash() async {
         guard let url = binURL else { return }
