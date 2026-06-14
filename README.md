@@ -1,9 +1,9 @@
 # AJPicoCar
-### Seeed XIAO ESP32-C6 · 4WD RC car · tank-turn, realtime joystick control, web + native iOS pult
+### Seeed XIAO ESP32-C6 · 4WD RC car · tank-turn, realtime joystick control, native iOS pult
 
-A WiFi-controlled four-wheel-drive RC car. The board hosts its own WiFi access point and serves both a
-landscape web gamepad (PWA) and a REST/WebSocket API that a native iOS app drives. Tank-turn mixing,
-on-wheels motor calibration, a control-link watchdog, and warm dual themes throughout.
+A WiFi-controlled four-wheel-drive RC car. The board hosts its own WiFi access point and a REST/WebSocket API
+that a native SwiftUI iOS app drives. Tank-turn mixing, on-wheels motor calibration, a control-link watchdog,
+in-app over-the-air firmware updates from GitHub Releases, and warm dual themes throughout.
 
 <!-- TODO: Add car photo -->
 <!-- ![Car](docs/car.jpg) -->
@@ -15,9 +15,10 @@ on-wheels motor calibration, a control-link watchdog, and warm dual themes throu
 - **Control-link watchdog** — 50 Hz timer; no control frame for >300 ms → `car_stop()` (console `mix` is exempt)
 - **On-wheels calibration** — spin each motor pair, tap the wheel that turned, pick direction, save to NVS; loads-or-defaults on boot
 - **WiFi softAP** — `ESP32-Car` (WPA2), `http://192.168.4.1`; no internet/captive portal — join and open manually
-- **Web pult** — landscape gamepad PWA, Stealth dark style, arcade + tank joysticks, top-down-car calibration wizard
-- **Native iOS app** (`ios/`) — SwiftUI pult: warm light/dark themes, live telemetry, predicted-trajectory diagram with chevron-tread wheels, calibration wizard, ping-derived signal bars, Russian-localized
-- **`GET /status`** — signed identity + telemetry (`{"device":"esp32-car","fw":..,"uptime_s":..,"calibrated":..,"heap":..}`) for the app's "am I on the car?" check
+- **Native iOS app** (`ios/`) — SwiftUI pult: warm light/dark themes, live telemetry, predicted-trajectory diagram with chevron-tread wheels, arcade + tank joysticks, calibration wizard, ping-derived signal bars, Russian-localized
+- **Launch gate + OTA** — the app checks the internet, fetches the latest firmware from GitHub Releases, connects to the car, and force-updates it over `POST /ota` if the on-board build is older — then drives
+- **Firmware versioning** — `v<semver>+<build>` (build = git commit count), set in CMake `PROJECT_VER`; `tools/release.sh` cuts a GitHub release; the app compares the numeric build
+- **`GET /status` + WS telemetry** — signed identity (`{"device":"esp32-car","fw":..,"uptime_s":..,"calibrated":..,"heap":..}`) for the app's "am I on the car?" check, plus 5 Hz telemetry pushed over `/ws`
 - **Pure, host-tested modules** — `mixer` / `motors` / `control_proto` / `watchdog` / `calibration` compile with plain `cc` and run on the host (`cd test && make run`)
 - **Hardware-free iOS dev loop** — run the app in the iOS Simulator against a localhost mock car (`tools/mock_car`); `CarHost` auto-targets localhost in the simulator and `192.168.4.1` on device
 
@@ -84,7 +85,12 @@ over WiFi/WS/REST.
   cd tools/mock_car && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
   .venv/bin/python mock_car.py            # serves /status, /ws, /calib* on 127.0.0.1:8080
   ```
-  Build/launch with `xcodegen generate` + `xcodebuild` + `xcrun simctl` (see `CLAUDE.md`).
+  Build/launch with `xcodegen generate` + `xcodebuild` + `xcrun simctl` (see `CLAUDE.md`). Launch with
+  `--args -gallery` to open the debug screen gallery (every screen/state in one swipeable list).
+
+On launch the app runs a gate — internet check → fetch/cache the latest firmware → connect to the car →
+force-update over `POST /ota` if the on-board build is older → drive. All split screens share one `SplitScreen`
+layout (consistent centring, custom headers).
 
 ## Code structure
 
@@ -96,6 +102,7 @@ Design docs, specs, and plans live under `docs/superpowers/`. Full architecture 
 
 ## Roadmap
 
-Firmware + both pults are done and hardware-verified. Next: migrate to **ESP32-P4** (MIPI-CSI camera + hardware
-H.264) for low-latency FPV video to the pult (WiFi via a companion ESP32-C6), and over-the-air firmware updates
-from the iOS app via GitHub Releases.
+Firmware + the native iOS pult are done and hardware-verified, including in-app OTA updates from GitHub Releases
+(launch gate force-updates a stale board). Next: a battery monitor (INA260 + 3S BMS → in-app SoC indicator), and
+a migration to **ESP32-P4** (MIPI-CSI camera + hardware H.264) for low-latency FPV video to the pult (WiFi via a
+companion ESP32-C6).

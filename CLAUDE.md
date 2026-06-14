@@ -192,6 +192,13 @@ only pult. `GET /` now returns a one-line plain-text identity; httpd stays (the 
 `/status`, `/calib*`, `/ramp`, `/trim`, `/ota`). Freed ~9.5 KB of the OTA app slot. NOTE: with free Apple-ID
 signing the app expires every 7 days — re-Run from Xcode; there is no browser fallback anymore.
 
+**Done — iOS launch gate + in-app OTA (merged, firmware flashed `v1.0+294` over USB):** firmware versioning
+(`v<semver>+<build>`, `tools/release.sh`, first release `v1.0+264` on GitHub); 5 Hz WS telemetry; the
+`AppFlow` launch gate (internet → fetch/cache firmware → connect → force-update if the car's build is older →
+drive) with `NoInternetView`/`UpdateCheckView`/`FirmwareView`; the unified `SplitScreen` layout (suppresses the
+system nav bar so all screens centre identically + custom headers; Settings matches); the informative
+`DownloadBar`; and a debug screen gallery (`-gallery`). See "Native iOS app" above.
+
 **🎉 Roadmap complete — Phases 1–6 merged and verified on hardware: a WiFi-controlled 4WD RC car with
 tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA, redesigned landscape pult.**
 
@@ -210,9 +217,18 @@ A SwiftUI phone pult that drives the same firmware over the existing WiFi/WS/RES
 Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-localized.
 
 - **Firmware companion:** `main/status_api.{c,h}` adds `GET /status` →
-  `{"device":"esp32-car","fw":..,"uptime_s":..,"calibrated":..,"heap":..}` — a signed identity + telemetry the app
-  polls (positive "am I on the car's network" check, no SSID entitlement needed). Registered in `app_main` after
-  the http server. (Calibration uses the pre-existing `/calib`, `/calib/spin`, `/calib/save`.)
+  `{"device":"esp32-car","fw":..,"uptime_s":..,"calibrated":..,"heap":..}` — a signed identity the app polls
+  (positive "am I on the car's network" check, no SSID entitlement needed). Registered in `app_main` after the
+  http server. (Calibration uses the pre-existing `/calib`, `/calib/spin`, `/calib/save`.)
+- **Telemetry over WS:** the car pushes telemetry at 5 Hz over `/ws` (`main/telemetry.{c,h}`, pure
+  `telemetry_fields()` host-tested formatter; `/status` reuses it). The app keeps "online" via frame freshness,
+  not polling.
+- **Firmware versioning + OTA:** `PROJECT_VER` = `v<semver>+<build>` from `version.txt` + `git rev-list --count
+  HEAD` (set before `project()` in root `CMakeLists.txt`); `tools/release.sh` cuts a GitHub release; the app
+  compares the numeric build. The app fetches `releases/latest`, caches the `.bin`, and flashes via `POST /ota`.
+- **Launch gate** (`AppFlow.swift`, a `@MainActor ObservableObject` state machine): on start →
+  internet probe (GitHub HEAD) → fetch latest release / download+cache the `.bin` → connect to the car →
+  version gate (force update if the car's build is older) → drive. Phases map to screens in `ESP32CarApp.root`.
 
 ### iOS structure (`ios/ESP32Car/`)
 - `ControlModel.swift` — **pure** (Foundation/CoreGraphics): scheme math (`arcade`/`tank`/`sides`/`frame`),
@@ -227,6 +243,22 @@ Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-local
   `SchemeToggle`, `Gamepad` (GameController), `Haptics` (CoreHaptics), `Theme.swift` (warm palettes).
 - `SettingsView.swift` (⚙ sheet) → `CalibrationView.swift` (split-layout wizard: Spin pair → tap turned wheel →
   direction → save, via `CalibClient.swift`). Auto-prompts when `/status` says `calibrated=false`.
+- **Launch-gate screens:** `NoInternetView` (reference car + amber `wifi.exclamationmark` chip + pulsing waves),
+  `UpdateCheckView` (checking/downloading/check-failed; reuses `FirmwareCarView`), `FirmwareView` (manual + forced
+  OTA, 9-state flow), `ConnectView` (radar search). `UpdateClient.swift` (GitHub release fetch, download+cache,
+  `/ota` upload, version math) + `AppFlow.swift` (the gate state machine).
+- **`SplitScreen.swift`** — the shared split layout (car/graphic left, text panel right) used by ALL split
+  screens. It **suppresses the system nav bar** (`.toolbar(.hidden, for: .navigationBar)`) so no screen carries a
+  nav-bar inset → car+text centre identically everywhere; draws an optional custom header (title + back chevron)
+  as a top overlay. `SettingsView` matches (custom header, bar hidden across its stack) so popping back doesn't
+  re-inset its list. Pulse rings on `NoInternetView`/`CalibrationView` are drawn in a single `Canvas` (one GPU
+  layer, no per-frame layout → no jitter), behind the opaque car.
+- **`DownloadBar.swift`** — firmware-download progress bar that always visibly moves: a synthetic ramp fills
+  0→100% over `UpdateClient.downloadMinDisplay` (1.2 s) and shows `max(real, synthetic)`, so an instant ~0.93 MB
+  download or a missing `Content-Length` still animates; the `.downloading` phase is held that long after success.
+- `GalleryView.swift` (`#if DEBUG`, `-gallery` launch arg) — a debug screen gallery: every screen/state in one
+  list, tap left/right to navigate (`.id(index)` forces recreation so same-type frames re-seed their state). The
+  fastest way to eyeball every screen in both themes without driving the real flow.
 - `L.swift` + `Resources/ru.lproj/Localizable.strings` — all UI text via `enum L` over `NSLocalizedString`
   (`CFBundleDevelopmentRegion=ru`; add `en.lproj` for a 2nd language). No Cyrillic literals in views.
 
@@ -246,6 +278,10 @@ Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-local
   ```
   The app auto-targets the localhost mock in the simulator (via `CarHost`); on device it targets `192.168.4.1`.
   Screenshot: `xcrun simctl io booted screenshot /tmp/x.png`.
+- **Debug screen gallery:** add `--args -gallery` to `xcrun simctl launch` to open `GalleryView` instead of the
+  live flow — every screen/state in one swipeable list. To screenshot a specific frame from the CLI (taps don't
+  work, see gotcha), temporarily set `@State private var index = N` in `GalleryView.swift`, rebuild, screenshot,
+  then revert to `0`.
 
 ### iOS gotchas
 - **Pure modules are host-tested with `swiftc` natively** (e.g. `swiftc ios/ESP32Car/ControlModel.swift check.swift main.swift && ./a.out`) — no XCTest/simulator runtime required. SwiftUI parts are compile-checked with `xcodebuild -sdk iphonesimulator26.2`.
@@ -253,3 +289,11 @@ Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-local
   actual gamepad deflection — otherwise idle "gamepad" input masks touch (`DriveView.push()`).
 - Build SDK is `iphonesimulator26.2` but the installed **runtime is iOS 26.3** — that's fine (build vs run).
 - Simulator strings show Russian even on an English simulator because `CFBundleDevelopmentRegion=ru`.
+- **Can't tap from the CLI:** `simctl` has no tap, and AppleScript/System-Events clicks are blocked
+  (accessibility). To reach a specific gallery frame or interactive state, drive it via a temporary
+  `@State` seed (the `index` trick above) or a debug param, not synthetic clicks.
+- **Screenshots are rotated 90°:** the app is landscape-locked but the simulator window is portrait, so
+  `simctl io screenshot` saves portrait images with the content sideways. When eyeballing vertical alignment,
+  remember the app's vertical axis runs along the screenshot's horizontal axis.
+- **The app is landscape-locked**, so each split screen draws its OWN title via `SplitScreen`'s custom header —
+  do NOT add a system `.navigationTitle`/nav bar to a `SplitScreen`; it reintroduces the inset that shifts content.
