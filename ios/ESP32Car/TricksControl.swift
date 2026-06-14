@@ -1,0 +1,73 @@
+import SwiftUI
+
+/// Bottom-centre tricks control: a ✦ FAB that opens a C4 popover card of tricks.
+/// Presentational — the parent owns playback state and passes `running`.
+/// FAB: idle ✦ (toggle popover) · open ✕ (close) · running ⏹ (stop).
+struct TricksControl: View {
+    let palette: Palette
+    let running: Trick?
+    let onSelect: (Trick) -> Void
+    let onStop: () -> Void
+    @State private var open = false
+    private var p: Palette { palette }
+
+    // Debug seed for gallery screenshots (default false).
+    var debugOpen: Bool = false
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            if (open || debugOpen) && running == nil {
+                card.padding(.bottom, 56)
+                    .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .bottom)))
+            }
+            fab
+        }
+        .animation(.easeOut(duration: 0.15), value: open)
+        .onChange(of: running == nil) { _ in if running != nil { open = false } }
+    }
+
+    private var fabTint: Color { running != nil ? p.warn : p.accent }
+    private var fabIcon: String { running != nil ? "stop.fill" : ((open || debugOpen) ? "xmark" : "sparkles") }
+
+    private var fab: some View {
+        Button {
+            if running != nil { onStop() } else { open.toggle() }
+        } label: {
+            Image(systemName: fabIcon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(fabTint)
+                .frame(width: 46, height: 46)
+                .background(Circle().fill(fabTint.opacity(0.16)))
+                .overlay(Circle().stroke(fabTint.opacity(0.6), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var card: some View {
+        VStack(spacing: 1) {
+            VStack(spacing: 0) {
+                ForEach(Tricks.all) { trick in
+                    Button {
+                        onSelect(trick); open = false
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: trick.icon).font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(p.accent).frame(width: 22)
+                            Text(L.trickName(trick.nameKey)).font(.system(size: 13)).foregroundStyle(p.text)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(width: 156)
+            .background(RoundedRectangle(cornerRadius: 12).fill(p.panel))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(p.line))
+            // little downward tail toward the FAB
+            Image(systemName: "triangle.fill").rotationEffect(.degrees(180))
+                .font(.system(size: 9)).foregroundStyle(p.panel)
+        }
+    }
+}
