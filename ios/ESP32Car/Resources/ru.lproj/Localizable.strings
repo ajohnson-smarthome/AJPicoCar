@@ -70,6 +70,9 @@
 "tricks.figure8" = "Восьмёрка";
 "tricks.wiggle"  = "Вилять";
 "tricks.donut"   = "Пончик";
+"tricks.title"   = "Трюки";
+"tricks.sec"     = "%.1f с";
+"tricks.mult"    = "×%.1f";
 "drive.wdtTrips"     = "Обрывов: %d";
 "gate.noInternetTitle"     = "Нет интернета";
 "gate.noInternetSub"       = "Подключись к интернету, чтобы проверить обновление прошивки перед поездкой.";

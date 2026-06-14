@@ -41,6 +41,13 @@ struct SettingsView: View {
                     }
                     .listRowBackground(palette.panel)
                     NavigationLink {
+                        TricksSettingsView(palette: palette)
+                    } label: {
+                        Label(L.tricksTitle, systemImage: "sparkles")
+                            .foregroundStyle(palette.text)
+                    }
+                    .listRowBackground(palette.panel)
+                    NavigationLink {
                         FirmwareView(palette: palette, status: status)
                     } label: {
                         Label(L.settingsFirmware, systemImage: "arrow.down.circle")

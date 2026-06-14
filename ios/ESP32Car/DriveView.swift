@@ -54,8 +54,9 @@ struct DriveView: View {
 
     private var sides: (left: Double, right: Double) { ControlModel.sides(t: curT, y: curY) }
 
-    private func startTrick(_ trick: Trick) {
+    private func startTrick(_ base: Trick) {
         trickTask?.cancel()
+        let trick = Tricks.scaledTrick(base, by: TrickSettings.scale(base.id))  // scaled steps; totalMs drives the ring
         runningTrick = trick
         trickStartedAt = Date()
         trickTask = Task {
