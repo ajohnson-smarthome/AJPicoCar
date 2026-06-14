@@ -6,6 +6,7 @@
 #include "control_proto.h"
 #include "car.h"
 #include "watchdog.h"
+#include "recovery.h"
 
 static const char *TAG = "ws";
 
@@ -52,6 +53,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
     if (control_parse_ty((const char *)buf, &t, &y) == 0) {
         s_frames++;
         watchdog_feed();
+        recovery_note_command(t, y);
         car_drive(t, y);
     } else {
         ESP_LOGW(TAG, "bad ws msg: '%s'", (const char *)buf);
