@@ -9,7 +9,7 @@ struct TricksControl: View {
     let onSelect: (Trick) -> Void
     let onStop: () -> Void
     @State private var open = false
-    @State private var ringProgress: CGFloat = 0
+    @State private var startedAt: Date?
     private var p: Palette { palette }
 
     // Debug seeds for gallery screenshots.
@@ -17,7 +17,6 @@ struct TricksControl: View {
     var debugRingProgress: CGFloat? = nil   // force a static progress-ring fill
 
     private var isRunning: Bool { running != nil || debugRingProgress != nil }
-    private var shownRing: CGFloat { debugRingProgress ?? ringProgress }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -29,13 +28,8 @@ struct TricksControl: View {
         }
         .animation(.easeOut(duration: 0.15), value: open)
         .onChange(of: running?.id) { _ in
-            if let r = running {
-                open = false
-                ringProgress = 0
-                withAnimation(.linear(duration: Double(r.totalMs) / 1000)) { ringProgress = 1 }
-            } else {
-                withAnimation(.easeOut(duration: 0.12)) { ringProgress = 0 }
-            }
+            startedAt = running != nil ? Date() : nil
+            if running != nil { open = false }
         }
     }
 
@@ -52,15 +46,26 @@ struct TricksControl: View {
                 .frame(width: 46, height: 46)
                 .background(Circle().fill(fabTint.opacity(0.16)))
                 .overlay(Circle().stroke(fabTint.opacity(0.6), lineWidth: 1))
-                .overlay {   // trick-time progress ring while running
-                    if isRunning {
-                        Circle().trim(from: 0, to: shownRing)
-                            .stroke(p.warn, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                    }
-                }
+                .overlay { ringOverlay }
         }
         .buttonStyle(.plain)
+    }
+
+    // Trick-time progress ring, computed from elapsed time each frame (no withAnimation races).
+    @ViewBuilder private var ringOverlay: some View {
+        if isRunning {
+            TimelineView(.animation) { tl in
+                Circle().trim(from: 0, to: ringFill(at: tl.date))
+                    .stroke(p.warn, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+        }
+    }
+
+    private func ringFill(at date: Date) -> CGFloat {
+        if let dbg = debugRingProgress { return dbg }
+        guard let s = startedAt, let r = running, r.totalMs > 0 else { return 0 }
+        return min(1, max(0, CGFloat(date.timeIntervalSince(s) / (Double(r.totalMs) / 1000))))
     }
 
     private var card: some View {
