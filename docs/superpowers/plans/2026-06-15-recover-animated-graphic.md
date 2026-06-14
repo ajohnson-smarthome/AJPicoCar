@@ -1,66 +1,25 @@
-import SwiftUI
+# Animated RecoverCarView Implementation Plan
 
-/// Link-loss auto-return: toggle + history-window slider (1–10 s). Split layout like RampView.
-struct RecoverView: View {
-    let palette: Palette
-    @State private var enabled = true
-    @State private var windowSec = 5         // live slider value
-    @Environment(\.dismiss) private var dismiss
-    private var p: Palette { palette }
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax.
 
-    var body: some View {
-        SplitScreen(palette: p, title: L.recoverTitle, onBack: { dismiss() }) {
-            RecoverCarView(active: enabled, palette: p)
-        } right: {
-            rightPanel
-        }
-        .task {
-            if let c = await RecoverClient().get() {
-                enabled = c.enabled
-                windowSec = max(1, min(10, c.windowMs / 1000))
-            }
-        }
-    }
+**Goal:** Make the «Авто-возврат» screen's car graphic animated (reverse-scrolling chevron-tread wheels + marching breadcrumb trail) like RampCarView/TrimCarView, gated on the toggle.
 
-    private func save() {
-        Task { await RecoverClient().set(enabled: enabled, windowMs: windowSec * 1000) }
-    }
+**Architecture:** Replace `RecoverCarView`'s static `Canvas` with a `TimelineView(.animation)`-driven one. Same car geometry; wheels gain reverse-scrolling chevron treads and the dashed trail dashes march toward the car when `active`, freezing/dimming when off.
 
-    private var rightPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L.recoverHeadline).font(.system(size: 20, weight: .semibold)).foregroundStyle(p.text)
-            Toggle(L.recoverEnable, isOn: $enabled)
-                .tint(p.accent)
-                .frame(width: 230)
-                .onChange(of: enabled) { _ in save() }
-            VStack(alignment: .leading, spacing: 5) {
-                HStack {
-                    Text(L.recoverWindow).font(.system(size: 12)).foregroundStyle(p.muted)
-                    Spacer()
-                    Text(L.recoverWindowValue(windowSec)).font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(enabled ? p.accent : p.muted).monospacedDigit()
-                }
-                Slider(value: Binding(
-                    get: { Double(windowSec) },
-                    set: { windowSec = Int($0.rounded()) }
-                ), in: 1...10, step: 1) { editing in
-                    if !editing { save() }
-                }
-                .tint(p.accent)
-                .disabled(!enabled)
-            }
-            .frame(width: 230)
-            .opacity(enabled ? 1 : 0.4)
-            Text(enabled ? L.recoverSubOn : L.recoverSubOff)
-                .font(.system(size: 12)).foregroundStyle(p.muted)
-                .fixedSize(horizontal: false, vertical: true).frame(maxWidth: 250, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-    }
-}
+**Tech Stack:** Swift 6 / SwiftUI (`TimelineView(.animation)`, `Canvas`, `StrokeStyle.dashPhase`).
 
-/// Centred reference car (same geometry as RampCarView/TrimCarView) with a dashed
-/// "retrace" trail behind it. The car is NOT moved — only the trail signals the feature.
+---
+
+### Task 1: Animate `RecoverCarView`
+
+**Files:**
+- Modify: `ios/ESP32Car/RecoverView.swift`
+
+- [ ] **Step 1: Replace the `RecoverCarView` struct body**
+
+Replace the entire `struct RecoverCarView { ... }` (from `var body` through the end of the struct) with the animated version:
+
+```swift
 struct RecoverCarView: View {
     let active: Bool
     let palette: Palette
@@ -148,3 +107,46 @@ struct RecoverCarView: View {
                    style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
     }
 }
+```
+
+- [ ] **Step 2: Build for the simulator**
+
+Run: `cd ios && xcodebuild build -scheme ESP32Car -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/ddata 2>&1 | tail -3`
+Expected: `** BUILD SUCCEEDED **`.
+
+- [ ] **Step 3: Visual check in the gallery (motion + both themes)**
+
+Temporarily set `@State private var index = 26` (the "Recover" frame) in `GalleryView.swift`, build, install, launch `--args -gallery`. Take TWO dark-theme screenshots ~1 s apart and confirm the wheel tread / trail dashes shifted (animation running). Then a light-theme screenshot. Confirm the car stays centred/same size as other screens.
+
+```bash
+cd /Users/adamjohnson/VSCode/esp32-p4-car
+sed -i '' 's/@State private var index = [0-9]*/@State private var index = 26/' ios/ESP32Car/GalleryView.swift
+( cd ios && xcodebuild build -scheme ESP32Car -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/ddata 2>&1 | tail -1 )
+xcrun simctl boot "iPhone 17" 2>/dev/null; sleep 2
+DD=$(find /tmp/ddata/Build/Products -name ESP32Car.app | head -1)
+xcrun simctl install booted "$DD"
+xcrun simctl ui booted appearance dark
+xcrun simctl terminate booted com.adamjohnson.esp32car 2>/dev/null
+xcrun simctl launch booted com.adamjohnson.esp32car --args -gallery
+sleep 2; xcrun simctl io booted screenshot /tmp/recover-anim1.png
+sleep 1; xcrun simctl io booted screenshot /tmp/recover-anim2.png
+xcrun simctl ui booted appearance light
+sleep 1; xcrun simctl io booted screenshot /tmp/recover-anim-light.png
+```
+
+Read the three; expect tread/dash phase to differ between anim1 and anim2.
+
+- [ ] **Step 4: Revert the temporary gallery index**
+
+```bash
+cd /Users/adamjohnson/VSCode/esp32-p4-car
+sed -i '' 's/@State private var index = [0-9]*/@State private var index = 0/' ios/ESP32Car/GalleryView.swift
+git diff --stat   # expect only RecoverView.swift changed
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add ios/ESP32Car/RecoverView.swift
+git commit -m "feat(ios): animate RecoverCarView — reverse chevron treads + marching trail"
+```
