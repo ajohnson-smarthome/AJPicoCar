@@ -16,6 +16,7 @@ struct DriveView: View {
     @State private var showCalib = false
     @State private var lastCalibTrue = Date.distantPast
     @State private var runningTrick: Trick?
+    @State private var trickStartedAt: Date?
     @State private var trickTask: Task<Void, Never>?
 
     @StateObject private var pad = Gamepad()
@@ -56,6 +57,7 @@ struct DriveView: View {
     private func startTrick(_ trick: Trick) {
         trickTask?.cancel()
         runningTrick = trick
+        trickStartedAt = Date()
         trickTask = Task {
             for step in trick.steps {
                 conn.setCommand(ControlModel.frame(t: step.t, y: step.y))
@@ -63,12 +65,12 @@ struct DriveView: View {
                 if Task.isCancelled { return }
             }
             conn.setCommand(ControlModel.frame(t: 0, y: 0))   // natural end → stop
-            runningTrick = nil
+            runningTrick = nil; trickStartedAt = nil
         }
     }
 
     private func cancelTrick(stop: Bool) {
-        trickTask?.cancel(); trickTask = nil; runningTrick = nil
+        trickTask?.cancel(); trickTask = nil; runningTrick = nil; trickStartedAt = nil
         if stop { conn.setCommand(ControlModel.frame(t: 0, y: 0)) }
         // stop == false: leave the command — the joystick is about to set it (seamless takeover)
     }
@@ -137,7 +139,7 @@ struct DriveView: View {
 
             VStack(spacing: 6) {
                 Spacer()
-                TricksControl(palette: p, running: runningTrick,
+                TricksControl(palette: p, running: runningTrick, startedAt: trickStartedAt,
                               onSelect: { startTrick($0) },
                               onStop: { cancelTrick(stop: true) })
                 statusBar          // «Обрывов: N» sits directly under the FAB

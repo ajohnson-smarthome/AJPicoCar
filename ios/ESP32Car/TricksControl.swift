@@ -1,15 +1,15 @@
 import SwiftUI
 
 /// Bottom-centre tricks control: a ✦ FAB that opens a C4 popover card of tricks.
-/// Presentational — the parent owns playback state and passes `running`.
+/// Presentational — the parent owns playback state and passes `running` + `startedAt`.
 /// FAB: idle ✦ (toggle popover) · open ✕ (close) · running ⏹ (stop, with a time-progress ring).
 struct TricksControl: View {
     let palette: Palette
     let running: Trick?
+    var startedAt: Date? = nil          // when the current trick began (parent-owned)
     let onSelect: (Trick) -> Void
     let onStop: () -> Void
     @State private var open = false
-    @State private var startedAt: Date?
     private var p: Palette { palette }
 
     // Debug seeds for gallery screenshots.
@@ -27,10 +27,7 @@ struct TricksControl: View {
             fab
         }
         .animation(.easeOut(duration: 0.15), value: open)
-        .onChange(of: running?.id) { _ in
-            startedAt = running != nil ? Date() : nil
-            if running != nil { open = false }
-        }
+        .onChange(of: running?.id) { _ in if running != nil { open = false } }
     }
 
     private var fabTint: Color { isRunning ? p.warn : p.accent }
@@ -46,9 +43,9 @@ struct TricksControl: View {
                 .frame(width: 46, height: 46)
                 .background(Circle().fill(fabTint.opacity(0.16)))
                 .overlay(Circle().stroke(fabTint.opacity(0.6), lineWidth: 1))
-                .overlay { ringOverlay }
         }
         .buttonStyle(.plain)
+        .overlay { ringOverlay }   // ring on the button itself (not buried in the label)
     }
 
     // Trick-time progress ring, computed from elapsed time each frame (no withAnimation races).
@@ -58,7 +55,9 @@ struct TricksControl: View {
                 Circle().trim(from: 0, to: ringFill(at: tl.date))
                     .stroke(p.warn, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                     .rotationEffect(.degrees(-90))
+                    .frame(width: 46, height: 46)
             }
+            .allowsHitTesting(false)
         }
     }
 
