@@ -69,7 +69,8 @@ struct SettingsView: View {
                 }
                 .font(.system(size: 11))
                 .foregroundStyle(palette.muted)
-                .padding(.bottom, 10)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)   // centred vertically in the band between the list and the screen edge
                 }
             }
             // Hide the system nav bar across the whole stack so it never toggles when a
