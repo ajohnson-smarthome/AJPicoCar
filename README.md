@@ -1,28 +1,72 @@
 # AJPicoCar
+
 ### Seeed XIAO ESP32-C6 · 4WD RC car · tank-turn, realtime joystick control, native iOS pult
 
-A WiFi-controlled four-wheel-drive RC car. The board hosts its own WiFi access point and a REST/WebSocket API
-that a native SwiftUI iOS app drives. Tank-turn mixing, on-wheels motor calibration, a control-link watchdog,
-in-app over-the-air firmware updates from GitHub Releases, and warm dual themes throughout.
+![ESP-IDF](https://img.shields.io/badge/ESP--IDF-5.4-E7352C?logo=espressif&logoColor=white)
+![MCU](https://img.shields.io/badge/MCU-ESP32--C6-0A7BBB)
+![iOS](https://img.shields.io/badge/iOS-SwiftUI-FA7343?logo=swift&logoColor=white)
+![Release](https://img.shields.io/badge/release-v1.0%2B311-success)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-<!-- TODO: Add car photo -->
-<!-- ![Car](docs/car.jpg) -->
+A WiFi-controlled four-wheel-drive RC car. The board hosts its own WiFi access point and a REST/WebSocket API
+that a native SwiftUI iOS app drives — tank-turn mixing, on-wheels motor calibration, a control-link watchdog,
+link-loss auto-return, one-tap trick macros, and in-app over-the-air firmware updates from GitHub Releases.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/img/drive.png" width="420"><br/><sub><b>Drive</b> — joysticks · predicted-trajectory diagram · tricks ✦</sub></td>
+    <td align="center"><img src="docs/img/tricks-settings.png" width="420"><br/><sub><b>Tricks</b> — per-trick duration (0.5×–12×)</sub></td>
+  </tr>
+</table>
+
+> Russian-localized UI · warm light/dark themes · landscape-locked. The whole flow iterates hardware-free
+> against a localhost mock car in the iOS Simulator.
 
 ## Features
 
 - **4WD tank-turn mixing** — `mix <throttle> <yaw>` blends into left/right side speeds (`left=t+y, right=t-y`, normalized), shoot-through-safe by construction
 - **Realtime control** — WebSocket `/ws` streaming `"t,y"` at 10 Hz; thread-safe `car_drive` (I2C mutex)
 - **Control-link watchdog** — 50 Hz timer; no control frame for >300 ms → `car_stop()` (console `mix` is exempt)
-- **On-wheels calibration** — spin each motor pair, tap the wheel that turned, pick direction, save to NVS; loads-or-defaults on boot
-- **WiFi softAP** — `ESP32-Car` (WPA2), `http://192.168.4.1`; no internet/captive portal — join and open manually
-- **Native iOS app** (`ios/`) — SwiftUI pult: warm light/dark themes, live telemetry, predicted-trajectory diagram with chevron-tread wheels, arcade + tank joysticks, calibration wizard, ping-derived signal bars, Russian-localized
-- **Launch gate + OTA** — the app checks the internet, fetches the latest firmware from GitHub Releases, connects to the car, and force-updates it over `POST /ota` if the on-board build is older — then drives
 - **Link-loss auto-return** — `recovery.{c,h}` keeps a breadcrumb buffer of recent commands; on link loss the watchdog replays it in reverse to retrace the car back into range (configurable 1–10 s window + on/off via `GET/POST /recover`; iOS «Авто-возврат» screen)
-- **Tricks** — one-tap maneuver macros (spin / figure-8 / wiggle / donut) streamed from the app over `/ws` (no firmware change); joystick touch interrupts; ⏹ + a trick-time progress ring; per-trick duration multiplier (0.5×–12×) in a «Трюки» settings screen; the Drive diagram + power bars visualize the maneuver
+- **On-wheels calibration** — spin each motor pair, tap the wheel that turned, pick direction, save to NVS; loads-or-defaults on boot
+- **Tricks** — one-tap maneuver macros (spin / figure-8 / wiggle / donut) streamed from the app over `/ws` (no firmware change); joystick touch interrupts; ⏹ + a trick-time progress ring; per-trick duration multiplier (0.5×–12×); the Drive diagram + power bars visualize the running maneuver
+- **Launch gate + OTA** — the app checks the internet, fetches the latest firmware from GitHub Releases, connects to the car, and force-updates it over `POST /ota` if the on-board build is older — then drives
 - **Firmware versioning** — `v<semver>+<build>` (build = git commit count), set in CMake `PROJECT_VER`; `tools/release.sh` cuts a GitHub release; the app compares the numeric build
 - **`GET /status` + WS telemetry** — signed identity (`{"device":"esp32-car","fw":..,"uptime_s":..,"calibrated":..,"heap":..}`) for the app's "am I on the car?" check, plus 5 Hz telemetry pushed over `/ws`
-- **Pure, host-tested modules** — `mixer` / `motors` / `control_proto` / `watchdog` / `calibration` compile with plain `cc` and run on the host (`cd test && make run`)
+- **WiFi softAP** — `ESP32-Car` (WPA2), `http://192.168.4.1`; no internet/captive portal — join and open the app
+- **Pure, host-tested modules** — `mixer` / `motors` / `control_proto` / `watchdog` / `calibration` / `recovery` compile with plain `cc` and run on the host (`cd test && make run`)
 - **Hardware-free iOS dev loop** — run the app in the iOS Simulator against a localhost mock car (`tools/mock_car`); `CarHost` auto-targets localhost in the simulator and `192.168.4.1` on device
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["iPhone app<br/>(SwiftUI)"] -->|"WiFi · WS /ws + REST"| B["XIAO ESP32-C6<br/>softAP + firmware"]
+    B -->|"I2C @ 0x40"| C["PCA9685<br/>16-ch 12-bit PWM"]
+    C -->|"8 PWM channels"| D["4× BTS7960<br/>H-bridge ~43 A"]
+    D --> E["4× JGA25-370<br/>geared DC motors"]
+```
+
+The phone holds the control link: it streams the held `t,y` command at 10 Hz over the WebSocket. The firmware
+mixes it into per-side speeds, plans per-channel PWM (shoot-through-safe), and writes the PCA9685. If frames
+stop, the watchdog steps in (stop, or replay-in-reverse auto-return).
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/img/calibration.png" width="380"><br/><sub>On-wheels calibration wizard</sub></td>
+    <td align="center"><img src="docs/img/auto-return.png" width="380"><br/><sub>Link-loss auto-return</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/img/firmware-ota.png" width="380"><br/><sub>In-app OTA update</sub></td>
+    <td align="center"><img src="docs/img/settings.png" width="380"><br/><sub>Settings</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/img/no-internet.png" width="380"><br/><sub>Launch gate — no internet</sub></td>
+    <td align="center"><img src="docs/img/connect.png" width="380"><br/><sub>Connecting (radar search)</sub></td>
+  </tr>
+</table>
 
 ## Hardware
 
@@ -73,7 +117,7 @@ Console (USB Serial JTAG): `mix <throttle> <yaw>`, both floats in `[-1, 1]` (e.g
 ## Host tests
 
 ```bash
-cd test && make run     # builds + runs test_mixer, test_motors, test_control_proto, test_watchdog, test_calibration
+cd test && make run     # pure modules with plain cc: mixer, motors, control_proto, watchdog, calibration, ramp, trim, telemetry, recovery
 ```
 
 ## iOS app
@@ -96,9 +140,16 @@ layout (consistent centring, custom headers).
 
 ## Code structure
 
-`main/` — `pca9685` (I2C driver), `mixer` (pure tank-turn math), `motors` (pure PWM planner + calibration table),
-`car` (orchestration), `wifi_ap`, `http_server`, `ws_control`, `control_proto`, `watchdog`, `calibration`,
-`calib_api`, `status_api`, `main.c` (orchestrator + console REPL). Pure modules have zero ESP-IDF deps and are host-tested.
+`main/` (firmware) — `pca9685` (I2C driver), `mixer` (pure tank-turn math), `motors` (pure PWM planner +
+calibration table), `car` (orchestration), `wifi_ap`, `http_server`, `ws_control`, `control_proto`, `watchdog`,
+`recovery` (breadcrumb auto-return), `calibration`, `ramp`, `trim`, `telemetry`, and the REST layers
+(`calib_api`, `status_api`, `ota_api`, `ramp_api`, `trim_api`, `recovery_api`), plus `main.c` (orchestrator +
+console REPL). Pure modules have zero ESP-IDF deps and are host-tested.
+
+`ios/ESP32Car/` (app) — `ControlModel` (pure scheme math), `CarConnection`/`CarStatus`/`CarHost` (link),
+`DriveView` + `DriveDiagram`, the launch-gate screens (`AppFlow`, `NoInternetView`, `UpdateCheckView`,
+`FirmwareView`), `SplitScreen` (shared layout), calibration, `RecoverView` (auto-return), and tricks
+(`Tricks`, `TricksControl`, `TrickSettings`, `TricksSettingsView`).
 
 Design docs, specs, and plans live under `docs/superpowers/`. Full architecture notes + gotchas are in `CLAUDE.md`.
 
@@ -108,3 +159,7 @@ Firmware + the native iOS pult are done and hardware-verified, including in-app 
 (launch gate force-updates a stale board). Next: a battery monitor (INA260 + 3S BMS → in-app SoC indicator), and
 a migration to **ESP32-P4** (MIPI-CSI camera + hardware H.264) for low-latency FPV video to the pult (WiFi via a
 companion ESP32-C6).
+
+## License
+
+[MIT](LICENSE) © 2026 Adam Johnson
