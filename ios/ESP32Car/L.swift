@@ -73,7 +73,13 @@ enum L {
     static func trickName(_ key: String) -> String { s(key) }
     static var tricksTitle: String { s("tricks.title") }
     static func trickSec(_ v: Double) -> String { s("tricks.sec", v) }
-    static func trickMult(_ v: Double) -> String { s("tricks.mult", v) }
+    static func trickTotal(_ v: Double) -> String { s("tricks.total", v) }
+    static func trickCycles(_ n: Int) -> String { s("tricks.cycles", n) }
+    static var actFwd: String { s("tricks.fwd") }
+    static var actBack: String { s("tricks.back") }
+    static var actRight: String { s("tricks.right") }
+    static var actLeft: String { s("tricks.left") }
+    static var actTurn: String { s("tricks.turn") }
     static func driveWdtTrips(_ n: Int) -> String { s("drive.wdtTrips", n) }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }

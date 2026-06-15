@@ -72,7 +72,13 @@
 "tricks.donut"   = "Пончик";
 "tricks.title"   = "Трюки";
 "tricks.sec"     = "%.1f с";
-"tricks.mult"    = "×%.1f";
+"tricks.total"   = "Всего: %.1f с";
+"tricks.cycles"  = "×%d";
+"tricks.fwd"     = "Вперёд";
+"tricks.back"    = "Назад";
+"tricks.right"   = "вправо";
+"tricks.left"    = "влево";
+"tricks.turn"    = "Поворот";
 "drive.wdtTrips"     = "Обрывов: %d";
 "gate.noInternetTitle"     = "Нет интернета";
 "gate.noInternetSub"       = "Подключись к интернету, чтобы проверить обновление прошивки перед поездкой.";
