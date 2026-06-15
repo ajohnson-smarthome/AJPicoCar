@@ -15,7 +15,7 @@ link-loss auto-return, one-tap trick macros, and in-app over-the-air firmware up
 <table>
   <tr>
     <td align="center"><img src="docs/img/drive.png" width="420"><br/><sub><b>Drive</b> — joysticks · predicted-trajectory diagram · tricks ✦</sub></td>
-    <td align="center"><img src="docs/img/tricks-settings.png" width="420"><br/><sub><b>Tricks</b> — per-trick duration (0.5×–12×)</sub></td>
+    <td align="center"><img src="docs/img/tricks-settings.png" width="420"><br/><sub><b>Trick editor</b> — per-action duration</sub></td>
   </tr>
 </table>
 
@@ -29,7 +29,7 @@ link-loss auto-return, one-tap trick macros, and in-app over-the-air firmware up
 - **Control-link watchdog** — 50 Hz timer; no control frame for >300 ms → `car_stop()` (console `mix` is exempt)
 - **Link-loss auto-return** — `recovery.{c,h}` keeps a breadcrumb buffer of recent commands; on link loss the watchdog replays it in reverse to retrace the car back into range (configurable 1–10 s window + on/off via `GET/POST /recover`; iOS «Авто-возврат» screen)
 - **On-wheels calibration** — spin each motor pair, tap the wheel that turned, pick direction, save to NVS; loads-or-defaults on boot
-- **Tricks** — one-tap maneuver macros (spin / figure-8 / wiggle / donut) streamed from the app over `/ws` (no firmware change); joystick touch interrupts; ⏹ + a trick-time progress ring; per-trick duration multiplier (0.5×–12×); the Drive diagram + power bars visualize the running maneuver
+- **Tricks** — one-tap maneuver macros (spin / figure-8 / wiggle / donut) streamed from the app over `/ws` (no firmware change); joystick touch interrupts; ⏹ + a trick-time progress ring; an editor to tune the duration of each distinct movement (0.1–10 s); the Drive diagram + power bars visualize the running maneuver
 - **Launch gate + OTA** — the app checks the internet, fetches the latest firmware from GitHub Releases, connects to the car, and force-updates it over `POST /ota` if the on-board build is older — then drives
 - **Firmware versioning** — `v<semver>+<build>` (build = git commit count), set in CMake `PROJECT_VER`; `tools/release.sh` cuts a GitHub release; the app compares the numeric build
 - **`GET /status` + WS telemetry** — signed identity (`{"device":"esp32-car","fw":..,"uptime_s":..,"calibrated":..,"heap":..}`) for the app's "am I on the car?" check, plus 5 Hz telemetry pushed over `/ws`
