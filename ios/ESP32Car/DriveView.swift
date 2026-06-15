@@ -56,7 +56,7 @@ struct DriveView: View {
 
     private func startTrick(_ base: Trick) {
         trickTask?.cancel()
-        let trick = Tricks.scaledTrick(base, by: TrickSettings.scale(base.id))  // scaled steps; totalMs drives the ring
+        let trick = Tricks.withDurations(base, TrickSettings.durations(for: base))  // per-action durations; totalMs drives the ring
         runningTrick = trick
         trickStartedAt = Date()
         trickTask = Task {
