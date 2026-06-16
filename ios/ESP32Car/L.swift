@@ -81,6 +81,21 @@ enum L {
     static var actLeft: String { s("tricks.left") }
     static var actTurn: String { s("tricks.turn") }
     static func driveWdtTrips(_ n: Int) -> String { s("drive.wdtTrips", n) }
+    static var wheelTitle: String { s("wheel.title") }
+    static var wheelWizardTitle: String { s("wheel.wizardTitle") }
+    static func wheelStep(_ a: Int, _ b: Int) -> String { s("wheel.step", a, b) }
+    static var wheelNext: String { s("wheel.next") }
+    static var wheelSectionWheels: String { s("wheel.sectionWheels") }
+    static var wheelSectionMotors: String { s("wheel.sectionMotors") }
+    static var wheelDiameter: String { s("wheel.diameter") }
+    static var wheelCirc: String { s("wheel.circ") }
+    static var wheelModel: String { s("wheel.model") }
+    static var wheelPpr: String { s("wheel.ppr") }
+    static var wheelGear: String { s("wheel.gear") }
+    static var wheelQuad: String { s("wheel.quad") }
+    static var wheelCustom: String { s("wheel.custom") }
+    static var mmUnit: String { s("unit.mm") }
+    static var rpmUnit: String { s("unit.rpm") }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }
     static var gateCheckFailedTitle: String { s("gate.checkFailedTitle") }
