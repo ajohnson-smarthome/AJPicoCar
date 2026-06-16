@@ -17,27 +17,38 @@ struct TrickEditorView: View {
             p.bg.ignoresSafeArea()
             VStack(spacing: 0) {
                 header
-                List {
-                    ForEach(actions.indices, id: \.self) { i in
-                        row(i)
-                            .listRowBackground(p.panel)
-                            // Full-width separators flush to the card edges (default inset under the
-                            // label leaves a gap on the left of the rounded panel → looks crooked).
-                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                if trick.id == Tricks.donut.id {
+                    HStack(spacing: 0) {
+                        TrickSimView(trick: trick, durs: durs, palette: p)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        Rectangle().fill(p.metal.opacity(0.25)).frame(width: 1)
+                        controls.frame(width: 300)
                     }
+                } else {
+                    controls
                 }
-                .scrollContentBackground(.hidden)
-                .tint(p.accent)
-                // Total lives BELOW the list (footer), not as a trailing row — a clear-background
-                // last row would steal the inset-grouped bottom-corner rounding from the card.
-                Text(L.trickTotal(totalSec))
-                    .font(.system(size: 12)).foregroundStyle(p.muted).monospacedDigit()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { if durs.isEmpty { durs = TrickSettings.durations(for: trick) } }
+    }
+
+    private var controls: some View {
+        VStack(spacing: 0) {
+            List {
+                ForEach(actions.indices, id: \.self) { i in
+                    row(i)
+                        .listRowBackground(p.panel)
+                        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .tint(p.accent)
+            Text(L.trickTotal(totalSec))
+                .font(.system(size: 12)).foregroundStyle(p.muted).monospacedDigit()
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+        }
     }
 
     private var header: some View {
