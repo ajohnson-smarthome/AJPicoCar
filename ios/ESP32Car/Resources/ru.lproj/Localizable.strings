@@ -29,6 +29,9 @@
 "scheme.arcade"      = "Аркада";
 "scheme.tank"        = "Танк";
 "settings.firmware"  = "Прошивка";
+"settings.groupSetup"   = "Настройка машины";
+"settings.groupDriving" = "Движение";
+"settings.groupSystem"  = "Система";
 "fw.checking"       = "Проверка обновлений…";
 "fw.current"        = "Текущая %@";
 "fw.upToDate"       = "Актуальная версия";

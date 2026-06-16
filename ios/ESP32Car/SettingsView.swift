@@ -12,55 +12,67 @@ struct SettingsView: View {
                 VStack(spacing: 0) {
                 header
                 List {
-                    NavigationLink {
-                        WheelParamsView(palette: palette)
-                    } label: {
-                        Label(L.wheelTitle, systemImage: "ruler")
-                            .foregroundStyle(palette.text)
+                    Section {
+                        NavigationLink {
+                            WheelParamsView(palette: palette)
+                        } label: {
+                            Label(L.wheelTitle, systemImage: "steeringwheel")
+                                .foregroundStyle(palette.text)
+                        }
+                        .listRowBackground(palette.panel)
+                        NavigationLink {
+                            CalibrationView(palette: palette)
+                        } label: {
+                            Label(L.settingsCalibration, systemImage: "gearshape.2")
+                                .foregroundStyle(palette.text)
+                        }
+                        .listRowBackground(palette.panel)
+                    } header: {
+                        sectionHeader(L.settingsGroupSetup)
                     }
-                    .listRowBackground(palette.panel)
-                    NavigationLink {
-                        CalibrationView(palette: palette)
-                    } label: {
-                        Label(L.settingsCalibration, systemImage: "gearshape.2")
-                            .foregroundStyle(palette.text)
+                    Section {
+                        NavigationLink {
+                            RampView(palette: palette)
+                        } label: {
+                            Label(L.rampTitle, systemImage: "gauge.with.needle")
+                                .foregroundStyle(palette.text)
+                        }
+                        .listRowBackground(palette.panel)
+                        NavigationLink {
+                            TrimView(palette: palette)
+                        } label: {
+                            Label(L.trimTitle, systemImage: "arrow.up.to.line")
+                                .foregroundStyle(palette.text)
+                        }
+                        .listRowBackground(palette.panel)
+                        NavigationLink {
+                            RecoverView(palette: palette)
+                        } label: {
+                            Label(L.recoverTitle, systemImage: "arrow.uturn.backward")
+                                .foregroundStyle(palette.text)
+                        }
+                        .listRowBackground(palette.panel)
+                        NavigationLink {
+                            TricksSettingsView(palette: palette)
+                        } label: {
+                            Label(L.tricksTitle, systemImage: "sparkles")
+                                .foregroundStyle(palette.text)
+                        }
+                        .listRowBackground(palette.panel)
+                    } header: {
+                        sectionHeader(L.settingsGroupDriving)
                     }
-                    .listRowBackground(palette.panel)
-                    NavigationLink {
-                        RampView(palette: palette)
-                    } label: {
-                        Label(L.rampTitle, systemImage: "gauge.with.needle")
-                            .foregroundStyle(palette.text)
+                    Section {
+                        NavigationLink {
+                            FirmwareView(palette: palette, status: status)
+                        } label: {
+                            Label(L.settingsFirmware, systemImage: "arrow.down.circle")
+                                .foregroundStyle(palette.text)
+                        }
+                        .listRowBackground(palette.panel)
+                    } header: {
+                        sectionHeader(L.settingsGroupSystem)
                     }
-                    .listRowBackground(palette.panel)
-                    NavigationLink {
-                        TrimView(palette: palette)
-                    } label: {
-                        Label(L.trimTitle, systemImage: "arrow.up.to.line")
-                            .foregroundStyle(palette.text)
-                    }
-                    .listRowBackground(palette.panel)
-                    NavigationLink {
-                        RecoverView(palette: palette)
-                    } label: {
-                        Label(L.recoverTitle, systemImage: "arrow.uturn.backward")
-                            .foregroundStyle(palette.text)
-                    }
-                    .listRowBackground(palette.panel)
-                    NavigationLink {
-                        TricksSettingsView(palette: palette)
-                    } label: {
-                        Label(L.tricksTitle, systemImage: "sparkles")
-                            .foregroundStyle(palette.text)
-                    }
-                    .listRowBackground(palette.panel)
-                    NavigationLink {
-                        FirmwareView(palette: palette, status: status)
-                    } label: {
-                        Label(L.settingsFirmware, systemImage: "arrow.down.circle")
-                            .foregroundStyle(palette.text)
-                    }
-                    .listRowBackground(palette.panel)
                 }
                 .scrollContentBackground(.hidden)
                 // Reference info lives here, off the drive screen: uptime + firmware version.
@@ -86,6 +98,13 @@ struct SettingsView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .tint(palette.accent)
+    }
+
+    // Section header styled to the dark palette (the default gray header reads too light here).
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(palette.muted)
     }
 
     // Custom header matching the SplitScreen children (no system nav bar): title + Close.
