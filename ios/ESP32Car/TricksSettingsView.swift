@@ -27,6 +27,9 @@ struct TricksSettingsView: View {
                             .padding(.vertical, 4)
                         }
                         .listRowBackground(p.panel)
+                        // Full-width separators: align the divider's leading edge to the row content
+                        // (under the icon) so the accent icons don't visibly hang past it.
+                        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                     }
                 }
                 .scrollContentBackground(.hidden)
