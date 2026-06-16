@@ -170,7 +170,7 @@ struct DriveView: View {
         }
         .sheet(isPresented: $showCalib) {
             NavigationStack {
-                CalibrationView(palette: p, dismissible: false)
+                WheelParamsView(palette: p, wizard: true)   // step 1 → "Далее" → CalibrationView
             }
             .interactiveDismissDisabled(true)
         }

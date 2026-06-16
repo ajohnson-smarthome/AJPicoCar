@@ -13,6 +13,13 @@ struct SettingsView: View {
                 header
                 List {
                     NavigationLink {
+                        WheelParamsView(palette: palette)
+                    } label: {
+                        Label(L.wheelTitle, systemImage: "ruler")
+                            .foregroundStyle(palette.text)
+                    }
+                    .listRowBackground(palette.panel)
+                    NavigationLink {
                         CalibrationView(palette: palette)
                     } label: {
                         Label(L.settingsCalibration, systemImage: "gearshape.2")
