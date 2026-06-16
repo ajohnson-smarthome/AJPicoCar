@@ -18,11 +18,9 @@ struct TrickEditorView: View {
             VStack(spacing: 0) {
                 header
                 if trick.id == Tricks.donut.id {
-                    HStack(spacing: 0) {
+                    VStack(spacing: 0) {
                         TrickSimView(trick: trick, durs: durs, palette: p)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        Rectangle().fill(p.metal.opacity(0.25)).frame(width: 1)
-                        controls.frame(width: 300)
+                        controls
                     }
                 } else {
                     controls
