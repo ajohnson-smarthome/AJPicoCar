@@ -12,6 +12,9 @@ enum L {
     static var close: String { s("common.close") }
     static var settingsTitle: String { s("settings.title") }
     static var settingsCalibration: String { s("settings.calibration") }
+    static var settingsGroupSetup: String { s("settings.groupSetup") }
+    static var settingsGroupDriving: String { s("settings.groupDriving") }
+    static var settingsGroupSystem: String { s("settings.groupSystem") }
     static var calibTitle: String { s("calib.title") }
     static var calibForward: String { s("calib.forward") }
     static var calibBack: String { s("calib.back") }
