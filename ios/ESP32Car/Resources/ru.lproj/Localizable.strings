@@ -104,3 +104,10 @@
 "wheel.custom"        = "Свои параметры";
 "unit.mm"             = "мм";
 "unit.rpm"            = "об/мин";
+"unit.m"              = "м";
+"unit.cm"             = "см";
+"sim.path"            = "Путь";
+"sim.turns"           = "Оборотов";
+"sim.area"            = "Область";
+"sim.verdict"         = "За %.1f с — %.1f оборота";
+"sim.pickMotor"       = "Выберите модель мотора для расчёта";

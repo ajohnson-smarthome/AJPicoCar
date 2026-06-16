@@ -99,6 +99,13 @@ enum L {
     static var wheelCustom: String { s("wheel.custom") }
     static var mmUnit: String { s("unit.mm") }
     static var rpmUnit: String { s("unit.rpm") }
+    static var mUnit: String { s("unit.m") }
+    static var cmUnit: String { s("unit.cm") }
+    static var simPath: String { s("sim.path") }
+    static var simTurns: String { s("sim.turns") }
+    static var simArea: String { s("sim.area") }
+    static func simVerdict(_ sec: Double, _ turns: Double) -> String { s("sim.verdict", sec, turns) }
+    static var simPickMotor: String { s("sim.pickMotor") }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }
     static var gateCheckFailedTitle: String { s("gate.checkFailedTitle") }
