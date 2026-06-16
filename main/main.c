@@ -20,6 +20,8 @@
 #include "ramp_api.h"
 #include "trim_api.h"
 #include "recovery_api.h"
+#include "wheel.h"
+#include "wheel_api.h"
 #include "telemetry.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
@@ -78,6 +80,7 @@ void app_main(void) {
 
     ESP_ERROR_CHECK(ramp_init());   // start the sole PCA9685 writer before any car_* call
     car_init();
+    wheel_init();                          // load wheel/encoder params (NVS or defaults)
     ESP_ERROR_CHECK(wifi_ap_start(AP_SSID, AP_PASSWORD));
     ESP_ERROR_CHECK(http_server_start());
     ESP_ERROR_CHECK(ws_control_start());
@@ -87,6 +90,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(ramp_api_start());
     ESP_ERROR_CHECK(trim_api_start());
     ESP_ERROR_CHECK(recovery_api_start());
+    ESP_ERROR_CHECK(wheel_api_start());
     ESP_ERROR_CHECK(telemetry_start());
     recovery_init();                       // breadcrumb buffer; must precede the watchdog
     watchdog_init(WDT_TIMEOUT_MS);
