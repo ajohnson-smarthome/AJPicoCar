@@ -15,7 +15,7 @@ struct WheelParamsView: View {
     @State private var gearX100 = 2100
     @State private var quad = 4
     @State private var gearText = "21"
-    @AppStorage("wheel.model") private var modelId = ""
+    @State private var lastSaved: WheelClient.Params?
 
     private var preset: MotorPreset? { MotorPresets.match(ppr: ppr, gearX100: gearX100, quad: quad) }
     private var cpr: Double { MotorPresets.cpr(ppr: ppr, gearX100: gearX100, quad: quad) }
@@ -42,6 +42,7 @@ struct WheelParamsView: View {
             if let c = await WheelClient().get() {
                 diameterMm = c.diameterMm; ppr = c.ppr; gearX100 = c.gearX100; quad = c.quad
                 gearText = Self.gearString(c.gearX100)
+                lastSaved = c
             }
         }
     }
@@ -69,7 +70,7 @@ struct WheelParamsView: View {
                     }
                     .foregroundStyle(p.accent)
                 } else {
-                    Color.clear.frame(width: 1, height: 1)
+                    Color.clear.frame(width: 70, height: 1)
                 }
             }
             .frame(width: 70, alignment: .trailing)
@@ -135,7 +136,6 @@ struct WheelParamsView: View {
     private func apply(_ m: MotorPreset) {
         ppr = m.ppr; gearX100 = m.gearX100; quad = m.quad
         gearText = Self.gearString(m.gearX100)
-        modelId = m.id
         save()
     }
 
@@ -148,15 +148,17 @@ struct WheelParamsView: View {
     }
 
     private func save() {
-        Task {
-            await WheelClient().set(.init(diameterMm: diameterMm, ppr: ppr,
-                                          gearX100: gearX100, quad: quad))
-        }
+        let cur = WheelClient.Params(diameterMm: diameterMm, ppr: ppr,
+                                     gearX100: gearX100, quad: quad)
+        guard cur != lastSaved else { return }
+        lastSaved = cur
+        Task { await WheelClient().set(cur) }
     }
 
     static func gearString(_ x100: Int) -> String {
-        let g = Double(x100) / 100
-        return g == g.rounded() ? String(format: "%.0f", g) : String(format: "%.1f", g)
+        if x100 % 100 == 0 { return String(x100 / 100) }
+        if x100 % 10 == 0  { return String(format: "%.1f", Double(x100) / 100) }
+        return String(format: "%.2f", Double(x100) / 100)
     }
 
     // MARK: row/card builders
