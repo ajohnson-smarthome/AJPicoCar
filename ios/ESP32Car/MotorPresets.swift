@@ -10,7 +10,7 @@ struct MotorPreset: Identifiable, Equatable {
     let gearX100: Int
     let quad: Int        // 1 / 2 / 4
     var gear: Double { Double(gearX100) / 100 }
-    var cpr: Double { Double(ppr) * gear * Double(quad) }
+    var cpr: Double { MotorPresets.cpr(ppr: ppr, gearX100: gearX100, quad: quad) }
 }
 
 /// Starter presets (verify against the motor datasheet — these define CPR/speed).

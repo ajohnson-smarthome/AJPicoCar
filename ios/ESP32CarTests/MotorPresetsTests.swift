@@ -8,8 +8,8 @@ final class MotorPresetsTests: XCTestCase {
         XCTAssertEqual(MotorPresets.cpr(ppr: 11, gearX100: 960, quad: 2), 211.2, accuracy: 0.001)
     }
     func testPresetCpr() {
-        XCTAssertEqual(MotorPresets.all.first { $0.id == "jga25-370-170" }?.cpr, 924)
-        XCTAssertEqual(MotorPresets.all.first { $0.id == "jgb37-520b-1000" }?.cpr, 396)
+        XCTAssertEqual(MotorPresets.all.first { $0.id == "jga25-370-170" }?.cpr ?? 0, 924, accuracy: 0.001)
+        XCTAssertEqual(MotorPresets.all.first { $0.id == "jgb37-520b-1000" }?.cpr ?? 0, 396, accuracy: 0.001)
     }
     func testMatch() {
         XCTAssertEqual(MotorPresets.match(ppr: 11, gearX100: 2100, quad: 4)?.name, "JGA25-370")
