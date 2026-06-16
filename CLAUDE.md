@@ -273,7 +273,12 @@ Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-local
   predicted-trajectory rails (green fwd / amber reverse) or spin indicator (↻ + counter wheels). `JoystickView`,
   `SchemeToggle`, `Gamepad` (GameController), `Haptics` (CoreHaptics), `Theme.swift` (warm palettes).
 - `SettingsView.swift` (⚙ sheet) → `CalibrationView.swift` (split-layout wizard: Spin pair → tap turned wheel →
-  direction → save, via `CalibClient.swift`). Auto-prompts when `/status` says `calibrated=false`.
+  direction → save, via `CalibClient.swift`). Auto-prompts when `/status` says `calibrated=false`. The settings
+  list is grouped into **3 labeled sections** — «Настройка машины» (Колесо и моторы · Калибровка) / «Движение»
+  (Разгон · Прямолинейность · Авто-возврат · Трюки) / «Система» (Прошивка); «Колесо и моторы» uses the
+  `steeringwheel` icon. Custom `List` rows that mix an accent icon / clear last-row use
+  `.alignmentGuide(.listRowSeparatorLeading) { _ in 0 }` for full-width separators (Tricks list + `TrickEditorView`,
+  whose total sits in a footer below the list so the card keeps its rounded bottom corners).
 - **Wheel/motor params:** `WheelParamsView.swift` (two cards Колёса/Моторы; diameter Stepper + πD circumference;
   model native `Menu` autofills PPR/gear/quad — edit a field → «Свои параметры»; quad segmented; CPR readout;
   save-dedup via `lastSaved`). `MotorPresets.swift` (pure: `cpr`/`match`, presets JGA25-370/JGB37-520B, host-tested),
