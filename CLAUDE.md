@@ -189,7 +189,7 @@ dropped from REQUIRES.
 
 **Removed — web pult (2026-06-10):** `main/web/index.html` deleted entirely — the native iOS app is the
 only pult. `GET /` now returns a one-line plain-text identity; httpd stays (the app needs `/ws` + REST:
-`/status`, `/calib*`, `/ramp`, `/trim`, `/ota`). Freed ~9.5 KB of the OTA app slot. NOTE: with free Apple-ID
+`/status`, `/calib*`, `/ramp`, `/trim`, `/recover`, `/wheel`, `/ota`). Freed ~9.5 KB of the OTA app slot. NOTE: with free Apple-ID
 signing the app expires every 7 days — re-Run from Xcode; there is no browser fallback anymore.
 
 **Done — iOS launch gate + in-app OTA (merged, firmware flashed `v1.0+294` over USB):** firmware versioning
@@ -204,7 +204,7 @@ N seconds of WS commands; the watchdog now calls `recovery_on_link_lost()` inste
 retreat task replays the buffer in reverse (each command negated) until a frame returns — retracing the path
 back into range, aborting the instant the link is back. Configurable window (1–10 s) + on/off via `GET/POST
 /recover` (NVS) and the iOS «Авто-возврат» screen (`RecoverView`/`RecoverClient`). Pure `recovery_reverse`/
-`recovery_evict` host-tested. (`/recover` brings the httpd handler count to 13 — `max_uri_handlers = 20`.)
+`recovery_evict` host-tested. (`/recover` brought the httpd handler count to 13; `/wheel` later → 15 — `max_uri_handlers = 20`.)
 
 **Done — tricks (iOS-only, merged):** one-tap maneuver macros (spin/figure-8/wiggle/donut). A ✦ FAB on Drive
 opens a popover (`TricksControl`); each trick is a `{t,y,ms}` timeline **streamed from the app over `/ws`** (no
@@ -214,6 +214,18 @@ slider + reset for each **distinct movement** (`(t,y)`; wiggle's 20 steps collap
 durations persist in `UserDefaults` (`TrickSettings`, keyed `trick.durs.<id>`) and rebuild the streamed timeline
 via `Tricks.withDurations`. During playback the Drive diagram + power bars visualize the maneuver. Pure
 `Tricks` helpers (`distinctActions`/`baseDurations`/`withDurations`/`actionDescriptor`) host-tested.
+
+**Done — wheel/motor speed-calibration params (merged):** groundwork for future on-board speed (no speed calc
+yet). Firmware `main/wheel.{c,h}` — NVS param store (wheel `diameter_mm`, encoder `ppr`, `gear_x100`, `quad`;
+defaults 65/11/2100/4) + pure `wheel_cpr()` (= ppr·gear·quad, laid in for the deferred `v = π·D·ticks/CPR`,
+host-tested). `main/wheel_api.{c,h}` — `GET /wheel` (JSON) / `POST /wheel` (four space-ints), NVS-persisted
+(handlers 13→15, `wheel_api_start` after `recovery_api_start`; `wheel_init()` after `car_init`). iOS:
+`MotorPresets.swift` (pure table — JGA25-370 170 / JGB37-520B 1000, `cpr`/`match`, host-tested), `WheelClient.swift`
+(`GET/POST /wheel`), `WheelParamsView.swift` (two cards Колёса/Моторы; model picked via native `Menu` autofills
+PPR/gear/quad; editing a field → «Свои параметры»; save-dedup avoids redundant NVS writes). Reached from a Settings
+row «Колесо и моторы» AND as **mandatory calibration wizard step 1** (`DriveView` sheet =
+`NavigationStack { WheelParamsView(wizard:true) }` → «Далее» → `CalibrationView`). Mock `/wheel` for the simulator.
+Speed computation (PCNT read + `/status` field) deferred to a future spec when encoder motors arrive.
 
 **🎉 Roadmap complete — Phases 1–6 merged and verified on hardware: a WiFi-controlled 4WD RC car with
 tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA, redesigned landscape pult.**
@@ -262,6 +274,12 @@ Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-local
   `SchemeToggle`, `Gamepad` (GameController), `Haptics` (CoreHaptics), `Theme.swift` (warm palettes).
 - `SettingsView.swift` (⚙ sheet) → `CalibrationView.swift` (split-layout wizard: Spin pair → tap turned wheel →
   direction → save, via `CalibClient.swift`). Auto-prompts when `/status` says `calibrated=false`.
+- **Wheel/motor params:** `WheelParamsView.swift` (two cards Колёса/Моторы; diameter Stepper + πD circumference;
+  model native `Menu` autofills PPR/gear/quad — edit a field → «Свои параметры»; quad segmented; CPR readout;
+  save-dedup via `lastSaved`). `MotorPresets.swift` (pure: `cpr`/`match`, presets JGA25-370/JGB37-520B, host-tested),
+  `WheelClient.swift` (`GET/POST /wheel`). Shown from a Settings row («Колесо и моторы», `wizard:false`) and as the
+  **mandatory calibration wizard step 1** (`wizard:true` → «Далее» pushes `CalibrationView`). Talks to firmware
+  `wheel`/`wheel_api`. Speed computation deferred.
 - **Launch-gate screens:** `NoInternetView` (reference car + amber `wifi.exclamationmark` chip + pulsing waves),
   `UpdateCheckView` (checking/downloading/check-failed; reuses `FirmwareCarView`), `FirmwareView` (manual + forced
   OTA, 9-state flow), `ConnectView` (radar search). `UpdateClient.swift` (GitHub release fetch, download+cache,
