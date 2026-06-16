@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Minimal mock of the ESP32-Car firmware HTTP/WS API for running the iOS app
-in the simulator without hardware. Serves /status, /ws, and /calib* on 127.0.0.1:8080."""
+in the simulator without hardware. Serves /status, /ws, /calib*, /ramp, /trim, /wheel,
+and /ota on 127.0.0.1:8080."""
 import asyncio
 import json
 import time
@@ -147,7 +148,7 @@ def main():
         web.get("/wheel", wheel_get),
         web.post("/wheel", wheel_post),
     ])
-    print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*)")
+    print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*, /ramp, /trim, /wheel, /ota)")
     web.run_app(app, host="127.0.0.1", port=8080)
 
 
