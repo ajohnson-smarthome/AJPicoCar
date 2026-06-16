@@ -7,7 +7,8 @@ import time
 from aiohttp import web, WSMsgType
 
 START = time.monotonic()
-STATE = {"calibrated": False, "ramp_ms": 300, "trim_pct": 0, "wdt_trips": 0}
+STATE = {"calibrated": False, "ramp_ms": 300, "trim_pct": 0, "wdt_trips": 0,
+         "wheel": {"diameter_mm": 65, "ppr": 11, "gear_x100": 2100, "quad": 4}}
 
 
 async def status(request):
@@ -107,6 +108,23 @@ async def trim_post(request):
     return web.Response(text="ok")
 
 
+async def wheel_get(request):
+    return web.json_response(STATE["wheel"])
+
+
+async def wheel_post(request):
+    body = (await request.text()).strip()
+    try:
+        d, ppr, gear, quad = (int(x) for x in body.split())
+        if not (20 <= d <= 150 and 1 <= ppr <= 1000 and 100 <= gear <= 30000 and quad in (1, 2, 4)):
+            raise ValueError
+    except ValueError:
+        return web.Response(status=400, text="need: <d> <ppr> <gear_x100> <quad>")
+    STATE["wheel"] = {"diameter_mm": d, "ppr": ppr, "gear_x100": gear, "quad": quad}
+    print(f"wheel: {STATE['wheel']}")
+    return web.Response(text="ok")
+
+
 async def ota(request):
     data = await request.read()
     print(f"ota: received {len(data)} bytes")
@@ -126,6 +144,8 @@ def main():
         web.post("/ramp", ramp_post),
         web.get("/trim", trim_get),
         web.post("/trim", trim_post),
+        web.get("/wheel", wheel_get),
+        web.post("/wheel", wheel_post),
     ])
     print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*)")
     web.run_app(app, host="127.0.0.1", port=8080)
