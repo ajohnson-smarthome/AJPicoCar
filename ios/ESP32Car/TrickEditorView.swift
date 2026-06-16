@@ -19,15 +19,21 @@ struct TrickEditorView: View {
                 header
                 List {
                     ForEach(actions.indices, id: \.self) { i in
-                        row(i).listRowBackground(p.panel)
+                        row(i)
+                            .listRowBackground(p.panel)
+                            // Full-width separators flush to the card edges (default inset under the
+                            // label leaves a gap on the left of the rounded panel → looks crooked).
+                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                     }
-                    Text(L.trickTotal(totalSec))
-                        .font(.system(size: 12)).foregroundStyle(p.muted).monospacedDigit()
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .listRowBackground(Color.clear)
                 }
                 .scrollContentBackground(.hidden)
                 .tint(p.accent)
+                // Total lives BELOW the list (footer), not as a trailing row — a clear-background
+                // last row would steal the inset-grouped bottom-corner rounding from the card.
+                Text(L.trickTotal(totalSec))
+                    .font(.system(size: 12)).foregroundStyle(p.muted).monospacedDigit()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
