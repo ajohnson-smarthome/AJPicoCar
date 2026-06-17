@@ -81,4 +81,32 @@ enum TrickSettings {
     static func resetSpinDurMs() {
         UserDefaults.standard.removeObject(forKey: spinDurKey)
     }
+
+    private static let fig8DiaKey = "trick.fig8.dia"
+    private static func clampFig8Dia(_ cm: Int) -> Int {
+        Swift.min(Tricks.fig8DiaMaxCm, Swift.max(Tricks.fig8DiaMinCm, cm))
+    }
+    static func fig8Dia() -> Int {
+        clampFig8Dia(UserDefaults.standard.object(forKey: fig8DiaKey) as? Int ?? Tricks.fig8DiaDefaultCm)
+    }
+    static func setFig8Dia(_ cm: Int) {
+        UserDefaults.standard.set(clampFig8Dia(cm), forKey: fig8DiaKey)
+    }
+    static func resetFig8Dia() {
+        UserDefaults.standard.removeObject(forKey: fig8DiaKey)
+    }
+
+    private static let fig8EightsKey = "trick.fig8.eights"
+    private static func clampFig8Eights(_ n: Int) -> Int {
+        Swift.min(Tricks.fig8EightsMax, Swift.max(Tricks.fig8EightsMin, n))
+    }
+    static func fig8Eights() -> Int {
+        clampFig8Eights(UserDefaults.standard.object(forKey: fig8EightsKey) as? Int ?? Tricks.fig8EightsDefault)
+    }
+    static func setFig8Eights(_ n: Int) {
+        UserDefaults.standard.set(clampFig8Eights(n), forKey: fig8EightsKey)
+    }
+    static func resetFig8Eights() {
+        UserDefaults.standard.removeObject(forKey: fig8EightsKey)
+    }
 }
