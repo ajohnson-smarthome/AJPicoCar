@@ -7,6 +7,7 @@ struct TrickEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var durs: [Int] = []
     @State private var diameterCm = Tricks.donutDiaDefaultCm
+    @State private var circles = Tricks.donutCirclesDefault
     private var p: Palette { palette }
     private var actions: [(t: Double, y: Double, count: Int)] { Tricks.distinctActions(trick) }
     private var totalSec: Double {
@@ -19,24 +20,20 @@ struct TrickEditorView: View {
             VStack(spacing: 0) {
                 header
                 if trick.id == Tricks.donut.id {
-                    // One shared scroll: animation + stats + diameter + duration sliders scroll together.
+                    // One shared scroll: animation + stats + diameter + circle count scroll together.
                     ScrollView {
                         VStack(spacing: 16) {
-                            TrickSimView(trick: Tricks.donutTrick(diameterCm: Double(diameterCm)), durs: durs, palette: p)
+                            TrickSimView(trick: Tricks.donutTrick(diameterCm: Double(diameterCm)),
+                                         durs: durs, palette: p, donutCircles: circles)
                             VStack(spacing: 0) {
                                 diameterRow.padding(.horizontal, 14)
                                 Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1)
-                                ForEach(actions.indices, id: \.self) { i in
-                                    if i > 0 { Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1) }
-                                    row(i).padding(.horizontal, 14)
-                                }
+                                circlesRow.padding(.horizontal, 14)
                             }
                             .background(p.panel)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(p.metal.opacity(0.4), lineWidth: 1))
                             .padding(.horizontal, 16)
-                            Text(L.trickTotal(totalSec))
-                                .font(.system(size: 12)).foregroundStyle(p.muted).monospacedDigit()
                         }
                         .padding(.bottom, 16)
                     }
@@ -49,6 +46,7 @@ struct TrickEditorView: View {
         .onAppear {
             if durs.isEmpty { durs = TrickSettings.durations(for: trick) }
             diameterCm = TrickSettings.donutDiameterCm()
+            circles = TrickSettings.donutCircles()
         }
     }
 
@@ -139,6 +137,42 @@ struct TrickEditorView: View {
             .buttonStyle(.plain).disabled(isDefault)
         }
         .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var circlesRow: some View {
+        let isDefault = circles == Tricks.donutCirclesDefault
+        HStack(spacing: 11) {
+            Text(L.simCircles).font(.system(size: 13)).foregroundStyle(p.text)
+                .frame(width: 150, alignment: .leading)
+            Spacer()
+            stepButton("minus") {
+                circles = Swift.max(Tricks.donutCirclesMin, circles - 1); TrickSettings.setDonutCircles(circles)
+            }.disabled(circles <= Tricks.donutCirclesMin)
+            Text("\(circles)").font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(p.accent).monospacedDigit().frame(width: 34)
+            stepButton("plus") {
+                circles = Swift.min(Tricks.donutCirclesMax, circles + 1); TrickSettings.setDonutCircles(circles)
+            }.disabled(circles >= Tricks.donutCirclesMax)
+            Button {
+                circles = Tricks.donutCirclesDefault; TrickSettings.resetDonutCircles()
+            } label: {
+                Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
+                    .foregroundStyle(isDefault ? p.muted : p.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
+            }
+            .buttonStyle(.plain).disabled(isDefault).padding(.leading, 4)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func stepButton(_ symbol: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(p.accent).frame(width: 36, height: 32)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(p.accent.opacity(0.4)))
+        }
+        .buttonStyle(.plain)
     }
 
     private func actionLabel(_ d: (fwd: Int, turn: Int)) -> String {
