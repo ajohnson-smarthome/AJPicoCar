@@ -6,6 +6,7 @@ struct TrickEditorView: View {
     let palette: Palette
     @Environment(\.dismiss) private var dismiss
     @State private var durs: [Int] = []
+    @State private var diameterCm = Tricks.donutDiaDefaultCm
     private var p: Palette { palette }
     private var actions: [(t: Double, y: Double, count: Int)] { Tricks.distinctActions(trick) }
     private var totalSec: Double {
@@ -18,11 +19,13 @@ struct TrickEditorView: View {
             VStack(spacing: 0) {
                 header
                 if trick.id == Tricks.donut.id {
-                    // One shared scroll: animation + stats + duration sliders scroll together.
+                    // One shared scroll: animation + stats + diameter + duration sliders scroll together.
                     ScrollView {
                         VStack(spacing: 16) {
-                            TrickSimView(trick: trick, durs: durs, palette: p)
+                            TrickSimView(trick: Tricks.donutTrick(diameterCm: Double(diameterCm)), durs: durs, palette: p)
                             VStack(spacing: 0) {
+                                diameterRow.padding(.horizontal, 14)
+                                Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1)
                                 ForEach(actions.indices, id: \.self) { i in
                                     if i > 0 { Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1) }
                                     row(i).padding(.horizontal, 14)
@@ -43,7 +46,10 @@ struct TrickEditorView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .onAppear { if durs.isEmpty { durs = TrickSettings.durations(for: trick) } }
+        .onAppear {
+            if durs.isEmpty { durs = TrickSettings.durations(for: trick) }
+            diameterCm = TrickSettings.donutDiameterCm()
+        }
     }
 
     private var controls: some View {
@@ -97,6 +103,33 @@ struct TrickEditorView: View {
                 .foregroundStyle(p.accent).monospacedDigit().frame(width: 54, alignment: .trailing)
             Button {
                 durs[i] = base[i]; TrickSettings.reset(trick, action: i)
+            } label: {
+                Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
+                    .foregroundStyle(isDefault ? p.muted : p.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
+            }
+            .buttonStyle(.plain).disabled(isDefault)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var diameterRow: some View {
+        let isDefault = diameterCm == Tricks.donutDiaDefaultCm
+        HStack(spacing: 11) {
+            Text(L.simDiameter).font(.system(size: 13)).foregroundStyle(p.text)
+                .frame(width: 150, alignment: .leading)
+            Slider(value: Binding(
+                get: { Double(diameterCm) },
+                set: { diameterCm = Int(($0 / 5).rounded()) * 5 }
+            ), in: Double(Tricks.donutDiaMinCm)...Double(Tricks.donutDiaMaxCm), step: 5) { editing in
+                if !editing { TrickSettings.setDonutDiameter(diameterCm) }
+            }
+            .tint(p.accent)
+            Text("\(diameterCm) \(L.cmUnit)").font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(p.accent).monospacedDigit().frame(width: 54, alignment: .trailing)
+            Button {
+                diameterCm = Tricks.donutDiaDefaultCm; TrickSettings.resetDonutDiameter()
             } label: {
                 Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
                     .foregroundStyle(isDefault ? p.muted : p.accent)
