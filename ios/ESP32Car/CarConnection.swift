@@ -11,7 +11,7 @@ final class CarConnection: ObservableObject {
     private let url = URL(string: CarHost.wsURL)!
     private var task: URLSessionWebSocketTask?
     private var timer: Timer?
-    private var command = "0.00,0.00"
+    private var command = ControlModel.frame(t: 0, y: 0)
     private var started = false
 
     /// Latest driving intent; streamed at 10 Hz while connected.
@@ -20,7 +20,7 @@ final class CarConnection: ObservableObject {
     /// Zero the streamed command and stop the 10 Hz timer — called when the app leaves the
     /// foreground so a backgrounded app can't keep the car driving or burn battery.
     func pause() {
-        command = "0.00,0.00"
+        command = ControlModel.frame(t: 0, y: 0)
         timer?.invalidate(); timer = nil
     }
 

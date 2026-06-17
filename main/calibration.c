@@ -45,9 +45,11 @@ esp_err_t calibration_save(const motors_config_t *cfg) {
     char buf[160];
     int n = snprintf(buf, sizeof(buf), "{\"deadzone\":%.3f,\"wheels\":[", (double)cfg->deadzone);
     for (int i = 0; i < 4; i++) {
+        if (n < 0 || (size_t)n >= sizeof(buf)) break;   // truncation guard
         n += snprintf(buf + n, sizeof(buf) - n, "%s{\"pair\":%u,\"sign\":%d}",
                       i ? "," : "", cfg->wheels[i].channel_pair, cfg->wheels[i].sign);
     }
+    if (n < 0 || (size_t)n >= sizeof(buf)) return ESP_FAIL;   // would have truncated → don't persist a broken string
     snprintf(buf + n, sizeof(buf) - n, "]}");
     nvs_handle_t h;
     esp_err_t e = nvs_open(NS, NVS_READWRITE, &h);

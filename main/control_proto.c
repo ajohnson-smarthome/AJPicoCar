@@ -4,20 +4,29 @@
 #include <math.h>
 
 // Find a JSON number keyed by `key` (e.g. "\"t\"") and parse the value after the
-// colon. Zero-alloc; tolerant of whitespace. Returns 0 on success, -1 otherwise.
+// colon. Zero-alloc; tolerant of whitespace. Anchors the key to a real JSON key
+// position (preceded by '{' or ',' after optional whitespace) so a key substring
+// inside a string value can't match. Returns 0 on success, -1 otherwise.
 static int find_num(const char *msg, const char *key, float *out) {
-    const char *p = strstr(msg, key);
-    if (p == NULL) return -1;
-    p += strlen(key);
-    while (*p == ' ' || *p == '\t') p++;   // ws before the colon
-    if (*p != ':') return -1;              // a JSON member needs its colon
-    p++;
-    while (*p == ' ' || *p == '\t') p++;   // ws after the colon
-    char *end;
-    float v = strtof(p, &end);
-    if (end == p || !isfinite(v)) return -1;
-    *out = v;
-    return 0;
+    const char *p = msg;
+    while ((p = strstr(p, key)) != NULL) {
+        // Anchor: the char before the opening quote must be '{' or ',' (skipping ws),
+        // so we don't match the key inside a string value.
+        const char *b = p;
+        while (b > msg && (b[-1] == ' ' || b[-1] == '\t' || b[-1] == '\n' || b[-1] == '\r')) b--;
+        if (b == msg || b[-1] == '{' || b[-1] == ',') {
+            const char *q = p + strlen(key);
+            while (*q == ' ' || *q == '\t' || *q == '\n' || *q == '\r') q++;
+            if (*q == ':') {
+                q++;
+                char *end;
+                float v = strtof(q, &end);
+                if (end != q && isfinite(v)) { *out = v; return 0; }
+            }
+        }
+        p += 1;   // keep searching for a properly-anchored occurrence
+    }
+    return -1;
 }
 
 int control_parse_json(const char *msg, float *throttle, float *yaw) {
