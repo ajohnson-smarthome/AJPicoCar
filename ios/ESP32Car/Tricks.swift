@@ -74,13 +74,13 @@ enum Tricks {
     }
 
     // MARK: spin turns + duration (pure, host-tested) — in-place pivot. Speed is back-solved so the
-    // car does `turns` full 360° rotations in `durationMs`: ω = 2·y·vmax/track, turns·2π = ω·T ⇒
+    // car does `turns` full 360° rotations in `durationMs`: |ω| = 2·y·vmax/track, turns·2π = |ω|·T ⇒
     // y = turns·π·track / (T·vmax), clamped to [0, 1] (can't spin faster than full power).
     static let spinTurnsMin = 1, spinTurnsMax = 6, spinTurnsDefault = 2
     static let spinDurMinMs = 1000, spinDurMaxMs = 10000, spinDurDefaultMs = 3000
 
     /// Derived yaw magnitude for `turns` full in-place turns in `durationMs`, at speed `vmaxMS` / `trackM`.
-    /// 0 if speed/duration is degenerate; clamped to at most 1.0 (full power).
+    /// 0 if speed/duration is degenerate; clamped to [0, 1] (can't spin faster than full power).
     static func spinSpeed(turns: Int, durationMs: Int, vmaxMS: Double, trackM: Double) -> Double {
         guard vmaxMS > 0, durationMs > 0 else { return 0 }
         let n = Double(Swift.max(spinTurnsMin, turns))
