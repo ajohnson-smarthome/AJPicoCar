@@ -223,9 +223,27 @@ host-tested). `main/wheel_api.{c,h}` — `GET /wheel` (JSON) / `POST /wheel` (fo
 `MotorPresets.swift` (pure table — JGA25-370 170 / JGB37-520B 1000, `cpr`/`match`, host-tested), `WheelClient.swift`
 (`GET/POST /wheel`), `WheelParamsView.swift` (two cards Колёса/Моторы; model picked via native `Menu` autofills
 PPR/gear/quad; editing a field → «Свои параметры»; save-dedup avoids redundant NVS writes). Reached from a Settings
-row «Колесо и моторы» AND as **mandatory calibration wizard step 1** (`DriveView` sheet =
-`NavigationStack { WheelParamsView(wizard:true) }` → «Далее» → `CalibrationView`). Mock `/wheel` for the simulator.
+row «Колесо и моторы» AND as **calibration wizard step 2** (after «Размеры машинки»; «Далее» → `CalibrationView`).
+Mock `/wheel` for the simulator.
 Speed computation (PCNT read + `/status` field) deferred to a future spec when encoder motors arrive.
+
+**Done — trick trajectory simulation + adjustable donut (iOS-only, merged):** pure `TrickSim` (`main`-free
+`TrickSim.simulate(steps,vmaxMS,trackM,carLenM,carWidM)` → swept path/turnRad/bbox, host-tested) + `TrickSimView`
+(animated top-down trajectory in the trick editor; derives `vmax` from `/wheel`). The **donut** got two editable
+geometry params: a **diameter** slider (`Tricks.donutSides(diameterCm:trackM:)` inverse side-ratio solver) and an
+integer **circle count** stepper (`Tricks.donutDurationMs(circles:y:vmaxMS:trackM:)` back-solves the streamed step
+duration so the preview and the real maneuver do exactly N circles). Both persist in `TrickSettings`; `DriveView`
+and `TrickSimView` build the donut from them. Pure helpers host-tested (round-trip via the simulation).
+
+**Done — car dimensions «Размеры машинки» (merged):** the car's **track** (колея, lateral) + **wheelbase** (база,
+longitudinal) between wheel centres, stored on the car. Firmware `main/dims.{c,h}` (NVS store, defaults 130/210 mm,
+clamp) + `main/dims_api.{c,h}` (`GET /dims` JSON / `POST /dims` two space-ints, NVS; `dims_init()` after
+`wheel_init()`, `dims_api_start()` after `wheel_api_start()` — handlers 15→17/20). iOS `DimsClient.swift`,
+`CarDimensionsView.swift` (animated top-down reference car via `CarDimsDiagram.swift` + two −/+ steppers), reached
+from a Settings row «Размеры машинки» **above** «Колесо и моторы» AND as **mandatory wizard step 1** (the `DriveView`
+sheet now opens `CarDimensionsView(wizard:true)` → «Далее» → `WheelParamsView` (2/3) → `CalibrationView` (3/3)). The
+measured **track** replaces the old hardcoded `0.13` in the donut/sim math; `Tricks.donutTrackFallbackM = 0.13` is now
+only the offline fallback. Wheelbase is stored + drawn only. Mock `/dims` for the simulator.
 
 **🎉 Roadmap complete — Phases 1–6 merged and verified on hardware: a WiFi-controlled 4WD RC car with
 tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA, redesigned landscape pult.**
@@ -282,9 +300,18 @@ Landscape-locked, warm light/dark themes (follows iOS appearance), Russian-local
 - **Wheel/motor params:** `WheelParamsView.swift` (two cards Колёса/Моторы; diameter Stepper + πD circumference;
   model native `Menu` autofills PPR/gear/quad — edit a field → «Свои параметры»; quad segmented; CPR readout;
   save-dedup via `lastSaved`). `MotorPresets.swift` (pure: `cpr`/`match`, presets JGA25-370/JGB37-520B, host-tested),
-  `WheelClient.swift` (`GET/POST /wheel`). Shown from a Settings row («Колесо и моторы», `wizard:false`) and as the
-  **mandatory calibration wizard step 1** (`wizard:true` → «Далее» pushes `CalibrationView`). Talks to firmware
+  `WheelClient.swift` (`GET/POST /wheel`). Shown from a Settings row («Колесо и моторы», `wizard:false`) and as
+  **calibration wizard step 2** (`wizard:true` → «Далее» pushes `CalibrationView`). Talks to firmware
   `wheel`/`wheel_api`. Speed computation deferred.
+- **Car dimensions:** `CarDimensionsView.swift` (track + wheelbase −/+ steppers, mm; reached from a Settings row
+  «Размеры машинки» **above** «Колесо и моторы», `wizard:false`, AND as **mandatory wizard step 1** `wizard:true` →
+  «Далее» pushes `WheelParamsView(wizard:true)`). `CarDimsDiagram.swift` (animated top-down reference car — body
+  36×74, chevron-tread corner wheels, windshield — with «Колея»/«База» dimension lines that animate on change).
+  `DimsClient.swift` (`GET/POST /dims`). The track feeds the donut/sim math (`Tricks.donutTrackFallbackM` fallback).
+- **Trick simulation + donut geometry:** `TrickSim.swift` (pure trajectory integrator, host-tested),
+  `TrickSimView.swift` (animated trajectory + path/turns/area stats in the trick editor). The donut's diameter
+  slider + circle-count stepper live in `TrickEditorView`; `Tricks.donutSides`/`donutDurationMs`/`donutTrick`
+  (all take `trackM`) + `TrickSettings` donut diameter/circles are host-tested.
 - **Launch-gate screens:** `NoInternetView` (reference car + amber `wifi.exclamationmark` chip + pulsing waves),
   `UpdateCheckView` (checking/downloading/check-failed; reuses `FirmwareCarView`), `FirmwareView` (manual + forced
   OTA, 9-state flow), `ConnectView` (radar search). `UpdateClient.swift` (GitHub release fetch, download+cache,
