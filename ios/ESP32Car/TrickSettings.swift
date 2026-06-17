@@ -25,4 +25,18 @@ enum TrickSettings {
         if d == base { UserDefaults.standard.removeObject(forKey: key(trick.id)) }
         else { UserDefaults.standard.set(d, forKey: key(trick.id)) }
     }
+
+    private static let donutDiaKey = "trick.donut.diaCm"
+    private static func clampDia(_ cm: Int) -> Int {
+        Swift.min(Tricks.donutDiaMaxCm, Swift.max(Tricks.donutDiaMinCm, cm))
+    }
+    static func donutDiameterCm() -> Int {
+        clampDia(UserDefaults.standard.object(forKey: donutDiaKey) as? Int ?? Tricks.donutDiaDefaultCm)
+    }
+    static func setDonutDiameter(_ cm: Int) {
+        UserDefaults.standard.set(clampDia(cm), forKey: donutDiaKey)
+    }
+    static func resetDonutDiameter() {
+        UserDefaults.standard.removeObject(forKey: donutDiaKey)
+    }
 }
