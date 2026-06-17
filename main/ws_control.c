@@ -50,7 +50,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
     buf[frame.len] = '\0';
 
     float t, y;
-    if (control_parse_ty((const char *)buf, &t, &y) == 0) {
+    if (control_parse_json((const char *)buf, &t, &y) == 0) {
         s_frames++;
         watchdog_feed();
         recovery_note_command(t, y);
