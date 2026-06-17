@@ -72,9 +72,12 @@ async def calib(request):
 async def calib_spin(request):
     try:
         b = await request.json()
-        print(f"calib spin: pair={b['pair']} dir={b['dir']}")
+        pair, d = int(b["pair"]), int(b["dir"])
+        if not (0 <= pair <= 3 and d in (0, 1)):  # mirror the firmware's range check
+            raise ValueError
+        print(f"calib spin: pair={pair} dir={d}")
     except Exception:
-        return web.Response(status=400, text="need {pair,dir}")
+        return web.Response(status=400, text="need {pair:0..3,dir:0|1}")
     return web.Response(text="ok")
 
 
@@ -82,10 +85,12 @@ async def calib_save(request):
     try:
         wheels = (await request.json())["wheels"]
         assert isinstance(wheels, list) and len(wheels) == 4
-        for w in wheels:
-            int(w["pair"]); int(w["sign"])
+        # mirror calibration_valid: 4 unique pairs 0..3, signs ±1
+        pairs = {int(w["pair"]) for w in wheels}
+        assert pairs == {0, 1, 2, 3}
+        assert all(int(w["sign"]) in (-1, 1) for w in wheels)
     except Exception:
-        return web.Response(status=400, text="need {wheels:[4x{pair,sign}]}")
+        return web.Response(status=400, text="need {wheels:[4x{pair:0..3,sign:±1}]}")
     STATE["calibrated"] = True
     print(f"calib/save: calibrated=True wheels={wheels}")
     return web.Response(text="ok")
@@ -164,7 +169,9 @@ async def recover_get(request):
 async def recover_post(request):
     try:
         b = await request.json()
-        en, win = bool(b["enabled"]), int(b["window_ms"])
+        en, win = b["enabled"], int(b["window_ms"])
+        if not isinstance(en, bool):   # firmware needs a JSON bool (cJSON_IsBool), not 0/1
+            raise ValueError
         if not (1000 <= win <= 10000):
             raise ValueError
     except Exception:
