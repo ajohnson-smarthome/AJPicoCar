@@ -51,7 +51,7 @@ struct WheelParamsView: View {
     private var header: some View {
         HStack {
             if wizard {
-                Text(L.wheelStep(1, 2)).font(.system(size: 13)).foregroundStyle(p.muted)
+                Text(L.wheelStep(2, 3)).font(.system(size: 13)).foregroundStyle(p.muted)
                     .frame(width: 70, alignment: .leading)
             } else {
                 Button { dismiss() } label: {

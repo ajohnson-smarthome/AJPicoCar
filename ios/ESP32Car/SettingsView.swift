@@ -14,6 +14,13 @@ struct SettingsView: View {
                 List {
                     Section {
                         NavigationLink {
+                            CarDimensionsView(palette: palette)
+                        } label: {
+                            Label(L.dimsTitle, systemImage: "ruler")
+                                .foregroundStyle(palette.text)
+                        }
+                        .listRowBackground(palette.panel)
+                        NavigationLink {
                             WheelParamsView(palette: palette)
                         } label: {
                             Label(L.wheelTitle, systemImage: "steeringwheel")
