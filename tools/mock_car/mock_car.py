@@ -10,7 +10,8 @@ from aiohttp import web, WSMsgType
 START = time.monotonic()
 STATE = {"calibrated": False, "ramp_ms": 300, "trim_pct": 0, "wdt_trips": 0,
          "wheel": {"diameter_mm": 65, "ppr": 11, "gear_x100": 2100, "quad": 4},
-         "dims": {"track_mm": 130, "wheelbase_mm": 210}}
+         "dims": {"track_mm": 130, "wheelbase_mm": 210},
+         "recover": {"enabled": False, "window_ms": 3000}}
 
 
 async def status(request):
@@ -51,7 +52,11 @@ async def ws(request):
     try:
         async for msg in wsr:
             if msg.type == WSMsgType.TEXT:
-                print(f"ws rx: {msg.data}")
+                try:
+                    f = json.loads(msg.data)
+                    print(f"ws rx: t={f['t']} y={f['y']}")
+                except Exception:
+                    print(f"ws rx (bad json): {msg.data}")
             elif msg.type == WSMsgType.ERROR:
                 print(f"ws error: {wsr.exception()}")
     finally:
@@ -65,14 +70,24 @@ async def calib(request):
 
 
 async def calib_spin(request):
-    print(f"calib/spin: {await request.text()}")
+    try:
+        b = await request.json()
+        print(f"calib spin: pair={b['pair']} dir={b['dir']}")
+    except Exception:
+        return web.Response(status=400, text="need {pair,dir}")
     return web.Response(text="ok")
 
 
 async def calib_save(request):
-    body = await request.text()
-    print(f"calib/save: {body}")
+    try:
+        wheels = (await request.json())["wheels"]
+        assert isinstance(wheels, list) and len(wheels) == 4
+        for w in wheels:
+            int(w["pair"]); int(w["sign"])
+    except Exception:
+        return web.Response(status=400, text="need {wheels:[4x{pair,sign}]}")
     STATE["calibrated"] = True
+    print(f"calib/save: calibrated=True wheels={wheels}")
     return web.Response(text="ok")
 
 
@@ -81,15 +96,14 @@ async def ramp_get(request):
 
 
 async def ramp_post(request):
-    body = (await request.text()).strip()
     try:
-        v = int(body)
-        if not 0 <= v <= 2000:
+        v = int((await request.json())["ramp_ms"])
+        if not (0 <= v <= 2000):
             raise ValueError
-    except ValueError:
-        return web.Response(status=400, text="ramp_ms must be 0..2000")
+    except Exception:
+        return web.Response(status=400, text="need {ramp_ms}")
     STATE["ramp_ms"] = v
-    print(f"ramp: set {v} ms")
+    print(f"ramp_ms: {v}")
     return web.Response(text="ok")
 
 
@@ -98,15 +112,14 @@ async def trim_get(request):
 
 
 async def trim_post(request):
-    body = (await request.text()).strip()
     try:
-        v = int(body)
-        if not -30 <= v <= 30:
+        v = int((await request.json())["trim_pct"])
+        if not (-30 <= v <= 30):
             raise ValueError
-    except ValueError:
-        return web.Response(status=400, text="trim_pct must be -30..30")
+    except Exception:
+        return web.Response(status=400, text="need {trim_pct}")
     STATE["trim_pct"] = v
-    print(f"trim: set {v} %")
+    print(f"trim_pct: {v}")
     return web.Response(text="ok")
 
 
@@ -115,13 +128,13 @@ async def wheel_get(request):
 
 
 async def wheel_post(request):
-    body = (await request.text()).strip()
     try:
-        d, ppr, gear, quad = (int(x) for x in body.split())
+        b = await request.json()
+        d, ppr, gear, quad = b["diameter_mm"], b["ppr"], b["gear_x100"], b["quad"]
         if not (20 <= d <= 150 and 1 <= ppr <= 1000 and 100 <= gear <= 30000 and quad in (1, 2, 4)):
             raise ValueError
-    except ValueError:
-        return web.Response(status=400, text="need: <d> <ppr> <gear_x100> <quad>")
+    except Exception:
+        return web.Response(status=400, text="need {diameter_mm,ppr,gear_x100,quad}")
     STATE["wheel"] = {"diameter_mm": d, "ppr": ppr, "gear_x100": gear, "quad": quad}
     print(f"wheel: {STATE['wheel']}")
     return web.Response(text="ok")
@@ -132,15 +145,32 @@ async def dims_get(request):
 
 
 async def dims_post(request):
-    body = (await request.text()).strip()
     try:
-        track, base = (int(x) for x in body.split())
+        b = await request.json()
+        track, base = b["track_mm"], b["wheelbase_mm"]
         if not (60 <= track <= 300 and 90 <= base <= 360):
             raise ValueError
-    except ValueError:
-        return web.Response(status=400, text="need: <track> <wheelbase>")
+    except Exception:
+        return web.Response(status=400, text="need {track_mm,wheelbase_mm}")
     STATE["dims"] = {"track_mm": track, "wheelbase_mm": base}
     print(f"dims: {STATE['dims']}")
+    return web.Response(text="ok")
+
+
+async def recover_get(request):
+    return web.json_response(STATE["recover"])
+
+
+async def recover_post(request):
+    try:
+        b = await request.json()
+        en, win = bool(b["enabled"]), int(b["window_ms"])
+        if not (1000 <= win <= 10000):
+            raise ValueError
+    except Exception:
+        return web.Response(status=400, text="need {enabled,window_ms}")
+    STATE["recover"] = {"enabled": en, "window_ms": win}
+    print(f"recover: {STATE['recover']}")
     return web.Response(text="ok")
 
 
@@ -167,6 +197,8 @@ def main():
         web.post("/wheel", wheel_post),
         web.get("/dims", dims_get),
         web.post("/dims", dims_post),
+        web.get("/recover", recover_get),
+        web.post("/recover", recover_post),
     ])
     print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*, /ramp, /trim, /wheel, /dims, /ota)")
     web.run_app(app, host="127.0.0.1", port=8080)
