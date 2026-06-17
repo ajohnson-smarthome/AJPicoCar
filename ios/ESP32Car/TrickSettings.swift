@@ -53,4 +53,32 @@ enum TrickSettings {
     static func resetDonutCircles() {
         UserDefaults.standard.removeObject(forKey: donutCirclesKey)
     }
+
+    private static let spinTurnsKey = "trick.spin.turns"
+    private static func clampSpinTurns(_ n: Int) -> Int {
+        Swift.min(Tricks.spinTurnsMax, Swift.max(Tricks.spinTurnsMin, n))
+    }
+    static func spinTurns() -> Int {
+        clampSpinTurns(UserDefaults.standard.object(forKey: spinTurnsKey) as? Int ?? Tricks.spinTurnsDefault)
+    }
+    static func setSpinTurns(_ n: Int) {
+        UserDefaults.standard.set(clampSpinTurns(n), forKey: spinTurnsKey)
+    }
+    static func resetSpinTurns() {
+        UserDefaults.standard.removeObject(forKey: spinTurnsKey)
+    }
+
+    private static let spinDurKey = "trick.spin.durMs"
+    private static func clampSpinDur(_ ms: Int) -> Int {
+        Swift.min(Tricks.spinDurMaxMs, Swift.max(Tricks.spinDurMinMs, ms))
+    }
+    static func spinDurMs() -> Int {
+        clampSpinDur(UserDefaults.standard.object(forKey: spinDurKey) as? Int ?? Tricks.spinDurDefaultMs)
+    }
+    static func setSpinDurMs(_ ms: Int) {
+        UserDefaults.standard.set(clampSpinDur(ms), forKey: spinDurKey)
+    }
+    static func resetSpinDurMs() {
+        UserDefaults.standard.removeObject(forKey: spinDurKey)
+    }
 }
