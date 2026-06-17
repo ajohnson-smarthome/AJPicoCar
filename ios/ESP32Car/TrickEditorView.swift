@@ -18,9 +18,24 @@ struct TrickEditorView: View {
             VStack(spacing: 0) {
                 header
                 if trick.id == Tricks.donut.id {
-                    VStack(spacing: 0) {
-                        TrickSimView(trick: trick, durs: durs, palette: p)
-                        controls
+                    // One shared scroll: animation + stats + duration sliders scroll together.
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            TrickSimView(trick: trick, durs: durs, palette: p)
+                            VStack(spacing: 0) {
+                                ForEach(actions.indices, id: \.self) { i in
+                                    if i > 0 { Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1) }
+                                    row(i).padding(.horizontal, 14)
+                                }
+                            }
+                            .background(p.panel)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(p.metal.opacity(0.4), lineWidth: 1))
+                            .padding(.horizontal, 16)
+                            Text(L.trickTotal(totalSec))
+                                .font(.system(size: 12)).foregroundStyle(p.muted).monospacedDigit()
+                        }
+                        .padding(.bottom, 16)
                     }
                 } else {
                     controls

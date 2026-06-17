@@ -22,8 +22,10 @@ enum Tricks {
                                        TrickStep(t: 0.6, y: -0.6, ms: 2500)])
     static let wiggle = Trick(id: 3, nameKey: "tricks.wiggle", icon: "wind",
                               steps: (0..<20).map { TrickStep(t: 0, y: $0 % 2 == 0 ? 0.8 : -0.8, ms: 250) })
+    // Wide donut: both wheels forward (right slower) → the car drives a visible ~0.5 m circle
+    // rather than pivoting in place. (t=0.8,y=0.2 → sides 1.0/0.6 → turn radius ≈ 2·track.)
     static let donut = Trick(id: 4, nameKey: "tricks.donut", icon: "circle.dashed",
-                             steps: [TrickStep(t: 0.7, y: 1, ms: 5000)])
+                             steps: [TrickStep(t: 0.8, y: 0.2, ms: 5000)])
 
     static let all: [Trick] = [spin, figure8, wiggle, donut]
 

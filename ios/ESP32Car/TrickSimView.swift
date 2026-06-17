@@ -39,7 +39,7 @@ struct TrickSimView: View {
                         draw(&ctx, size, r, time: tl.date.timeIntervalSinceReferenceDate)
                     }
                 }
-                .frame(width: 250, height: 172)   // compact animation box
+                .frame(width: 330, height: 224)   // animation box (~+30%)
                 .frame(maxWidth: .infinity)        // centred
                 stats(r)
             } else {
