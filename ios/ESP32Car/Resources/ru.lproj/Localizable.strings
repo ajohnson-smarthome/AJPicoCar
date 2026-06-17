@@ -120,3 +120,5 @@
 "sim.circles"         = "Круги";
 "trick.spinTurns"     = "Развороты";
 "trick.spinDuration"  = "Продолжительность";
+"trick.fig8Diameter"  = "Диаметр петли";
+"trick.fig8Loops"     = "Восьмёрок";

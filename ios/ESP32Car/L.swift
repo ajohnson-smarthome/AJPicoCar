@@ -115,6 +115,8 @@ enum L {
     static var simCircles: String { s("sim.circles") }
     static var spinTurns: String { s("trick.spinTurns") }
     static var spinDuration: String { s("trick.spinDuration") }
+    static var fig8Diameter: String { s("trick.fig8Diameter") }
+    static var fig8Loops: String { s("trick.fig8Loops") }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }
     static var gateCheckFailedTitle: String { s("gate.checkFailedTitle") }
