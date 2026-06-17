@@ -200,7 +200,7 @@ def main():
         web.get("/recover", recover_get),
         web.post("/recover", recover_post),
     ])
-    print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*, /ramp, /trim, /wheel, /dims, /ota)")
+    print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*, /ramp, /trim, /recover, /wheel, /dims, /ota)")
     web.run_app(app, host="127.0.0.1", port=8080)
 
 
