@@ -43,4 +43,29 @@ final class TrickSimTests: XCTestCase {
         XCTAssertEqual(t.steps.count, 1)
         XCTAssertEqual(t.totalMs, 5000)
     }
+    func testDonutCirclesRoundTrip() {
+        for v in [0.4, 0.578, 0.9] {
+            for diaCm in [30.0, 50.0, 120.0] {
+                for n in [1, 2, 5] {
+                    let trick = Tricks.donutTrick(diameterCm: diaCm, circles: n, vmaxMS: v)
+                    let r = TrickSim.simulate(steps: trick.steps, vmaxMS: v, trackM: Tricks.donutTrackM,
+                                              carLenM: 0.25, carWidM: 0.15)
+                    XCTAssertEqual(r.turnRad / (2 * Double.pi), Double(n), accuracy: 0.05)
+                }
+            }
+        }
+    }
+    func testDonutDurationGuards() {
+        let y50 = Tricks.donutSides(diameterCm: 50).y
+        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: y50, vmaxMS: Tricks.donutNominalVmaxMS), 6848)
+        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: 0.2, vmaxMS: 0), 0)
+        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: 0, vmaxMS: 0.5), 0)
+        XCTAssertEqual(Tricks.donutDurationMs(circles: 0, y: 0.2, vmaxMS: 0.5),
+                       Tricks.donutDurationMs(circles: 1, y: 0.2, vmaxMS: 0.5))
+    }
+    func testDonutTrickCircles() {
+        let t = Tricks.donutTrick(diameterCm: 50, circles: 2, vmaxMS: 0.578)
+        XCTAssertEqual(t.id, Tricks.donut.id)
+        XCTAssertEqual(t.steps.count, 1)
+    }
 }

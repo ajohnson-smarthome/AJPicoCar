@@ -54,6 +54,31 @@ enum Tricks {
                      steps: [TrickStep(t: t, y: y, ms: 5000)])
     }
 
+    // MARK: donut circle count (pure, host-tested) — duration back-solved from a target
+    // number of full circles. ω = vmax·2y/track, so N circles take t = N·π·track/(vmax·y).
+    static let donutCirclesMin = 1, donutCirclesMax = 10, donutCirclesDefault = 2
+    /// Nominal linear speed (default motor JGA25-370 ~170 rpm, 65 mm wheel: π·0.065·170/60)
+    /// used when /wheel is unavailable, so a circle count still maps to *some* duration.
+    static let donutNominalVmaxMS = 0.578
+
+    /// Streamed duration (ms) for `circles` full circles of a donut whose inner-wheel term is
+    /// `y` (= (1−r)/2 from `donutSides`), at linear speed `vmaxMS`. Inverse of the simulation's
+    /// heading sweep; 0 if speed/shape is degenerate.
+    static func donutDurationMs(circles: Int, y: Double, vmaxMS: Double) -> Int {
+        guard vmaxMS > 0, y > 0 else { return 0 }
+        let n = Double(Swift.max(donutCirclesMin, circles))
+        return Int((1000 * n * Double.pi * donutTrackM / (vmaxMS * y)).rounded())
+    }
+
+    /// The donut maneuver sized to a diameter AND timed to a circle count, at speed `vmaxMS`.
+    /// Same id/name/icon; the single step's (t, y) from `donutSides`, ms from `donutDurationMs`.
+    static func donutTrick(diameterCm: Double, circles: Int, vmaxMS: Double) -> Trick {
+        let (t, y) = donutSides(diameterCm: diameterCm)
+        let ms = donutDurationMs(circles: circles, y: y, vmaxMS: vmaxMS)
+        return Trick(id: donut.id, nameKey: donut.nameKey, icon: donut.icon,
+                     steps: [TrickStep(t: t, y: y, ms: ms)])
+    }
+
     // MARK: per-action durations (host-tested)
     static let durMin = 100      // ms
     static let durMax = 10000
