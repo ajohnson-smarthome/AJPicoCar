@@ -103,4 +103,34 @@ final class TrickSimTests: XCTestCase {
         XCTAssertEqual(t.steps[0].ms, 3000)
         XCTAssertEqual(t.steps[0].t, 0)
     }
+
+    func testFigure8Geometry() {
+        let T = 0.13
+        let sides = Tricks.donutSides(diameterCm: 60, trackM: T)
+        let g = Tricks.figure8Trick(diameterCm: 60, eights: 3, vmaxMS: 0.578, trackM: T)
+        XCTAssertEqual(g.steps.count, 6)                       // 2 lobes × 3 eights
+        XCTAssertEqual(g.steps[0].t, sides.t, accuracy: 1e-9)
+        XCTAssertEqual(g.steps[0].y, sides.y, accuracy: 1e-9)
+        XCTAssertEqual(g.steps[1].y, -sides.y, accuracy: 1e-9) // mirror lobe
+        XCTAssertEqual(g.steps[0].t, g.steps[1].t, accuracy: 1e-9)
+        XCTAssertGreaterThan(g.steps[0].t, 0)
+        XCTAssertEqual(g.id, Tricks.figure8.id)
+    }
+
+    func testFigure8Degenerate() {
+        let g = Tricks.figure8Trick(diameterCm: 50, eights: 2, vmaxMS: 0, trackM: 0.13)
+        XCTAssertEqual(g.steps.count, 4)
+        XCTAssertTrue(g.steps.allSatisfy { $0.ms == 0 })
+    }
+
+    func testFigure8RoundTrip() {
+        let V = Tricks.donutNominalVmaxMS, T = 0.13
+        for eights in [1, 2] {
+            let g = Tricks.figure8Trick(diameterCm: 60, eights: eights, vmaxMS: V, trackM: T)
+            let r = TrickSim.simulate(steps: g.steps, vmaxMS: V, trackM: T, carLenM: 0.25, carWidM: 0.15)
+            XCTAssertEqual(r.turnRad / (2 * .pi), Double(2 * eights), accuracy: 0.2)
+            let last = r.poses.last!
+            XCTAssertLessThan(hypot(last.x, last.y), 0.6 * 0.5)   // figure-8 returns near its start
+        }
+    }
 }

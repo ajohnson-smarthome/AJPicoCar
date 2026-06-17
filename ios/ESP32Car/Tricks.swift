@@ -96,6 +96,24 @@ enum Tricks {
                      steps: [TrickStep(t: 0, y: y, ms: durationMs)])
     }
 
+    // MARK: figure-8 geometry (pure, host-tested) — two tangent loops, each a full donut circle, the
+    // second mirrored (−y). Reuses donutSides + donutDurationMs. `eights` repetitions of {left, right}.
+    static let fig8DiaMinCm = 20, fig8DiaMaxCm = 150, fig8DiaDefaultCm = 50
+    static let fig8EightsMin = 1, fig8EightsMax = 10, fig8EightsDefault = 1
+
+    /// The figure-8 maneuver: `eights` repetitions of a left loop then its mirror right loop, each a full
+    /// circle of the given diameter at speed `vmaxMS`. (t, y) from `donutSides`; per-lobe ms from
+    /// `donutDurationMs(circles: 1)`. Keeps the figure8 id/name/icon. Degenerate speed → ms 0 (no crash).
+    static func figure8Trick(diameterCm: Double, eights: Int, vmaxMS: Double, trackM: Double) -> Trick {
+        let (t, y) = donutSides(diameterCm: diameterCm, trackM: trackM)
+        let lobeMs = donutDurationMs(circles: 1, y: y, vmaxMS: vmaxMS, trackM: trackM)
+        let n = Swift.max(fig8EightsMin, eights)
+        let steps = (0..<n).flatMap { _ in
+            [TrickStep(t: t, y: y, ms: lobeMs), TrickStep(t: t, y: -y, ms: lobeMs)]
+        }
+        return Trick(id: figure8.id, nameKey: figure8.nameKey, icon: figure8.icon, steps: steps)
+    }
+
     // MARK: per-action durations (host-tested)
     static let durMin = 100      // ms
     static let durMax = 10000
