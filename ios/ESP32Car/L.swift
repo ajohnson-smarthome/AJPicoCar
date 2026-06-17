@@ -113,6 +113,8 @@ enum L {
     static var simPickMotor: String { s("sim.pickMotor") }
     static var simDiameter: String { s("sim.diameter") }
     static var simCircles: String { s("sim.circles") }
+    static var spinTurns: String { s("trick.spinTurns") }
+    static var spinDuration: String { s("trick.spinDuration") }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }
     static var gateCheckFailedTitle: String { s("gate.checkFailedTitle") }

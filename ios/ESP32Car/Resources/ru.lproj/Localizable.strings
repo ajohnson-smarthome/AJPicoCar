@@ -118,3 +118,5 @@
 "sim.pickMotor"       = "Выберите модель мотора для расчёта";
 "sim.diameter"        = "Диаметр круга";
 "sim.circles"         = "Круги";
+"trick.spinTurns"     = "Развороты";
+"trick.spinDuration"  = "Продолжительность";
