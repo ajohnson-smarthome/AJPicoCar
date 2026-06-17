@@ -73,6 +73,29 @@ enum Tricks {
                      steps: [TrickStep(t: t, y: y, ms: ms)])
     }
 
+    // MARK: spin turns + duration (pure, host-tested) — in-place pivot. Speed is back-solved so the
+    // car does `turns` full 360° rotations in `durationMs`: ω = 2·y·vmax/track, turns·2π = ω·T ⇒
+    // y = turns·π·track / (T·vmax), clamped to [0, 1] (can't spin faster than full power).
+    static let spinTurnsMin = 1, spinTurnsMax = 6, spinTurnsDefault = 2
+    static let spinDurMinMs = 1000, spinDurMaxMs = 10000, spinDurDefaultMs = 3000
+
+    /// Derived yaw magnitude for `turns` full in-place turns in `durationMs`, at speed `vmaxMS` / `trackM`.
+    /// 0 if speed/duration is degenerate; clamped to at most 1.0 (full power).
+    static func spinSpeed(turns: Int, durationMs: Int, vmaxMS: Double, trackM: Double) -> Double {
+        guard vmaxMS > 0, durationMs > 0 else { return 0 }
+        let n = Double(Swift.max(spinTurnsMin, turns))
+        let tSec = Double(durationMs) / 1000
+        let y = n * Double.pi * trackM / (tSec * vmaxMS)
+        return Swift.min(1.0, Swift.max(0.0, y))
+    }
+
+    /// The spin maneuver: one in-place step {t:0, y: spinSpeed(...), ms: durationMs}. Keeps spin's id/name/icon.
+    static func spinTrick(turns: Int, durationMs: Int, vmaxMS: Double, trackM: Double) -> Trick {
+        let y = spinSpeed(turns: turns, durationMs: durationMs, vmaxMS: vmaxMS, trackM: trackM)
+        return Trick(id: spin.id, nameKey: spin.nameKey, icon: spin.icon,
+                     steps: [TrickStep(t: 0, y: y, ms: durationMs)])
+    }
+
     // MARK: per-action durations (host-tested)
     static let durMin = 100      // ms
     static let durMax = 10000

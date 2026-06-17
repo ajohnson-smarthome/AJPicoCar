@@ -75,4 +75,32 @@ final class TrickSimTests: XCTestCase {
         XCTAssertEqual(t.steps[0].ms,
                        Tricks.donutDurationMs(circles: 2, y: t.steps[0].y, vmaxMS: 0.578, trackM: T))
     }
+    func testSpinSpeedFormula() {
+        let T = Tricks.donutTrackFallbackM, V = Tricks.donutNominalVmaxMS
+        XCTAssertEqual(Tricks.spinSpeed(turns: 1, durationMs: 5000, vmaxMS: V, trackM: T), 0.141, accuracy: 0.005)
+        XCTAssertEqual(Tricks.spinSpeed(turns: 2, durationMs: 5000, vmaxMS: V, trackM: T),
+                       2 * Tricks.spinSpeed(turns: 1, durationMs: 5000, vmaxMS: V, trackM: T), accuracy: 1e-9)
+        XCTAssertEqual(Tricks.spinSpeed(turns: 1, durationMs: 10000, vmaxMS: V, trackM: T),
+                       0.5 * Tricks.spinSpeed(turns: 1, durationMs: 5000, vmaxMS: V, trackM: T), accuracy: 1e-9)
+        XCTAssertEqual(Tricks.spinSpeed(turns: 6, durationMs: 1000, vmaxMS: V, trackM: T), 1.0)
+        XCTAssertEqual(Tricks.spinSpeed(turns: 1, durationMs: 0, vmaxMS: V, trackM: T), 0)
+        XCTAssertEqual(Tricks.spinSpeed(turns: 1, durationMs: 5000, vmaxMS: 0, trackM: T), 0)
+    }
+    func testSpinRoundTrip() {
+        let T = Tricks.donutTrackFallbackM, V = Tricks.donutNominalVmaxMS
+        for n in [1, 2, 3] {
+            let trick = Tricks.spinTrick(turns: n, durationMs: 5000, vmaxMS: V, trackM: T)
+            let r = TrickSim.simulate(steps: trick.steps, vmaxMS: V, trackM: T, carLenM: 0.25, carWidM: 0.15)
+            XCTAssertEqual(r.turnRad / (2 * Double.pi), Double(n), accuracy: 0.05)
+            XCTAssertEqual(r.pathLenM, 0.0, accuracy: 0.01)
+        }
+    }
+    func testSpinTrick() {
+        let t = Tricks.spinTrick(turns: 2, durationMs: 3000, vmaxMS: Tricks.donutNominalVmaxMS,
+                                 trackM: Tricks.donutTrackFallbackM)
+        XCTAssertEqual(t.id, Tricks.spin.id)
+        XCTAssertEqual(t.steps.count, 1)
+        XCTAssertEqual(t.steps[0].ms, 3000)
+        XCTAssertEqual(t.steps[0].t, 0)
+    }
 }
