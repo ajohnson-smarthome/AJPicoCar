@@ -67,5 +67,6 @@ final class TrickSimTests: XCTestCase {
         let t = Tricks.donutTrick(diameterCm: 50, circles: 2, vmaxMS: 0.578)
         XCTAssertEqual(t.id, Tricks.donut.id)
         XCTAssertEqual(t.steps.count, 1)
+        XCTAssertEqual(t.steps[0].ms, 6848)
     }
 }

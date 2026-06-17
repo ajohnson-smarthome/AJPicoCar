@@ -62,6 +62,7 @@ struct DriveView: View {
                 // The donut's (t,y) comes from the diameter; its duration from the circle count,
                 // timed at the real motor speed (nominal fallback when /wheel is unavailable).
                 let vmax = await donutVmaxMS()
+                if Task.isCancelled { return }                 // cancelled during the /wheel fetch → bail cleanly
                 trick = Tricks.donutTrick(diameterCm: Double(TrickSettings.donutDiameterCm()),
                                           circles: TrickSettings.donutCircles(), vmaxMS: vmax)
             } else {
