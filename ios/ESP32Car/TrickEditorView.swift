@@ -8,6 +8,8 @@ struct TrickEditorView: View {
     @State private var durs: [Int] = []
     @State private var diameterCm = Tricks.donutDiaDefaultCm
     @State private var circles = Tricks.donutCirclesDefault
+    @State private var spinTurns = Tricks.spinTurnsDefault
+    @State private var spinDurMs = Tricks.spinDurDefaultMs
     private var p: Palette { palette }
     private var actions: [(t: Double, y: Double, count: Int)] { Tricks.distinctActions(trick) }
     private var totalSec: Double {
@@ -37,6 +39,24 @@ struct TrickEditorView: View {
                         }
                         .padding(.bottom, 16)
                     }
+                } else if trick.id == Tricks.spin.id {
+                    // One shared scroll: animation + stats + turns + duration scroll together.
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            TrickSimView(trick: Tricks.spin, durs: durs, palette: p,
+                                         spinTurns: spinTurns, spinDurMs: spinDurMs)
+                            VStack(spacing: 0) {
+                                turnsRow.padding(.horizontal, 14)
+                                Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1)
+                                durationRow.padding(.horizontal, 14)
+                            }
+                            .background(p.panel)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(p.metal.opacity(0.4), lineWidth: 1))
+                            .padding(.horizontal, 16)
+                        }
+                        .padding(.bottom, 16)
+                    }
                 } else {
                     controls
                 }
@@ -47,6 +67,8 @@ struct TrickEditorView: View {
             if durs.isEmpty { durs = TrickSettings.durations(for: trick) }
             diameterCm = TrickSettings.donutDiameterCm()
             circles = TrickSettings.donutCircles()
+            spinTurns = TrickSettings.spinTurns()
+            spinDurMs = TrickSettings.spinDurMs()
         }
     }
 
@@ -162,6 +184,62 @@ struct TrickEditorView: View {
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
             }
             .buttonStyle(.plain).disabled(isDefault).padding(.leading, 4)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var turnsRow: some View {
+        let isDefault = spinTurns == Tricks.spinTurnsDefault
+        HStack(spacing: 11) {
+            Text(L.spinTurns).font(.system(size: 13)).foregroundStyle(p.text)
+                .frame(width: 150, alignment: .leading)
+            Spacer()
+            stepButton("minus") {
+                spinTurns = Swift.max(Tricks.spinTurnsMin, spinTurns - 1); TrickSettings.setSpinTurns(spinTurns)
+            }.disabled(spinTurns <= Tricks.spinTurnsMin)
+            Text("\(spinTurns)").font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(p.accent).monospacedDigit().frame(width: 34)
+            stepButton("plus") {
+                spinTurns = Swift.min(Tricks.spinTurnsMax, spinTurns + 1); TrickSettings.setSpinTurns(spinTurns)
+            }.disabled(spinTurns >= Tricks.spinTurnsMax)
+            Button {
+                spinTurns = Tricks.spinTurnsDefault; TrickSettings.resetSpinTurns()
+            } label: {
+                Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
+                    .foregroundStyle(isDefault ? p.muted : p.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
+            }
+            .buttonStyle(.plain).disabled(isDefault).padding(.leading, 4)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var durationRow: some View {
+        let isDefault = spinDurMs == Tricks.spinDurDefaultMs
+        let durBinding = Binding<Double>(
+            get: { Double(spinDurMs) / 1000 },
+            set: { spinDurMs = Int(($0 * 2).rounded()) * 500 }   // 0.5 s steps
+        )
+        let durRange = Double(Tricks.spinDurMinMs) / 1000...Double(Tricks.spinDurMaxMs) / 1000
+        HStack(spacing: 11) {
+            Text(L.spinDuration).font(.system(size: 13)).foregroundStyle(p.text)
+                .frame(width: 150, alignment: .leading)
+            Slider(value: durBinding, in: durRange, step: 0.5) { editing in
+                if !editing { TrickSettings.setSpinDurMs(spinDurMs) }
+            }
+            .tint(p.accent)
+            Text(L.trickSec(Double(spinDurMs) / 1000)).font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(p.accent).monospacedDigit().frame(width: 54, alignment: .trailing)
+            Button {
+                spinDurMs = Tricks.spinDurDefaultMs; TrickSettings.resetSpinDurMs()
+            } label: {
+                Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
+                    .foregroundStyle(isDefault ? p.muted : p.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
+            }
+            .buttonStyle(.plain).disabled(isDefault)
         }
         .padding(.vertical, 4)
     }
