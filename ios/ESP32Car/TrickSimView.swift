@@ -114,9 +114,13 @@ struct TrickSimView: View {
                         cornerRadius: carW * 0.22).applying(t)
         }
 
-        // 1) soft swept area: sparse, low-opacity body ghosts (no blinding solid disc)
-        for (i, pose) in r.poses.enumerated() where i % 3 == 0 {
-            ctx.fill(bodyPath(pose), with: .color(p.accent.opacity(0.04)))
+        // 1) soft swept area: sparse, low-opacity body ghosts (no blinding solid disc). Skipped for an
+        //    in-place maneuver (spin: path ≈ 0) where the ghosts pile into a dense disc that buries the
+        //    car — leaving just the clear rotating car, so it reads as large as the donut's.
+        if r.pathLenM > 0.05 {
+            for (i, pose) in r.poses.enumerated() where i % 3 == 0 {
+                ctx.fill(bodyPath(pose), with: .color(p.accent.opacity(0.04)))
+            }
         }
         // 2) centre trajectory — dashed, drawn ON TOP so the path stays readable
         var path = Path()
