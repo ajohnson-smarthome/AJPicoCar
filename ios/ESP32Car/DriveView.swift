@@ -56,13 +56,19 @@ struct DriveView: View {
 
     private func startTrick(_ base: Trick) {
         trickTask?.cancel()
-        // The donut's (t,y) comes from the user-set circle diameter; other tricks use their base.
-        let effectiveBase = base.id == Tricks.donut.id
-            ? Tricks.donutTrick(diameterCm: Double(TrickSettings.donutDiameterCm())) : base
-        let trick = Tricks.withDurations(effectiveBase, TrickSettings.durations(for: effectiveBase))  // per-action durations; totalMs drives the ring
-        runningTrick = trick
-        trickStartedAt = Date()
         trickTask = Task {
+            let trick: Trick
+            if base.id == Tricks.donut.id {
+                // The donut's (t,y) comes from the diameter; its duration from the circle count,
+                // timed at the real motor speed (nominal fallback when /wheel is unavailable).
+                let vmax = await donutVmaxMS()
+                trick = Tricks.donutTrick(diameterCm: Double(TrickSettings.donutDiameterCm()),
+                                          circles: TrickSettings.donutCircles(), vmaxMS: vmax)
+            } else {
+                trick = Tricks.withDurations(base, TrickSettings.durations(for: base))  // per-action durations
+            }
+            runningTrick = trick
+            trickStartedAt = Date()                            // totalMs drives the ring
             for step in trick.steps {
                 conn.setCommand(ControlModel.frame(t: step.t, y: step.y))
                 curT = step.t; curY = step.y                  // drive the on-screen diagram/power bars
@@ -73,6 +79,14 @@ struct DriveView: View {
             curT = 0; curY = 0
             runningTrick = nil; trickStartedAt = nil
         }
+    }
+
+    /// Linear speed (m/s) from the car's wheel/motor params, with a nominal fallback.
+    private func donutVmaxMS() async -> Double {
+        guard let w = await WheelClient().get(),
+              let rpm = MotorPresets.match(ppr: w.ppr, gearX100: w.gearX100, quad: w.quad)?.rpm
+        else { return Tricks.donutNominalVmaxMS }
+        return Double.pi * (Double(w.diameterMm) / 1000) * Double(rpm) / 60
     }
 
     private func cancelTrick(stop: Bool) {
