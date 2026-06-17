@@ -46,16 +46,7 @@ static esp_err_t wheel_post_handler(httpd_req_t *req) {
     wheel_params_t w = { .diameter_mm = (uint16_t)d, .ppr = (uint16_t)ppr,
                          .gear_x100 = (uint16_t)gear, .quad = (uint8_t)quad };
     wheel_set(&w);
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        nvs_set_u16(h, "wheel_d", w.diameter_mm);
-        nvs_set_u16(h, "enc_ppr", w.ppr);
-        nvs_set_u16(h, "gear_x100", w.gear_x100);
-        nvs_set_u8(h, "quad", w.quad);
-        esp_err_t e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "wheel save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    wheel_save();
     return httpd_resp_sendstr(req, "ok");
 }
 

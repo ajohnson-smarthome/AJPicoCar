@@ -27,6 +27,8 @@ void wheel_init(void);
 void wheel_get(wheel_params_t *out);
 // Validate/clamp and store in RAM (the /wheel API persists to NVS).
 void wheel_set(const wheel_params_t *in);
+// Serialize the current params to a JSON string and persist to NVS (one key).
+void wheel_save(void);
 
 // Pure (host-tested): counts per OUTPUT-shaft revolution = ppr × gear × quad.
 // Laid in for the future on-board speed calc (v = π·D·ticks_per_s / cpr); unused for now.

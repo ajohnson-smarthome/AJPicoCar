@@ -40,14 +40,7 @@ static esp_err_t dims_post_handler(httpd_req_t *req) {
     }
     dims_params_t d = { .track_mm = (uint16_t)track, .wheelbase_mm = (uint16_t)base };
     dims_set(&d);
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        nvs_set_u16(h, "track_mm", d.track_mm);
-        nvs_set_u16(h, "wheelbase_mm", d.wheelbase_mm);
-        esp_err_t e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "dims save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    dims_save();
     return httpd_resp_sendstr(req, "ok");
 }
 

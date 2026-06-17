@@ -21,5 +21,7 @@ void dims_init(void);
 void dims_get(dims_params_t *out);
 // Validate/clamp and store in RAM (the /dims API persists to NVS).
 void dims_set(const dims_params_t *in);
+// Serialize the current dims to a JSON string and persist to NVS (one key).
+void dims_save(void);
 
 #endif // DIMS_H
