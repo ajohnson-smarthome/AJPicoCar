@@ -62,9 +62,11 @@ struct DriveView: View {
                 // The donut's (t,y) comes from the diameter; its duration from the circle count,
                 // timed at the real motor speed (nominal fallback when /wheel is unavailable).
                 let vmax = await donutVmaxMS()
-                if Task.isCancelled { return }                 // cancelled during the /wheel fetch → bail cleanly
+                if Task.isCancelled { return }
+                let track = await donutTrackM()
+                if Task.isCancelled { return }                 // cancelled during the fetches → bail cleanly
                 trick = Tricks.donutTrick(diameterCm: Double(TrickSettings.donutDiameterCm()),
-                                          circles: TrickSettings.donutCircles(), vmaxMS: vmax)
+                                          circles: TrickSettings.donutCircles(), vmaxMS: vmax, trackM: track)
             } else {
                 trick = Tricks.withDurations(base, TrickSettings.durations(for: base))  // per-action durations
             }
@@ -88,6 +90,12 @@ struct DriveView: View {
               let rpm = MotorPresets.match(ppr: w.ppr, gearX100: w.gearX100, quad: w.quad)?.rpm
         else { return Tricks.donutNominalVmaxMS }
         return Double.pi * (Double(w.diameterMm) / 1000) * Double(rpm) / 60
+    }
+
+    /// Track (m) from the car's /dims, with the nominal fallback.
+    private func donutTrackM() async -> Double {
+        guard let d = await DimsClient().get() else { return Tricks.donutTrackFallbackM }
+        return Double(d.trackMm) / 1000
     }
 
     private func cancelTrick(stop: Bool) {

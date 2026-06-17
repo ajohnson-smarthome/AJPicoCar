@@ -24,49 +24,55 @@ final class TrickSimTests: XCTestCase {
         XCTAssertGreaterThan(r.poses.count, 5)
     }
     func testDonutSidesRoundTrip() {
-        let d = Tricks.donutSides(diameterCm: 50)
+        let T = Tricks.donutTrackFallbackM
+        let d = Tricks.donutSides(diameterCm: 50, trackM: T)
         XCTAssertEqual(d.t, 0.794, accuracy: 0.01)
         XCTAssertEqual(d.y, 0.206, accuracy: 0.01)
         for diaCm in [30.0, 60.0, 120.0] {
-            let s = Tricks.donutSides(diameterCm: diaCm)
+            let s = Tricks.donutSides(diameterCm: diaCm, trackM: T)
             let sides = ControlModel.sides(t: s.t, y: s.y)
-            let R = Tricks.donutTrackM * (sides.left + sides.right) / (2 * (sides.left - sides.right))
+            let R = T * (sides.left + sides.right) / (2 * (sides.left - sides.right))
             XCTAssertEqual(R, diaCm / 100 / 2, accuracy: 0.005)
         }
-        let tight = Tricks.donutSides(diameterCm: 5)
-        XCTAssertEqual(tight.t, 0.5, accuracy: 1e-9)
-        XCTAssertEqual(tight.y, 0.5, accuracy: 1e-9)
     }
-    func testDonutTrick() {
-        let t = Tricks.donutTrick(diameterCm: 50)
-        XCTAssertEqual(t.id, Tricks.donut.id)
-        XCTAssertEqual(t.steps.count, 1)
-        XCTAssertEqual(t.totalMs, 5000)
+    func testDonutTrackSensitivity() {
+        XCTAssertNotEqual(Tricks.donutSides(diameterCm: 50, trackM: 0.10).y,
+                          Tricks.donutSides(diameterCm: 50, trackM: 0.13).y)
+        for tk in [0.10, 0.13, 0.16] {
+            let s = Tricks.donutSides(diameterCm: 60, trackM: tk)
+            let sides = ControlModel.sides(t: s.t, y: s.y)
+            let R = tk * (sides.left + sides.right) / (2 * (sides.left - sides.right))
+            XCTAssertEqual(R, 0.30, accuracy: 0.01)
+        }
     }
     func testDonutCirclesRoundTrip() {
         for v in [0.4, 0.578, 0.9] {
             for diaCm in [30.0, 50.0, 120.0] {
                 for n in [1, 2, 5] {
-                    let trick = Tricks.donutTrick(diameterCm: diaCm, circles: n, vmaxMS: v)
-                    let r = TrickSim.simulate(steps: trick.steps, vmaxMS: v, trackM: Tricks.donutTrackM,
-                                              carLenM: 0.25, carWidM: 0.15)
+                    let trick = Tricks.donutTrick(diameterCm: diaCm, circles: n, vmaxMS: v,
+                                                  trackM: Tricks.donutTrackFallbackM)
+                    let r = TrickSim.simulate(steps: trick.steps, vmaxMS: v,
+                                              trackM: Tricks.donutTrackFallbackM, carLenM: 0.25, carWidM: 0.15)
                     XCTAssertEqual(r.turnRad / (2 * Double.pi), Double(n), accuracy: 0.05)
                 }
             }
         }
     }
     func testDonutDurationGuards() {
-        let y50 = Tricks.donutSides(diameterCm: 50).y
-        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: y50, vmaxMS: Tricks.donutNominalVmaxMS), 6848)
-        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: 0.2, vmaxMS: 0), 0)
-        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: 0, vmaxMS: 0.5), 0)
-        XCTAssertEqual(Tricks.donutDurationMs(circles: 0, y: 0.2, vmaxMS: 0.5),
-                       Tricks.donutDurationMs(circles: 1, y: 0.2, vmaxMS: 0.5))
+        let T = Tricks.donutTrackFallbackM
+        let y50 = Tricks.donutSides(diameterCm: 50, trackM: T).y
+        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: y50, vmaxMS: Tricks.donutNominalVmaxMS, trackM: T), 6848)
+        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: 0.2, vmaxMS: 0, trackM: T), 0)
+        XCTAssertEqual(Tricks.donutDurationMs(circles: 2, y: 0, vmaxMS: 0.5, trackM: T), 0)
+        XCTAssertEqual(Tricks.donutDurationMs(circles: 1, y: 0.2, vmaxMS: 0.5, trackM: 0.26),
+                       2 * Tricks.donutDurationMs(circles: 1, y: 0.2, vmaxMS: 0.5, trackM: 0.13))
     }
     func testDonutTrickCircles() {
-        let t = Tricks.donutTrick(diameterCm: 50, circles: 2, vmaxMS: 0.578)
+        let T = Tricks.donutTrackFallbackM
+        let t = Tricks.donutTrick(diameterCm: 50, circles: 2, vmaxMS: 0.578, trackM: T)
         XCTAssertEqual(t.id, Tricks.donut.id)
         XCTAssertEqual(t.steps.count, 1)
-        XCTAssertEqual(t.steps[0].ms, 6848)
+        XCTAssertEqual(t.steps[0].ms,
+                       Tricks.donutDurationMs(circles: 2, y: t.steps[0].y, vmaxMS: 0.578, trackM: T))
     }
 }

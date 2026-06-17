@@ -8,21 +8,21 @@ struct TrickSimView: View {
     let trick: Trick
     let durs: [Int]
     let palette: Palette
+    var donutDiameterCm: Double? = nil
     var donutCircles: Int? = nil
     @State private var wheel: WheelClient.Params?
+    @State private var track = Tricks.donutTrackFallbackM
     private var p: Palette { palette }
 
     // Car geometry — v1 constants (metres). TODO: move to settings next to the motor params.
     private static let carLenM = 0.25, carWidM = 0.15
 
     private var steps: [TrickStep] {
-        let d = durs.isEmpty ? Tricks.baseDurations(trick) : durs
-        var s = Tricks.withDurations(trick, d).steps
-        if let donutCircles, trick.id == Tricks.donut.id, s.count == 1, let v = vmaxMS {
-            s[0] = TrickStep(t: s[0].t, y: s[0].y,
-                             ms: Tricks.donutDurationMs(circles: donutCircles, y: s[0].y, vmaxMS: v))
+        if trick.id == Tricks.donut.id, let dia = donutDiameterCm, let n = donutCircles, let v = vmaxMS {
+            return Tricks.donutTrick(diameterCm: dia, circles: n, vmaxMS: v, trackM: track).steps
         }
-        return s
+        let d = durs.isEmpty ? Tricks.baseDurations(trick) : durs
+        return Tricks.withDurations(trick, d).steps
     }
     private var totalSec: Double { Double(steps.reduce(0) { $0 + $1.ms }) / 1000 }
 
@@ -36,7 +36,7 @@ struct TrickSimView: View {
     }
     private var sim: TrickSim.Result? {
         guard let v = vmaxMS else { return nil }
-        return TrickSim.simulate(steps: steps, vmaxMS: v, trackM: Tricks.donutTrackM,
+        return TrickSim.simulate(steps: steps, vmaxMS: v, trackM: track,
                                  carLenM: Self.carLenM, carWidM: Self.carWidM)
     }
 
@@ -61,7 +61,10 @@ struct TrickSimView: View {
             }
         }
         .padding(.horizontal, 12).padding(.top, 8)
-        .task { wheel = await WheelClient().get() }
+        .task {
+            wheel = await WheelClient().get()
+            if let d = await DimsClient().get() { track = Double(d.trackMm) / 1000 }
+        }
     }
 
     // MARK: stats

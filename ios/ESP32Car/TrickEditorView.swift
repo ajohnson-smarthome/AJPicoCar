@@ -23,8 +23,8 @@ struct TrickEditorView: View {
                     // One shared scroll: animation + stats + diameter + circle count scroll together.
                     ScrollView {
                         VStack(spacing: 16) {
-                            TrickSimView(trick: Tricks.donutTrick(diameterCm: Double(diameterCm)),
-                                         durs: durs, palette: p, donutCircles: circles)
+                            TrickSimView(trick: Tricks.donut, durs: durs, palette: p,
+                                         donutDiameterCm: Double(diameterCm), donutCircles: circles)
                             VStack(spacing: 0) {
                                 diameterRow.padding(.horizontal, 14)
                                 Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1)

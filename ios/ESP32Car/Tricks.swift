@@ -31,27 +31,21 @@ enum Tricks {
 
     // MARK: donut geometry (pure, host-tested) — radius depends only on the side ratio + track,
     // not on motor speed. Inverse of TrickSim's R = T·(l+r)/(2(l−r)).
-    /// Track width (lateral wheel separation), shared with the simulation.
-    static let donutTrackM = 0.13
+    /// Assumed track (m) while /dims is unavailable (pre-fetch / offline). Equals the firmware
+    /// default (130 mm). The pure donut functions take `trackM` explicitly — this is only the
+    /// fallback supplied at the fetch sites.
+    static let donutTrackFallbackM = 0.13
     static let donutDiaMinCm = 20, donutDiaMaxCm = 150, donutDiaDefaultCm = 50
 
     /// For a target circle diameter, hold the fast wheel at full power and solve the slow wheel's
     /// ratio, returning the (t, y) command. r is clamped to [0, 0.9] so both wheels stay forward
     /// (the maneuver remains a circle, never a pivot or near-straight line).
-    static func donutSides(diameterCm: Double) -> (t: Double, y: Double) {
+    static func donutSides(diameterCm: Double, trackM: Double) -> (t: Double, y: Double) {
         let R = Swift.max(0.001, diameterCm / 100 / 2)
-        let T = donutTrackM
+        let T = trackM
         var r = (2 * R - T) / (2 * R + T)
         r = Swift.min(0.9, Swift.max(0.0, r))
         return ((1 + r) / 2, (1 - r) / 2)
-    }
-
-    /// The donut maneuver for a given circle diameter — same id/name/icon, the single step's
-    /// (t, y) derived from `donutSides`. Real duration is layered on by `withDurations`.
-    static func donutTrick(diameterCm: Double) -> Trick {
-        let (t, y) = donutSides(diameterCm: diameterCm)
-        return Trick(id: donut.id, nameKey: donut.nameKey, icon: donut.icon,
-                     steps: [TrickStep(t: t, y: y, ms: 5000)])
     }
 
     // MARK: donut circle count (pure, host-tested) — duration back-solved from a target
@@ -64,17 +58,17 @@ enum Tricks {
     /// Streamed duration (ms) for `circles` full circles of a donut whose inner-wheel term is
     /// `y` (= (1−r)/2 from `donutSides`), at linear speed `vmaxMS`. Inverse of the simulation's
     /// heading sweep; 0 if speed/shape is degenerate.
-    static func donutDurationMs(circles: Int, y: Double, vmaxMS: Double) -> Int {
+    static func donutDurationMs(circles: Int, y: Double, vmaxMS: Double, trackM: Double) -> Int {
         guard vmaxMS > 0, y > 0 else { return 0 }
         let n = Double(Swift.max(donutCirclesMin, circles))
-        return Int((1000 * n * Double.pi * donutTrackM / (vmaxMS * y)).rounded())
+        return Int((1000 * n * Double.pi * trackM / (vmaxMS * y)).rounded())
     }
 
     /// The donut maneuver sized to a diameter AND timed to a circle count, at speed `vmaxMS`.
     /// Same id/name/icon; the single step's (t, y) from `donutSides`, ms from `donutDurationMs`.
-    static func donutTrick(diameterCm: Double, circles: Int, vmaxMS: Double) -> Trick {
-        let (t, y) = donutSides(diameterCm: diameterCm)
-        let ms = donutDurationMs(circles: circles, y: y, vmaxMS: vmaxMS)
+    static func donutTrick(diameterCm: Double, circles: Int, vmaxMS: Double, trackM: Double) -> Trick {
+        let (t, y) = donutSides(diameterCm: diameterCm, trackM: trackM)
+        let ms = donutDurationMs(circles: circles, y: y, vmaxMS: vmaxMS, trackM: trackM)
         return Trick(id: donut.id, nameKey: donut.nameKey, icon: donut.icon,
                      steps: [TrickStep(t: t, y: y, ms: ms)])
     }
