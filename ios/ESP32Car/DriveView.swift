@@ -58,7 +58,15 @@ struct DriveView: View {
         trickTask?.cancel()
         trickTask = Task {
             let trick: Trick
-            if base.id == Tricks.donut.id {
+            if base.id == Tricks.spin.id {
+                // Turns + duration from settings; speed derived at the real motor speed / track.
+                let vmax = await donutVmaxMS()
+                if Task.isCancelled { return }
+                let track = await donutTrackM()
+                if Task.isCancelled { return }
+                trick = Tricks.spinTrick(turns: TrickSettings.spinTurns(), durationMs: TrickSettings.spinDurMs(),
+                                         vmaxMS: vmax, trackM: track)
+            } else if base.id == Tricks.donut.id {
                 // The donut's (t,y) comes from the diameter; its duration from the circle count,
                 // timed at the real motor speed (nominal fallback when /wheel is unavailable).
                 let vmax = await donutVmaxMS()
