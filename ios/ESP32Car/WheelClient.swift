@@ -26,7 +26,7 @@ struct WheelClient {
         guard let url = URL(string: CarHost.httpBase + "/wheel") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.httpBody = "\(p.diameterMm) \(p.ppr) \(p.gearX100) \(p.quad)".data(using: .utf8)
+        req.httpBody = #"{"diameter_mm":\#(p.diameterMm),"ppr":\#(p.ppr),"gear_x100":\#(p.gearX100),"quad":\#(p.quad)}"#.data(using: .utf8)
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return false }
         return (resp as? HTTPURLResponse)?.statusCode == 200
     }

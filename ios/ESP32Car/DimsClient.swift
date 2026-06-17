@@ -22,7 +22,7 @@ struct DimsClient {
         guard let url = URL(string: CarHost.httpBase + "/dims") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.httpBody = "\(p.trackMm) \(p.wheelbaseMm)".data(using: .utf8)
+        req.httpBody = #"{"track_mm":\#(p.trackMm),"wheelbase_mm":\#(p.wheelbaseMm)}"#.data(using: .utf8)
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return false }
         return (resp as? HTTPURLResponse)?.statusCode == 200
     }

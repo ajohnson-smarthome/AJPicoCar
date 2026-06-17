@@ -14,7 +14,7 @@ struct TrimClient {
         guard let url = URL(string: CarHost.httpBase + "/trim") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.httpBody = String(pct).data(using: .utf8)
+        req.httpBody = #"{"trim_pct":\#(pct)}"#.data(using: .utf8)
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return false }
         return (resp as? HTTPURLResponse)?.statusCode == 200
     }

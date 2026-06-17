@@ -18,7 +18,7 @@ final class CalibClient {
     }
 
     func spin(pair: Int, dir: Int) async {
-        await post("/calib/spin", body: "\(pair),\(dir)")
+        await post("/calib/spin", body: #"{"pair":\#(pair),"dir":\#(dir)}"#)
     }
 
     @discardableResult

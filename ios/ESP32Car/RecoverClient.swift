@@ -16,7 +16,7 @@ struct RecoverClient {
         guard let url = URL(string: CarHost.httpBase + "/recover") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.httpBody = "\(enabled ? 1 : 0) \(windowMs)".data(using: .utf8)   // "<0|1> <ms>"
+        req.httpBody = #"{"enabled":\#(enabled),"window_ms":\#(windowMs)}"#.data(using: .utf8)
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return false }
         return (resp as? HTTPURLResponse)?.statusCode == 200
     }

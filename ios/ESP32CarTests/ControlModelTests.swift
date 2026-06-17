@@ -61,7 +61,7 @@ final class ControlModelTests: XCTestCase {
     }
     func testCalibSaveBody() {
         let a: [Corner: (pair: Int, sign: Int)] = [.fl: (0, 1), .fr: (1, -1), .rl: (2, 1), .rr: (3, -1)]
-        XCTAssertEqual(ControlModel.calibSaveBody(a), "0:1,1:-1,2:1,3:-1")
+        XCTAssertEqual(ControlModel.calibSaveBody(a), #"{"wheels":[{"pair":0,"sign":1},{"pair":1,"sign":-1},{"pair":2,"sign":1},{"pair":3,"sign":-1}]}"#)
     }
     func testSignalLevel() {
         XCTAssertEqual(ControlModel.signalLevel(online: false, pingMs: 10), 0)

@@ -76,13 +76,14 @@ enum ControlModel {
         return signalLevel(online: online, pingMs: pingMs)
     }
 
-    /// Build the /calib/save body "p:s,p:s,p:s,p:s" in FL,FR,RL,RR order.
+    /// Build the /calib/save body JSON {"wheels":[...]} in FL,FR,RL,RR order.
     /// Missing corners default to (0, 1) — the wizard only calls this when all 4 are set.
     static func calibSaveBody(_ a: [Corner: (pair: Int, sign: Int)]) -> String {
-        Corner.allCases.map { c in
+        let wheels = Corner.allCases.map { c -> String in
             let v = a[c] ?? (pair: 0, sign: 1)
-            return "\(v.pair):\(v.sign)"
+            return #"{"pair":\#(v.pair),"sign":\#(v.sign)}"#
         }.joined(separator: ",")
+        return #"{"wheels":[\#(wheels)]}"#
     }
 
     /// Wire frame as a JSON object {"t":..,"y":..} (two decimals), clamped to [-1,1].

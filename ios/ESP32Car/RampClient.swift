@@ -14,7 +14,7 @@ struct RampClient {
         guard let url = URL(string: CarHost.httpBase + "/ramp") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.httpBody = String(ms).data(using: .utf8)
+        req.httpBody = #"{"ramp_ms":\#(ms)}"#.data(using: .utf8)
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return false }
         return (resp as? HTTPURLResponse)?.statusCode == 200
     }
