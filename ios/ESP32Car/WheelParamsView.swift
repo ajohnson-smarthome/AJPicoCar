@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Wheel diameter + motor encoder params (PPR · gear · quadrature → CPR), stored on the car
-/// via /wheel. Two uses: a Settings menu item (wizard == false, back chevron) and step 1 of
+/// via /wheel. Two uses: a Settings menu item (wizard == false, back chevron) and step 2 of
 /// the mandatory calibration wizard (wizard == true, "Далее" → CalibrationView). No system
 /// nav bar (matches SplitScreen siblings) — draws its own header.
 struct WheelParamsView: View {

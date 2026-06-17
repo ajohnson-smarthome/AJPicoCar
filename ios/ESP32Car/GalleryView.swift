@@ -80,6 +80,7 @@ struct GalleryView: View {
             ("Ramp",                    AnyView(NavigationStack { RampView(palette: p) })),
             ("Trim",                    AnyView(NavigationStack { TrimView(palette: p) })),
             ("Recover",                 AnyView(NavigationStack { RecoverView(palette: p) })),
+            ("Car dimensions",          AnyView(NavigationStack { CarDimensionsView(palette: p, wizard: true) })),
         ]
     }
 }
