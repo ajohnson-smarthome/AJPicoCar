@@ -4,7 +4,6 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_check.h"
-#include "nvs.h"
 #include "http_server.h"
 #include "dims.h"
 

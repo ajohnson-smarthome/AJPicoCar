@@ -12,7 +12,6 @@
 
 static const char *TAG = "ramp";
 #define NS  "car"
-#define KEY "ramp_ms"
 #define TICK_MS 20            // 50 Hz
 #define RAMP_MS_DEFAULT 300
 #define RAMP_MS_MAX 2000
