@@ -29,6 +29,31 @@ enum Tricks {
 
     static let all: [Trick] = [spin, figure8, wiggle, donut]
 
+    // MARK: donut geometry (pure, host-tested) — radius depends only on the side ratio + track,
+    // not on motor speed. Inverse of TrickSim's R = T·(l+r)/(2(l−r)).
+    /// Track width (lateral wheel separation), shared with the simulation.
+    static let donutTrackM = 0.13
+    static let donutDiaMinCm = 20, donutDiaMaxCm = 150, donutDiaDefaultCm = 50
+
+    /// For a target circle diameter, hold the fast wheel at full power and solve the slow wheel's
+    /// ratio, returning the (t, y) command. r is clamped to [0, 0.9] so both wheels stay forward
+    /// (the maneuver remains a circle, never a pivot or near-straight line).
+    static func donutSides(diameterCm: Double) -> (t: Double, y: Double) {
+        let R = Swift.max(0.001, diameterCm / 100 / 2)
+        let T = donutTrackM
+        var r = (2 * R - T) / (2 * R + T)
+        r = Swift.min(0.9, Swift.max(0.0, r))
+        return ((1 + r) / 2, (1 - r) / 2)
+    }
+
+    /// The donut maneuver for a given circle diameter — same id/name/icon, the single step's
+    /// (t, y) derived from `donutSides`. Real duration is layered on by `withDurations`.
+    static func donutTrick(diameterCm: Double) -> Trick {
+        let (t, y) = donutSides(diameterCm: diameterCm)
+        return Trick(id: donut.id, nameKey: donut.nameKey, icon: donut.icon,
+                     steps: [TrickStep(t: t, y: y, ms: 5000)])
+    }
+
     // MARK: per-action durations (host-tested)
     static let durMin = 100      // ms
     static let durMax = 10000

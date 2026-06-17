@@ -23,4 +23,24 @@ final class TrickSimTests: XCTestCase {
         XCTAssertTrue(r.turnRad > 6 && r.turnRad < 9)
         XCTAssertGreaterThan(r.poses.count, 5)
     }
+    func testDonutSidesRoundTrip() {
+        let d = Tricks.donutSides(diameterCm: 50)
+        XCTAssertEqual(d.t, 0.794, accuracy: 0.01)
+        XCTAssertEqual(d.y, 0.206, accuracy: 0.01)
+        for diaCm in [30.0, 60.0, 120.0] {
+            let s = Tricks.donutSides(diameterCm: diaCm)
+            let sides = ControlModel.sides(t: s.t, y: s.y)
+            let R = Tricks.donutTrackM * (sides.left + sides.right) / (2 * (sides.left - sides.right))
+            XCTAssertEqual(R, diaCm / 100 / 2, accuracy: 0.005)
+        }
+        let tight = Tricks.donutSides(diameterCm: 5)
+        XCTAssertEqual(tight.t, 0.5, accuracy: 1e-9)
+        XCTAssertEqual(tight.y, 0.5, accuracy: 1e-9)
+    }
+    func testDonutTrick() {
+        let t = Tricks.donutTrick(diameterCm: 50)
+        XCTAssertEqual(t.id, Tricks.donut.id)
+        XCTAssertEqual(t.steps.count, 1)
+        XCTAssertEqual(t.totalMs, 5000)
+    }
 }
