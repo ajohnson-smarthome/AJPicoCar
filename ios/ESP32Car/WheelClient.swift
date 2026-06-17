@@ -24,9 +24,11 @@ struct WheelClient {
     @discardableResult
     func set(_ p: Params) async -> Bool {
         guard let url = URL(string: CarHost.httpBase + "/wheel") else { return false }
+        struct Body: Encodable { let diameter_mm, ppr, gear_x100, quad: Int }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.httpBody = #"{"diameter_mm":\#(p.diameterMm),"ppr":\#(p.ppr),"gear_x100":\#(p.gearX100),"quad":\#(p.quad)}"#.data(using: .utf8)
+        req.httpBody = try? JSONEncoder().encode(
+            Body(diameter_mm: p.diameterMm, ppr: p.ppr, gear_x100: p.gearX100, quad: p.quad))
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return false }
         return (resp as? HTTPURLResponse)?.statusCode == 200
     }

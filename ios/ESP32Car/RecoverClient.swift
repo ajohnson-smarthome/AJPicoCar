@@ -14,9 +14,10 @@ struct RecoverClient {
     @discardableResult
     func set(enabled: Bool, windowMs: Int) async -> Bool {
         guard let url = URL(string: CarHost.httpBase + "/recover") else { return false }
+        struct Body: Encodable { let enabled: Bool; let window_ms: Int }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.httpBody = #"{"enabled":\#(enabled),"window_ms":\#(windowMs)}"#.data(using: .utf8)
+        req.httpBody = try? JSONEncoder().encode(Body(enabled: enabled, window_ms: windowMs))
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return false }
         return (resp as? HTTPURLResponse)?.statusCode == 200
     }

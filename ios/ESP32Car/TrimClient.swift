@@ -12,9 +12,10 @@ struct TrimClient {
     @discardableResult
     func set(_ pct: Int) async -> Bool {
         guard let url = URL(string: CarHost.httpBase + "/trim") else { return false }
+        struct Body: Encodable { let trim_pct: Int }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.httpBody = #"{"trim_pct":\#(pct)}"#.data(using: .utf8)
+        req.httpBody = try? JSONEncoder().encode(Body(trim_pct: pct))
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return false }
         return (resp as? HTTPURLResponse)?.statusCode == 200
     }
