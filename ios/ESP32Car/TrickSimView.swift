@@ -8,6 +8,7 @@ struct TrickSimView: View {
     let trick: Trick
     let durs: [Int]
     let palette: Palette
+    var donutCircles: Int? = nil
     @State private var wheel: WheelClient.Params?
     private var p: Palette { palette }
 
@@ -16,7 +17,12 @@ struct TrickSimView: View {
 
     private var steps: [TrickStep] {
         let d = durs.isEmpty ? Tricks.baseDurations(trick) : durs
-        return Tricks.withDurations(trick, d).steps
+        var s = Tricks.withDurations(trick, d).steps
+        if let donutCircles, trick.id == Tricks.donut.id, s.count == 1, let v = vmaxMS {
+            s[0] = TrickStep(t: s[0].t, y: s[0].y,
+                             ms: Tricks.donutDurationMs(circles: donutCircles, y: s[0].y, vmaxMS: v))
+        }
+        return s
     }
     private var totalSec: Double { Double(steps.reduce(0) { $0 + $1.ms }) / 1000 }
 
@@ -24,10 +30,13 @@ struct TrickSimView: View {
         guard let w = wheel else { return nil }
         return MotorPresets.match(ppr: w.ppr, gearX100: w.gearX100, quad: w.quad)?.rpm
     }
-    private var sim: TrickSim.Result? {
+    private var vmaxMS: Double? {
         guard let w = wheel, let rpm else { return nil }
-        let vmax = Double.pi * (Double(w.diameterMm) / 1000) * Double(rpm) / 60
-        return TrickSim.simulate(steps: steps, vmaxMS: vmax, trackM: Tricks.donutTrackM,
+        return Double.pi * (Double(w.diameterMm) / 1000) * Double(rpm) / 60
+    }
+    private var sim: TrickSim.Result? {
+        guard let v = vmaxMS else { return nil }
+        return TrickSim.simulate(steps: steps, vmaxMS: v, trackM: Tricks.donutTrackM,
                                  carLenM: Self.carLenM, carWidM: Self.carWidM)
     }
 
