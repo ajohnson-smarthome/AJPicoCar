@@ -21,6 +21,7 @@
 #include "trim_api.h"
 #include "recovery_api.h"
 #include "wheel.h"
+#include "dims.h"
 #include "wheel_api.h"
 #include "telemetry.h"
 #include "esp_ota_ops.h"
@@ -81,6 +82,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(ramp_init());   // start the sole PCA9685 writer before any car_* call
     car_init();
     wheel_init();                          // load wheel/encoder params (NVS or defaults)
+    dims_init();                           // load car dimensions (NVS or defaults)
     ESP_ERROR_CHECK(wifi_ap_start(AP_SSID, AP_PASSWORD));
     ESP_ERROR_CHECK(http_server_start());
     ESP_ERROR_CHECK(ws_control_start());
