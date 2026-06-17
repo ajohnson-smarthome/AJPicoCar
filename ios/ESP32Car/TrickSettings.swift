@@ -39,4 +39,18 @@ enum TrickSettings {
     static func resetDonutDiameter() {
         UserDefaults.standard.removeObject(forKey: donutDiaKey)
     }
+
+    private static let donutCirclesKey = "trick.donut.circles"
+    private static func clampCircles(_ n: Int) -> Int {
+        Swift.min(Tricks.donutCirclesMax, Swift.max(Tricks.donutCirclesMin, n))
+    }
+    static func donutCircles() -> Int {
+        clampCircles(UserDefaults.standard.object(forKey: donutCirclesKey) as? Int ?? Tricks.donutCirclesDefault)
+    }
+    static func setDonutCircles(_ n: Int) {
+        UserDefaults.standard.set(clampCircles(n), forKey: donutCirclesKey)
+    }
+    static func resetDonutCircles() {
+        UserDefaults.standard.removeObject(forKey: donutCirclesKey)
+    }
 }
