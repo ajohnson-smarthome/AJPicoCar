@@ -12,7 +12,7 @@ struct TrickSimView: View {
     private var p: Palette { palette }
 
     // Car geometry — v1 constants (metres). TODO: move to settings next to the motor params.
-    private static let carLenM = 0.25, carWidM = 0.15, trackM = 0.13
+    private static let carLenM = 0.25, carWidM = 0.15
 
     private var steps: [TrickStep] {
         let d = durs.isEmpty ? Tricks.baseDurations(trick) : durs
@@ -27,7 +27,7 @@ struct TrickSimView: View {
     private var sim: TrickSim.Result? {
         guard let w = wheel, let rpm else { return nil }
         let vmax = Double.pi * (Double(w.diameterMm) / 1000) * Double(rpm) / 60
-        return TrickSim.simulate(steps: steps, vmaxMS: vmax, trackM: Self.trackM,
+        return TrickSim.simulate(steps: steps, vmaxMS: vmax, trackM: Tricks.donutTrackM,
                                  carLenM: Self.carLenM, carWidM: Self.carWidM)
     }
 
