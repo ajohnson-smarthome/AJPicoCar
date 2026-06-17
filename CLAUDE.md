@@ -152,7 +152,7 @@ serving an embedded `web/index.html` at GET `/`; `app_main` order: pca9685 → c
 Verified on hardware (network visible, page loads, `mix` console still works).
 
 **Done — Phase 3 (merged):** WebSocket `/ws` realtime control. `car_drive` thread-safe (mutex around I2C)
-+ `car_stop`; pure `control_proto.{c,h}` parser (`"t,y"`, rejects NaN/inf, host-tested); `ws_control.{c,h}`
++ `car_stop`; pure `control_proto.{c,h}` parser (now JSON `{"t","y"}` zero-alloc, rejects NaN/inf, host-tested); `ws_control.{c,h}`
 registers `/ws` on `http_server_get_handle()` and applies frames via `car_drive`; `web/index.html` streams
 the held command at 10 Hz. `CONFIG_HTTPD_WS_SUPPORT=y`. Verified on hardware (phone drives fwd/back/turns).
 
@@ -218,7 +218,7 @@ via `Tricks.withDurations`. During playback the Drive diagram + power bars visua
 **Done — wheel/motor speed-calibration params (merged):** groundwork for future on-board speed (no speed calc
 yet). Firmware `main/wheel.{c,h}` — NVS param store (wheel `diameter_mm`, encoder `ppr`, `gear_x100`, `quad`;
 defaults 65/11/2100/4) + pure `wheel_cpr()` (= ppr·gear·quad, laid in for the deferred `v = π·D·ticks/CPR`,
-host-tested). `main/wheel_api.{c,h}` — `GET /wheel` (JSON) / `POST /wheel` (four space-ints), NVS-persisted
+host-tested). `main/wheel_api.{c,h}` — `GET /wheel` (JSON) / `POST /wheel` (JSON body), NVS-persisted
 (handlers 13→15, `wheel_api_start` after `recovery_api_start`; `wheel_init()` after `car_init`). iOS:
 `MotorPresets.swift` (pure table — JGA25-370 170 / JGB37-520B 1000, `cpr`/`match`, host-tested), `WheelClient.swift`
 (`GET/POST /wheel`), `WheelParamsView.swift` (two cards Колёса/Моторы; model picked via native `Menu` autofills
@@ -237,13 +237,28 @@ and `TrickSimView` build the donut from them. Pure helpers host-tested (round-tr
 
 **Done — car dimensions «Размеры машинки» (merged):** the car's **track** (колея, lateral) + **wheelbase** (база,
 longitudinal) between wheel centres, stored on the car. Firmware `main/dims.{c,h}` (NVS store, defaults 130/210 mm,
-clamp) + `main/dims_api.{c,h}` (`GET /dims` JSON / `POST /dims` two space-ints, NVS; `dims_init()` after
+clamp) + `main/dims_api.{c,h}` (`GET /dims` JSON / `POST /dims` JSON body, NVS; `dims_init()` after
 `wheel_init()`, `dims_api_start()` after `wheel_api_start()` — handlers 15→17/20). iOS `DimsClient.swift`,
 `CarDimensionsView.swift` (animated top-down reference car via `CarDimsDiagram.swift` + two −/+ steppers), reached
 from a Settings row «Размеры машинки» **above** «Колесо и моторы» AND as **mandatory wizard step 1** (the `DriveView`
 sheet now opens `CarDimensionsView(wizard:true)` → «Далее» → `WheelParamsView` (2/3) → `CalibrationView` (3/3)). The
 measured **track** replaces the old hardcoded `0.13` in the donut/sim math; `Tricks.donutTrackFallbackM = 0.13` is now
 only the offline fallback. Wheelbase is stored + drawn only. Mock `/dims` for the simulator.
+
+**Done — JSON everywhere (merged):** all app↔car communication AND on-car persistence are JSON.
+- *Transport:* the `/ws` 10 Hz control frame (drive + tricks) is `{"t":..,"y":..}` — parsed by a **pure zero-alloc**
+  `control_parse_json` (no cJSON on the hot path; host-tested). Every config POST body is JSON via **cJSON** (the
+  bundled IDF `json` component, cold path only): `/wheel` `{"diameter_mm","ppr","gear_x100","quad"}`, `/dims`
+  `{"track_mm","wheelbase_mm"}`, `/ramp` `{"ramp_ms"}`, `/trim` `{"trim_pct"}`, `/recover` `{"enabled","window_ms"}`,
+  `/calib/save` `{"wheels":[{"pair","sign"}×4]}`, `/calib/spin` `{"pair","dir"}`. GET responses + 5 Hz telemetry were
+  already JSON (`snprintf`, zero-alloc). iOS clients send JSON; `ControlModel.frame`/`calibSaveBody` emit JSON
+  (host-tested). JSON-only (no back-compat — the launch gate force-updates the board to the app's build).
+- *Storage:* each domain persists in NVS as **one JSON string** per domain (key `wheel`/`dims`/`ramp`/`recover`/
+  `trim`/`calib`) — `snprintf` to serialize, cJSON to parse at boot, reusing `*_set`/`calibration_valid` to clamp/
+  validate (defaults if absent/malformed). Calibration moved from an NVS blob to a JSON string. The api POST handlers
+  call the module `*_save()` (no inline `nvs_set_*`). **Upgrade resets to defaults** (new string keys ≠ old typed
+  keys; no migration — calibration wizard re-runs). The USB-console `mix <t> <y>` stays plain text (not a socket).
+  Specs/plans: `docs/superpowers/{specs,plans}/2026-06-17-json-everywhere*`.
 
 **🎉 Roadmap complete — Phases 1–6 merged and verified on hardware: a WiFi-controlled 4WD RC car with
 tank-turn, realtime joystick control, watchdog auto-stop, on-wheels calibration, PWA, redesigned landscape pult.**

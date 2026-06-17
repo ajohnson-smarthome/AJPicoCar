@@ -25,7 +25,8 @@ link-loss auto-return, one-tap trick macros, and in-app over-the-air firmware up
 ## Features
 
 - **4WD tank-turn mixing** — `mix <throttle> <yaw>` blends into left/right side speeds (`left=t+y, right=t-y`, normalized), shoot-through-safe by construction
-- **Realtime control** — WebSocket `/ws` streaming `"t,y"` at 10 Hz; thread-safe `car_drive` (I2C mutex)
+- **Realtime control** — WebSocket `/ws` streaming JSON `{"t":..,"y":..}` frames at 10 Hz (parsed by a pure zero-alloc hot-path parser); thread-safe `car_drive` (I2C mutex)
+- **JSON everywhere** — all app↔car communication and on-car NVS persistence are JSON: config POST bodies via cJSON (cold path), the realtime `/ws` frame via a zero-alloc hand parser (hot path), and each config domain stored as one JSON string in NVS
 - **Control-link watchdog** — 50 Hz timer; no control frame for >300 ms → `car_stop()` (console `mix` is exempt)
 - **Link-loss auto-return** — `recovery.{c,h}` keeps a breadcrumb buffer of recent commands; on link loss the watchdog replays it in reverse to retrace the car back into range (configurable 1–10 s window + on/off via `GET/POST /recover`; iOS «Авто-возврат» screen)
 - **On-wheels calibration** — spin each motor pair, tap the wheel that turned, pick direction, save to NVS; loads-or-defaults on boot
