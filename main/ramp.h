@@ -19,5 +19,7 @@ void ramp_set_target(const uint16_t duty[8]);
 // Acceleration time 0→full in ms (0 = ramp off / instant). Clamped to 0..2000. Persisted by caller.
 void ramp_set_ms(uint16_t ms);
 uint16_t ramp_get_ms(void);
+// Persist the current ramp_ms as a JSON string in NVS.
+void ramp_save(void);
 #endif
 #endif // RAMP_H

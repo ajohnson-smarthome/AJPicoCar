@@ -1,8 +1,10 @@
 #include "recovery.h"
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "nvs.h"
+#include "cJSON.h"
 #include "car.h"
 
 static const char *TAG = "recovery";
@@ -118,14 +120,34 @@ void recovery_on_link_lost(void) {
     else car_stop();
 }
 
+void recovery_save(void) {
+    bool en; uint16_t win;
+    recovery_get_config(&en, &win);
+    char buf[64];
+    snprintf(buf, sizeof(buf), "{\"enabled\":%s,\"window_ms\":%u}", en ? "true" : "false", win);
+    nvs_handle_t h;
+    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
+        esp_err_t e = nvs_set_str(h, "recover", buf);
+        if (e == ESP_OK) e = nvs_commit(h);
+        if (e != ESP_OK) ESP_LOGW(TAG, "recover save failed: %s", esp_err_to_name(e));
+        nvs_close(h);
+    }
+}
+
 void recovery_init(void) {
     nvs_handle_t h;
     if (nvs_open("car", NVS_READONLY, &h) == ESP_OK) {
-        int8_t en;
-        if (nvs_get_i8(h, "recover_en", &en) == ESP_OK) s_enabled = (en != 0);
-        uint16_t win;
-        if (nvs_get_u16(h, "recover_win", &win) == ESP_OK &&
-            win >= RECOVER_WIN_MIN_MS && win <= RECOVER_WIN_MAX_MS) s_window_ms = win;
+        char buf[64];
+        size_t len = sizeof(buf);
+        if (nvs_get_str(h, "recover", buf, &len) == ESP_OK) {
+            cJSON *j = cJSON_Parse(buf);
+            cJSON *je = cJSON_GetObjectItemCaseSensitive(j, "enabled");
+            cJSON *jw = cJSON_GetObjectItemCaseSensitive(j, "window_ms");
+            if (cJSON_IsBool(je)) s_enabled = cJSON_IsTrue(je);
+            if (cJSON_IsNumber(jw) && jw->valueint >= RECOVER_WIN_MIN_MS && jw->valueint <= RECOVER_WIN_MAX_MS)
+                s_window_ms = (uint16_t)jw->valueint;
+            cJSON_Delete(j);
+        }
         nvs_close(h);
     }
     BaseType_t ok = xTaskCreate(retreat_task, "recovery", 3072, NULL, 5, &s_task);

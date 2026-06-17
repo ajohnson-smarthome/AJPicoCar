@@ -39,14 +39,7 @@ static esp_err_t recover_post(httpd_req_t *req) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "window_ms 1000..10000");
     }
     recovery_set_config(en == 1, (uint16_t)win);
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        nvs_set_i8(h, "recover_en", (int8_t)en);
-        nvs_set_u16(h, "recover_win", (uint16_t)win);
-        esp_err_t e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "recover save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    recovery_save();
     return httpd_resp_sendstr(req, "ok");
 }
 

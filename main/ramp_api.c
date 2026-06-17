@@ -31,13 +31,7 @@ static esp_err_t ramp_post(httpd_req_t *req) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ramp_ms must be 0..2000");
     }
     ramp_set_ms((uint16_t)v);
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        esp_err_t e = nvs_set_u16(h, "ramp_ms", (uint16_t)v);
-        if (e == ESP_OK) e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "ramp save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    ramp_save();
     return httpd_resp_sendstr(req, "ok");
 }
 

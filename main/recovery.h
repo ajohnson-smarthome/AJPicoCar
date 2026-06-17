@@ -23,6 +23,8 @@ void recovery_on_link_lost(void);
 // Config getters/setters (RAM; the API layer persists to NVS).
 void recovery_set_config(bool enabled, uint16_t window_ms);
 void recovery_get_config(bool *enabled, uint16_t *window_ms);
+// Persist the current enabled+window config as a JSON string in NVS.
+void recovery_save(void);
 
 // Pure (host-tested): reverse a command = negate both axes.
 static inline void recovery_reverse(float t, float y, float *rt, float *ry) {
