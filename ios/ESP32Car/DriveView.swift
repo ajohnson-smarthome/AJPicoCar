@@ -75,6 +75,14 @@ struct DriveView: View {
                 if Task.isCancelled { return }                 // cancelled during the fetches → bail cleanly
                 trick = Tricks.donutTrick(diameterCm: Double(TrickSettings.donutDiameterCm()),
                                           circles: TrickSettings.donutCircles(), vmaxMS: vmax, trackM: track)
+            } else if base.id == Tricks.figure8.id {
+                // Two tangent loops sized by diameter; per-lobe duration from the circle solver at real speed.
+                let vmax = await donutVmaxMS()
+                if Task.isCancelled { return }
+                let track = await donutTrackM()
+                if Task.isCancelled { return }
+                trick = Tricks.figure8Trick(diameterCm: Double(TrickSettings.fig8Dia()),
+                                            eights: TrickSettings.fig8Eights(), vmaxMS: vmax, trackM: track)
             } else {
                 trick = Tricks.withDurations(base, TrickSettings.durations(for: base))  // per-action durations
             }
