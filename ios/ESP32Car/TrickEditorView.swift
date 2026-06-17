@@ -10,6 +10,8 @@ struct TrickEditorView: View {
     @State private var circles = Tricks.donutCirclesDefault
     @State private var spinTurns = Tricks.spinTurnsDefault
     @State private var spinDurMs = Tricks.spinDurDefaultMs
+    @State private var fig8Dia = Tricks.fig8DiaDefaultCm
+    @State private var fig8Eights = Tricks.fig8EightsDefault
     private var p: Palette { palette }
     private var actions: [(t: Double, y: Double, count: Int)] { Tricks.distinctActions(trick) }
     private var totalSec: Double {
@@ -57,6 +59,24 @@ struct TrickEditorView: View {
                         }
                         .padding(.bottom, 16)
                     }
+                } else if trick.id == Tricks.figure8.id {
+                    // One shared scroll: animation + stats + loop diameter + eights count scroll together.
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            TrickSimView(trick: Tricks.figure8, durs: durs, palette: p,
+                                         fig8Dia: Double(fig8Dia), fig8Eights: fig8Eights)
+                            VStack(spacing: 0) {
+                                fig8DiaRow.padding(.horizontal, 14)
+                                Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1)
+                                fig8EightsRow.padding(.horizontal, 14)
+                            }
+                            .background(p.panel)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(p.metal.opacity(0.4), lineWidth: 1))
+                            .padding(.horizontal, 16)
+                        }
+                        .padding(.bottom, 16)
+                    }
                 } else {
                     controls
                 }
@@ -69,6 +89,8 @@ struct TrickEditorView: View {
             circles = TrickSettings.donutCircles()
             spinTurns = TrickSettings.spinTurns()
             spinDurMs = TrickSettings.spinDurMs()
+            fig8Dia = TrickSettings.fig8Dia()
+            fig8Eights = TrickSettings.fig8Eights()
         }
     }
 
@@ -240,6 +262,60 @@ struct TrickEditorView: View {
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
             }
             .buttonStyle(.plain).disabled(isDefault)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var fig8DiaRow: some View {
+        let isDefault = fig8Dia == Tricks.fig8DiaDefaultCm
+        HStack(spacing: 11) {
+            Text(L.fig8Diameter).font(.system(size: 13)).foregroundStyle(p.text)
+                .frame(width: 150, alignment: .leading)
+            Spacer()
+            stepButton("minus") {
+                fig8Dia = Swift.max(Tricks.fig8DiaMinCm, fig8Dia - 10); TrickSettings.setFig8Dia(fig8Dia)
+            }.disabled(fig8Dia <= Tricks.fig8DiaMinCm)
+            Text("\(fig8Dia) \(L.cmUnit)").font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(p.accent).monospacedDigit().frame(width: 56)
+            stepButton("plus") {
+                fig8Dia = Swift.min(Tricks.fig8DiaMaxCm, fig8Dia + 10); TrickSettings.setFig8Dia(fig8Dia)
+            }.disabled(fig8Dia >= Tricks.fig8DiaMaxCm)
+            Button {
+                fig8Dia = Tricks.fig8DiaDefaultCm; TrickSettings.resetFig8Dia()
+            } label: {
+                Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
+                    .foregroundStyle(isDefault ? p.muted : p.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
+            }
+            .buttonStyle(.plain).disabled(isDefault).padding(.leading, 4)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var fig8EightsRow: some View {
+        let isDefault = fig8Eights == Tricks.fig8EightsDefault
+        HStack(spacing: 11) {
+            Text(L.fig8Loops).font(.system(size: 13)).foregroundStyle(p.text)
+                .frame(width: 150, alignment: .leading)
+            Spacer()
+            stepButton("minus") {
+                fig8Eights = Swift.max(Tricks.fig8EightsMin, fig8Eights - 1); TrickSettings.setFig8Eights(fig8Eights)
+            }.disabled(fig8Eights <= Tricks.fig8EightsMin)
+            Text("\(fig8Eights)").font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(p.accent).monospacedDigit().frame(width: 34)
+            stepButton("plus") {
+                fig8Eights = Swift.min(Tricks.fig8EightsMax, fig8Eights + 1); TrickSettings.setFig8Eights(fig8Eights)
+            }.disabled(fig8Eights >= Tricks.fig8EightsMax)
+            Button {
+                fig8Eights = Tricks.fig8EightsDefault; TrickSettings.resetFig8Eights()
+            } label: {
+                Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
+                    .foregroundStyle(isDefault ? p.muted : p.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
+            }
+            .buttonStyle(.plain).disabled(isDefault).padding(.leading, 4)
         }
         .padding(.vertical, 4)
     }
