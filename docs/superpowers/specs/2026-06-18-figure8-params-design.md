@@ -79,10 +79,10 @@ already-fetched `/dims`). The simulation renders a proper "8" (the centre path c
 ### `TrickEditorView.swift` — figure-8 editor branch
 
 Like the donut branch: for `trick.id == Tricks.figure8.id`, a `ScrollView` with `TrickSimView(...)`
-(passing `fig8Dia`/`fig8Eights`) + a card holding two stepper rows:
-- **«Диаметр петли»** — a − / N cm / + stepper (20–150, step matches the donut's diameter stepper),
-  persisting via `TrickSettings.setFig8Dia`.
-- **«Восьмёрок»** — a − / N / + stepper (1–10), persisting via `TrickSettings.setFig8Eights`.
+(passing `fig8Dia`/`fig8Eights`) + a card holding two **stepper** rows (matching the approved mockup —
+both `[−] N [+]`, mirroring the donut's `circlesRow` widget):
+- **«Диаметр петли»** — a − / N см / + stepper (20–150, step 10), persisting via `TrickSettings.setFig8Dia`.
+- **«Восьмёрок»** — a − / N / + stepper (1–10, step 1), persisting via `TrickSettings.setFig8Eights`.
 
 No «Всего» footer (the duration shows in the sim caption). Non-donut/non-spin/non-figure8 tricks keep
 `controls`.
