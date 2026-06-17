@@ -1,22 +1,15 @@
 #include "calibration.h"
-#include <string.h>
 #include <stdio.h>
-#include "nvs.h"
 #include "esp_log.h"
 #include "cJSON.h"
+#include "cfg_json.h"
 
 static const char *TAG = "calib";
-#define NS  "car"
 #define KEY "calib"
 
 bool calibration_load(motors_config_t *out) {
-    nvs_handle_t h;
-    if (nvs_open(NS, NVS_READONLY, &h) != ESP_OK) return false;
     char buf[160];
-    size_t len = sizeof(buf);
-    esp_err_t e = nvs_get_str(h, KEY, buf, &len);
-    nvs_close(h);
-    if (e != ESP_OK) return false;
+    if (!cfg_json_load(KEY, buf, sizeof(buf))) return false;
     cJSON *j = cJSON_Parse(buf);
     cJSON *jdz = cJSON_GetObjectItemCaseSensitive(j, "deadzone");
     cJSON *arr = cJSON_GetObjectItemCaseSensitive(j, "wheels");
@@ -51,12 +44,7 @@ esp_err_t calibration_save(const motors_config_t *cfg) {
     }
     if (n < 0 || (size_t)n >= sizeof(buf)) return ESP_FAIL;   // would have truncated → don't persist a broken string
     snprintf(buf + n, sizeof(buf) - n, "]}");
-    nvs_handle_t h;
-    esp_err_t e = nvs_open(NS, NVS_READWRITE, &h);
-    if (e != ESP_OK) return e;
-    e = nvs_set_str(h, KEY, buf);
-    if (e == ESP_OK) e = nvs_commit(h);
-    nvs_close(h);
+    esp_err_t e = cfg_json_save(KEY, buf);
     if (e == ESP_OK) ESP_LOGI(TAG, "saved calibration to NVS");
     return e;
 }

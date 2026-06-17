@@ -10,7 +10,7 @@
 #include "motors.h"
 #include "calibration.h"
 #include "trim.h"
-#include "nvs.h"
+#include "cfg_json.h"
 
 static const char *TAG = "car";
 
@@ -94,13 +94,7 @@ int8_t car_get_trim(void) {
 void car_save_trim(void) {
     char buf[32];
     snprintf(buf, sizeof(buf), "{\"trim_pct\":%d}", car_get_trim());
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        esp_err_t e = nvs_set_str(h, "trim", buf);
-        if (e == ESP_OK) e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "trim save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    cfg_json_save("trim", buf);
 }
 
 void car_spin_pair(uint8_t pair, bool forward) {
@@ -126,18 +120,12 @@ void car_init(void) {
         ESP_LOGW(TAG, "no NVS calibration — using default mapping");
     }
 
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READONLY, &h) == ESP_OK) {
-        char buf[32];
-        size_t len = sizeof(buf);
-        if (nvs_get_str(h, "trim", buf, &len) == ESP_OK) {
-            cJSON *j = cJSON_Parse(buf);
-            cJSON *jt = cJSON_GetObjectItemCaseSensitive(j, "trim_pct");
-            if (cJSON_IsNumber(jt) && jt->valueint >= -30 && jt->valueint <= 30)
-                g_trim_pct = (int8_t)jt->valueint;
-            cJSON_Delete(j);
-        }
-        nvs_close(h);
+    char buf[32];
+    if (cfg_json_load("trim", buf, sizeof(buf))) {
+        cJSON *j = cJSON_Parse(buf);
+        int t;
+        if (cfg_json_int(j, "trim_pct", &t) && t >= -30 && t <= 30) g_trim_pct = (int8_t)t;
+        cJSON_Delete(j);
     }
 
     car_stop();  // safety stop

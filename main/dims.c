@@ -1,8 +1,8 @@
 #include "dims.h"
 #include <stdio.h>
 #include "cJSON.h"
+#include "cfg_json.h"
 #include "esp_log.h"
-#include "nvs.h"
 
 static const char *TAG = "dims";
 
@@ -27,31 +27,19 @@ void dims_save(void) {
     char buf[64];
     snprintf(buf, sizeof(buf), "{\"track_mm\":%u,\"wheelbase_mm\":%u}",
              s_params.track_mm, s_params.wheelbase_mm);
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        esp_err_t e = nvs_set_str(h, "dims", buf);
-        if (e == ESP_OK) e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "dims save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    cfg_json_save("dims", buf);
 }
 
 void dims_init(void) {
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READONLY, &h) == ESP_OK) {
-        char buf[64];
-        size_t len = sizeof(buf);
-        if (nvs_get_str(h, "dims", buf, &len) == ESP_OK) {
-            cJSON *j = cJSON_Parse(buf);
-            cJSON *jt = cJSON_GetObjectItemCaseSensitive(j, "track_mm");
-            cJSON *jw = cJSON_GetObjectItemCaseSensitive(j, "wheelbase_mm");
-            if (cJSON_IsNumber(jt) && cJSON_IsNumber(jw)) {
-                dims_params_t d = { .track_mm = (uint16_t)jt->valueint, .wheelbase_mm = (uint16_t)jw->valueint };
-                dims_set(&d);   // clamps + applies
-            }
-            cJSON_Delete(j);
+    char buf[64];
+    if (cfg_json_load("dims", buf, sizeof(buf))) {
+        cJSON *j = cJSON_Parse(buf);
+        int track, base;
+        if (cfg_json_int(j, "track_mm", &track) && cfg_json_int(j, "wheelbase_mm", &base)) {
+            dims_params_t d = { .track_mm = (uint16_t)track, .wheelbase_mm = (uint16_t)base };
+            dims_set(&d);   // clamps + applies
         }
-        nvs_close(h);
+        cJSON_Delete(j);
     }
     ESP_LOGI(TAG, "dims track=%u mm wheelbase=%u mm", s_params.track_mm, s_params.wheelbase_mm);
 }

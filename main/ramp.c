@@ -7,11 +7,10 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_log.h"
-#include "nvs.h"
+#include "cfg_json.h"
 #include "pca9685.h"
 
 static const char *TAG = "ramp";
-#define NS  "car"
 #define TICK_MS 20            // 50 Hz
 #define RAMP_MS_DEFAULT 300
 #define RAMP_MS_MAX 2000
@@ -79,32 +78,21 @@ uint16_t ramp_get_ms(void) {
 void ramp_save(void) {
     char buf[32];
     snprintf(buf, sizeof(buf), "{\"ramp_ms\":%u}", ramp_get_ms());
-    nvs_handle_t h;
-    if (nvs_open(NS, NVS_READWRITE, &h) == ESP_OK) {
-        esp_err_t e = nvs_set_str(h, "ramp", buf);
-        if (e == ESP_OK) e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "ramp save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    cfg_json_save("ramp", buf);
 }
 
 esp_err_t ramp_init(void) {
     s_lock = xSemaphoreCreateMutex();
     if (!s_lock) return ESP_ERR_NO_MEM;
 
-    nvs_handle_t h;
-    if (nvs_open(NS, NVS_READONLY, &h) == ESP_OK) {
-        char buf[32];
-        size_t len = sizeof(buf);
-        if (nvs_get_str(h, "ramp", buf, &len) == ESP_OK) {
-            cJSON *j = cJSON_Parse(buf);
-            cJSON *jv = cJSON_GetObjectItemCaseSensitive(j, "ramp_ms");
-            if (cJSON_IsNumber(jv) && jv->valueint >= 0 && jv->valueint <= RAMP_MS_MAX) {
-                s_ramp_ms = (uint16_t)jv->valueint;
-            }
-            cJSON_Delete(j);
+    char buf[32];
+    if (cfg_json_load("ramp", buf, sizeof(buf))) {
+        cJSON *j = cJSON_Parse(buf);
+        int v;
+        if (cfg_json_int(j, "ramp_ms", &v) && v >= 0 && v <= RAMP_MS_MAX) {
+            s_ramp_ms = (uint16_t)v;
         }
-        nvs_close(h);
+        cJSON_Delete(j);
     }
     ESP_LOGI(TAG, "ramp_ms = %u (boot)", s_ramp_ms);
 

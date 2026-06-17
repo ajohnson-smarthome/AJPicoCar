@@ -3,8 +3,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-#include "nvs.h"
 #include "cJSON.h"
+#include "cfg_json.h"
 #include "car.h"
 
 static const char *TAG = "recovery";
@@ -125,30 +125,19 @@ void recovery_save(void) {
     recovery_get_config(&en, &win);
     char buf[64];
     snprintf(buf, sizeof(buf), "{\"enabled\":%s,\"window_ms\":%u}", en ? "true" : "false", win);
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        esp_err_t e = nvs_set_str(h, "recover", buf);
-        if (e == ESP_OK) e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "recover save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    cfg_json_save("recover", buf);
 }
 
 void recovery_init(void) {
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READONLY, &h) == ESP_OK) {
-        char buf[64];
-        size_t len = sizeof(buf);
-        if (nvs_get_str(h, "recover", buf, &len) == ESP_OK) {
-            cJSON *j = cJSON_Parse(buf);
-            cJSON *je = cJSON_GetObjectItemCaseSensitive(j, "enabled");
-            cJSON *jw = cJSON_GetObjectItemCaseSensitive(j, "window_ms");
-            if (cJSON_IsBool(je)) s_enabled = cJSON_IsTrue(je);
-            if (cJSON_IsNumber(jw) && jw->valueint >= RECOVER_WIN_MIN_MS && jw->valueint <= RECOVER_WIN_MAX_MS)
-                s_window_ms = (uint16_t)jw->valueint;
-            cJSON_Delete(j);
-        }
-        nvs_close(h);
+    char buf[64];
+    if (cfg_json_load("recover", buf, sizeof(buf))) {
+        cJSON *j = cJSON_Parse(buf);
+        cJSON *je = cJSON_GetObjectItemCaseSensitive(j, "enabled");
+        int win;
+        if (cJSON_IsBool(je)) s_enabled = cJSON_IsTrue(je);
+        if (cfg_json_int(j, "window_ms", &win) && win >= RECOVER_WIN_MIN_MS && win <= RECOVER_WIN_MAX_MS)
+            s_window_ms = (uint16_t)win;
+        cJSON_Delete(j);
     }
     BaseType_t ok = xTaskCreate(retreat_task, "recovery", 3072, NULL, 5, &s_task);
     if (ok != pdPASS) ESP_LOGE(TAG, "retreat task create failed");

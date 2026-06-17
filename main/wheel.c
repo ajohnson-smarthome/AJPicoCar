@@ -1,8 +1,8 @@
 #include "wheel.h"
 #include <stdio.h>
 #include "cJSON.h"
+#include "cfg_json.h"
 #include "esp_log.h"
-#include "nvs.h"
 
 static const char *TAG = "wheel";
 
@@ -31,34 +31,21 @@ void wheel_save(void) {
     char buf[96];
     snprintf(buf, sizeof(buf), "{\"diameter_mm\":%u,\"ppr\":%u,\"gear_x100\":%u,\"quad\":%u}",
              s_params.diameter_mm, s_params.ppr, s_params.gear_x100, s_params.quad);
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        esp_err_t e = nvs_set_str(h, "wheel", buf);
-        if (e == ESP_OK) e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "wheel save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    cfg_json_save("wheel", buf);
 }
 
 void wheel_init(void) {
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READONLY, &h) == ESP_OK) {
-        char buf[96];
-        size_t len = sizeof(buf);
-        if (nvs_get_str(h, "wheel", buf, &len) == ESP_OK) {
-            cJSON *j = cJSON_Parse(buf);
-            cJSON *jd = cJSON_GetObjectItemCaseSensitive(j, "diameter_mm");
-            cJSON *jp = cJSON_GetObjectItemCaseSensitive(j, "ppr");
-            cJSON *jg = cJSON_GetObjectItemCaseSensitive(j, "gear_x100");
-            cJSON *jq = cJSON_GetObjectItemCaseSensitive(j, "quad");
-            if (cJSON_IsNumber(jd) && cJSON_IsNumber(jp) && cJSON_IsNumber(jg) && cJSON_IsNumber(jq)) {
-                wheel_params_t w = { .diameter_mm = (uint16_t)jd->valueint, .ppr = (uint16_t)jp->valueint,
-                                     .gear_x100 = (uint16_t)jg->valueint, .quad = (uint8_t)jq->valueint };
-                wheel_set(&w);   // clamps + applies
-            }
-            cJSON_Delete(j);
+    char buf[96];
+    if (cfg_json_load("wheel", buf, sizeof(buf))) {
+        cJSON *j = cJSON_Parse(buf);
+        int d, ppr, gear, quad;
+        if (cfg_json_int(j, "diameter_mm", &d) && cfg_json_int(j, "ppr", &ppr) &&
+            cfg_json_int(j, "gear_x100", &gear) && cfg_json_int(j, "quad", &quad)) {
+            wheel_params_t w = { .diameter_mm = (uint16_t)d, .ppr = (uint16_t)ppr,
+                                 .gear_x100 = (uint16_t)gear, .quad = (uint8_t)quad };
+            wheel_set(&w);   // clamps + applies
         }
-        nvs_close(h);
+        cJSON_Delete(j);
     }
     ESP_LOGI(TAG, "wheel d=%u mm ppr=%u gear=%u/100 quad=%u (cpr %.0f)",
              s_params.diameter_mm, s_params.ppr, s_params.gear_x100, s_params.quad,
