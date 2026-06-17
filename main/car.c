@@ -1,8 +1,10 @@
 #include "car.h"
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "esp_log.h"
 #include "esp_err.h"
+#include "cJSON.h"
 #include "ramp.h"
 #include "mixer.h"
 #include "motors.h"
@@ -88,6 +90,19 @@ int8_t car_get_trim(void) {
     return val;
 }
 
+// JSON string in NVS under "trim": {"trim_pct":..}
+void car_save_trim(void) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "{\"trim_pct\":%d}", car_get_trim());
+    nvs_handle_t h;
+    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
+        esp_err_t e = nvs_set_str(h, "trim", buf);
+        if (e == ESP_OK) e = nvs_commit(h);
+        if (e != ESP_OK) ESP_LOGW(TAG, "trim save failed: %s", esp_err_to_name(e));
+        nvs_close(h);
+    }
+}
+
 void car_spin_pair(uint8_t pair, bool forward) {
     if (pair > 3) return;
     motor_outputs_t out = { .duty = {0} };
@@ -113,8 +128,15 @@ void car_init(void) {
 
     nvs_handle_t h;
     if (nvs_open("car", NVS_READONLY, &h) == ESP_OK) {
-        int8_t t;
-        if (nvs_get_i8(h, "trim_pct", &t) == ESP_OK && t >= -30 && t <= 30) g_trim_pct = t;
+        char buf[32];
+        size_t len = sizeof(buf);
+        if (nvs_get_str(h, "trim", buf, &len) == ESP_OK) {
+            cJSON *j = cJSON_Parse(buf);
+            cJSON *jt = cJSON_GetObjectItemCaseSensitive(j, "trim_pct");
+            if (cJSON_IsNumber(jt) && jt->valueint >= -30 && jt->valueint <= 30)
+                g_trim_pct = (int8_t)jt->valueint;
+            cJSON_Delete(j);
+        }
         nvs_close(h);
     }
 

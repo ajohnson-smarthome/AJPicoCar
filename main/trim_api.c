@@ -5,7 +5,6 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_check.h"
-#include "nvs.h"
 #include "http_server.h"
 #include "car.h"
 
@@ -31,13 +30,7 @@ static esp_err_t trim_post(httpd_req_t *req) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "trim_pct must be -30..30");
     }
     car_set_trim((int8_t)v);
-    nvs_handle_t h;
-    if (nvs_open("car", NVS_READWRITE, &h) == ESP_OK) {
-        esp_err_t e = nvs_set_i8(h, "trim_pct", (int8_t)v);
-        if (e == ESP_OK) e = nvs_commit(h);
-        if (e != ESP_OK) ESP_LOGW(TAG, "trim save failed: %s", esp_err_to_name(e));
-        nvs_close(h);
-    }
+    car_save_trim();
     return httpd_resp_sendstr(req, "ok");
 }
 

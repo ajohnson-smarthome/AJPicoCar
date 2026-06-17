@@ -25,6 +25,9 @@ void car_set_calibration(const motors_config_t *cfg);
 void car_set_trim(int8_t pct);
 int8_t car_get_trim(void);
 
+// Persist the current trim as a JSON string in NVS (the trim value lives in car.c).
+void car_save_trim(void);
+
 // Calibration helper: spin ONE raw PCA9685 channel pair (0..3) at low duty to
 // identify which physical wheel it is. Bypasses the calibration table.
 // forward=true drives CH_A, false drives CH_B. Call car_stop() to halt.
