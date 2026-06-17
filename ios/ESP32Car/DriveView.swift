@@ -56,7 +56,10 @@ struct DriveView: View {
 
     private func startTrick(_ base: Trick) {
         trickTask?.cancel()
-        let trick = Tricks.withDurations(base, TrickSettings.durations(for: base))  // per-action durations; totalMs drives the ring
+        // The donut's (t,y) comes from the user-set circle diameter; other tricks use their base.
+        let effectiveBase = base.id == Tricks.donut.id
+            ? Tricks.donutTrick(diameterCm: Double(TrickSettings.donutDiameterCm())) : base
+        let trick = Tricks.withDurations(effectiveBase, TrickSettings.durations(for: effectiveBase))  // per-action durations; totalMs drives the ring
         runningTrick = trick
         trickStartedAt = Date()
         trickTask = Task {
