@@ -1,5 +1,6 @@
 #include "wheel_api.h"
 #include <stdio.h>
+#include "cJSON.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_check.h"
@@ -21,18 +22,26 @@ static esp_err_t wheel_get_handler(httpd_req_t *req) {
 }
 
 static esp_err_t wheel_post_handler(httpd_req_t *req) {
-    char body[48] = {0};
+    char body[96] = {0};
     int len = httpd_req_recv(req, body, sizeof(body) - 1);
     if (len <= 0) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty");
-    // Body is four ints: "<diameter_mm> <ppr> <gear_x100> <quad>" (no JSON parser dependency).
-    int d = -1, ppr = -1, gear = -1, quad = -1;
-    if (sscanf(body, "%d %d %d %d", &d, &ppr, &gear, &quad) != 4 ||
-        d < WHEEL_D_MIN_MM || d > WHEEL_D_MAX_MM ||
+    // Body is JSON: {"diameter_mm":..,"ppr":..,"gear_x100":..,"quad":..}
+    cJSON *j = cJSON_Parse(body);
+    cJSON *jd = cJSON_GetObjectItemCaseSensitive(j, "diameter_mm");
+    cJSON *jp = cJSON_GetObjectItemCaseSensitive(j, "ppr");
+    cJSON *jg = cJSON_GetObjectItemCaseSensitive(j, "gear_x100");
+    cJSON *jq = cJSON_GetObjectItemCaseSensitive(j, "quad");
+    if (!cJSON_IsNumber(jd) || !cJSON_IsNumber(jp) || !cJSON_IsNumber(jg) || !cJSON_IsNumber(jq)) {
+        cJSON_Delete(j);
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "need {diameter_mm,ppr,gear_x100,quad}");
+    }
+    int d = jd->valueint, ppr = jp->valueint, gear = jg->valueint, quad = jq->valueint;
+    cJSON_Delete(j);
+    if (d < WHEEL_D_MIN_MM || d > WHEEL_D_MAX_MM ||
         ppr < WHEEL_PPR_MIN || ppr > WHEEL_PPR_MAX ||
         gear < WHEEL_GEAR_X100_MIN || gear > WHEEL_GEAR_X100_MAX ||
         (quad != 1 && quad != 2 && quad != 4)) {
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
-                                   "need: <20..150> <1..1000> <100..30000> <1|2|4>");
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "range: <20..150> <1..1000> <100..30000> <1|2|4>");
     }
     wheel_params_t w = { .diameter_mm = (uint16_t)d, .ppr = (uint16_t)ppr,
                          .gear_x100 = (uint16_t)gear, .quad = (uint8_t)quad };

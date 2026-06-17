@@ -1,6 +1,7 @@
 #include "ramp_api.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "cJSON.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_check.h"
@@ -18,12 +19,15 @@ static esp_err_t ramp_get(httpd_req_t *req) {
 }
 
 static esp_err_t ramp_post(httpd_req_t *req) {
-    char body[16] = {0};
+    char body[32] = {0};
     int len = httpd_req_recv(req, body, sizeof(body) - 1);
     if (len <= 0) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty");
-    char *end;
-    long v = strtol(body, &end, 10);
-    if (end == body || v < 0 || v > 2000) {
+    cJSON *j = cJSON_Parse(body);
+    cJSON *jv = cJSON_GetObjectItemCaseSensitive(j, "ramp_ms");
+    if (!cJSON_IsNumber(jv)) { cJSON_Delete(j); return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "need {ramp_ms}"); }
+    long v = jv->valueint;
+    cJSON_Delete(j);
+    if (v < 0 || v > 2000) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "ramp_ms must be 0..2000");
     }
     ramp_set_ms((uint16_t)v);

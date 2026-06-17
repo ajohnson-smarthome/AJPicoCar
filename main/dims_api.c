@@ -1,5 +1,6 @@
 #include "dims_api.h"
 #include <stdio.h>
+#include "cJSON.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_check.h"
@@ -20,15 +21,22 @@ static esp_err_t dims_get_handler(httpd_req_t *req) {
 }
 
 static esp_err_t dims_post_handler(httpd_req_t *req) {
-    char body[32] = {0};
+    char body[64] = {0};
     int len = httpd_req_recv(req, body, sizeof(body) - 1);
     if (len <= 0) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty");
-    // Body is two ints: "<track_mm> <wheelbase_mm>" (no JSON parser dependency).
-    int track = -1, base = -1;
-    if (sscanf(body, "%d %d", &track, &base) != 2 ||
-        track < DIMS_TRACK_MIN_MM || track > DIMS_TRACK_MAX_MM ||
+    // Body is JSON: {"track_mm":..,"wheelbase_mm":..}
+    cJSON *j = cJSON_Parse(body);
+    cJSON *jt = cJSON_GetObjectItemCaseSensitive(j, "track_mm");
+    cJSON *jw = cJSON_GetObjectItemCaseSensitive(j, "wheelbase_mm");
+    if (!cJSON_IsNumber(jt) || !cJSON_IsNumber(jw)) {
+        cJSON_Delete(j);
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "need {track_mm,wheelbase_mm}");
+    }
+    int track = jt->valueint, base = jw->valueint;
+    cJSON_Delete(j);
+    if (track < DIMS_TRACK_MIN_MM || track > DIMS_TRACK_MAX_MM ||
         base < DIMS_WHEELBASE_MIN_MM || base > DIMS_WHEELBASE_MAX_MM) {
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "need: <60..300> <90..360>");
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "range: <60..300> <90..360>");
     }
     dims_params_t d = { .track_mm = (uint16_t)track, .wheelbase_mm = (uint16_t)base };
     dims_set(&d);

@@ -1,6 +1,7 @@
 #include "calib_api.h"
 #include <stdio.h>
 #include <string.h>
+#include "cJSON.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_http_server.h"
@@ -36,11 +37,20 @@ static esp_err_t calib_spin(httpd_req_t *req) {
     if (read_body(req, b, sizeof(b)) != 0) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad body");
     }
-    unsigned pair, dir;
-    if (sscanf(b, "%u,%u", &pair, &dir) != 2 || pair > 3) {
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad args");
+    // Body is JSON: {"pair":0..3,"dir":0|1}
+    cJSON *j = cJSON_Parse(b);
+    cJSON *jp = cJSON_GetObjectItemCaseSensitive(j, "pair");
+    cJSON *jd = cJSON_GetObjectItemCaseSensitive(j, "dir");
+    if (!cJSON_IsNumber(jp) || !cJSON_IsNumber(jd)) {
+        cJSON_Delete(j);
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "need {pair,dir}");
     }
-    ESP_LOGI(TAG, "spin pair %u %s", pair, dir ? "fwd" : "rev");
+    int pair = jp->valueint, dir = jd->valueint;
+    cJSON_Delete(j);
+    if (pair < 0 || pair > 3 || (dir != 0 && dir != 1)) {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "pair 0..3, dir 0|1");
+    }
+    ESP_LOGI(TAG, "spin pair %d %s", pair, dir ? "fwd" : "rev");
     car_spin_pair((uint8_t)pair, dir != 0);
     vTaskDelay(pdMS_TO_TICKS(600));
     car_stop();
@@ -49,21 +59,30 @@ static esp_err_t calib_spin(httpd_req_t *req) {
 
 // POST /calib/save  body "<p>:<s>,<p>:<s>,<p>:<s>,<p>:<s>" for FL,FR,RL,RR.
 static esp_err_t calib_save(httpd_req_t *req) {
-    char b[64];
+    char b[128];
     if (read_body(req, b, sizeof(b)) != 0) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad body");
     }
-    unsigned p[4];
-    int s[4];
-    if (sscanf(b, "%u:%d,%u:%d,%u:%d,%u:%d",
-               &p[0], &s[0], &p[1], &s[1], &p[2], &s[2], &p[3], &s[3]) != 8) {
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad format");
+    // Body is JSON: {"wheels":[{"pair":..,"sign":..} × 4]} in FL,FR,RL,RR order.
+    cJSON *j = cJSON_Parse(b);
+    cJSON *arr = cJSON_GetObjectItemCaseSensitive(j, "wheels");
+    if (!cJSON_IsArray(arr) || cJSON_GetArraySize(arr) != 4) {
+        cJSON_Delete(j);
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "need {wheels:[4x{pair,sign}]}");
     }
     motors_config_t cfg = { .deadzone = 0.05f };
     for (int i = 0; i < 4; i++) {
-        cfg.wheels[i].channel_pair = (uint8_t)p[i];
-        cfg.wheels[i].sign = (int8_t)s[i];
+        cJSON *w = cJSON_GetArrayItem(arr, i);
+        cJSON *jp = cJSON_GetObjectItemCaseSensitive(w, "pair");
+        cJSON *js = cJSON_GetObjectItemCaseSensitive(w, "sign");
+        if (!cJSON_IsNumber(jp) || !cJSON_IsNumber(js)) {
+            cJSON_Delete(j);
+            return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "wheel needs {pair,sign}");
+        }
+        cfg.wheels[i].channel_pair = (uint8_t)jp->valueint;
+        cfg.wheels[i].sign = (int8_t)js->valueint;
     }
+    cJSON_Delete(j);
     esp_err_t e = calibration_save(&cfg);
     if (e != ESP_OK) {
         ESP_LOGW(TAG, "save rejected: %s", esp_err_to_name(e));

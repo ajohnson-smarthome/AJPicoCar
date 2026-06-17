@@ -1,5 +1,6 @@
 #include "recovery_api.h"
 #include <stdio.h>
+#include "cJSON.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_check.h"
@@ -20,14 +21,22 @@ static esp_err_t recover_get(httpd_req_t *req) {
 }
 
 static esp_err_t recover_post(httpd_req_t *req) {
-    char body[32] = {0};
+    char body[64] = {0};
     int len = httpd_req_recv(req, body, sizeof(body) - 1);
     if (len <= 0) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty");
-    // Body is two ints: "<0|1> <window_ms>" (avoids a JSON parser dependency).
-    int en = -1; long win = -1;
-    if (sscanf(body, "%d %ld", &en, &win) != 2 || (en != 0 && en != 1) ||
-        win < RECOVER_WIN_MIN_MS || win > RECOVER_WIN_MAX_MS) {
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "need: <0|1> <1000..10000>");
+    // Body is JSON: {"enabled":true|false,"window_ms":..}
+    cJSON *j = cJSON_Parse(body);
+    cJSON *je = cJSON_GetObjectItemCaseSensitive(j, "enabled");
+    cJSON *jw = cJSON_GetObjectItemCaseSensitive(j, "window_ms");
+    if (!cJSON_IsBool(je) || !cJSON_IsNumber(jw)) {
+        cJSON_Delete(j);
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "need {enabled,window_ms}");
+    }
+    int en = cJSON_IsTrue(je) ? 1 : 0;
+    long win = jw->valueint;
+    cJSON_Delete(j);
+    if (win < RECOVER_WIN_MIN_MS || win > RECOVER_WIN_MAX_MS) {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "window_ms 1000..10000");
     }
     recovery_set_config(en == 1, (uint16_t)win);
     nvs_handle_t h;
