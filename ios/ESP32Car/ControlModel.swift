@@ -85,9 +85,9 @@ enum ControlModel {
         }.joined(separator: ",")
     }
 
-    /// Wire frame "t,y" with two decimals (matches the web pad / firmware parser).
+    /// Wire frame as a JSON object {"t":..,"y":..} (two decimals), clamped to [-1,1].
     static func frame(t: Double, y: Double) -> String {
-        String(format: "%.2f,%.2f", clamp(t), clamp(y))
+        String(format: "{\"t\":%.2f,\"y\":%.2f}", clamp(t), clamp(y))
     }
 
     /// Which visual the diagram shows for a command.

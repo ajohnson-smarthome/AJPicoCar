@@ -26,7 +26,7 @@ final class ControlModelTests: XCTestCase {
         XCTAssertEqual(ControlModel.clamp(0.3), 0.3)
     }
     func testFrame() {
-        XCTAssertEqual(ControlModel.frame(t: 0.5, y: -1), "0.50,-1.00")
+        XCTAssertEqual(ControlModel.frame(t: 0.5, y: -1), "{\"t\":0.50,\"y\":-1.00}")
     }
     func testSidesForward() {
         let s = ControlModel.sides(t: 1, y: 0)
