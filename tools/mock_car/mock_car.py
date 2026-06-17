@@ -9,7 +9,8 @@ from aiohttp import web, WSMsgType
 
 START = time.monotonic()
 STATE = {"calibrated": False, "ramp_ms": 300, "trim_pct": 0, "wdt_trips": 0,
-         "wheel": {"diameter_mm": 65, "ppr": 11, "gear_x100": 2100, "quad": 4}}
+         "wheel": {"diameter_mm": 65, "ppr": 11, "gear_x100": 2100, "quad": 4},
+         "dims": {"track_mm": 130, "wheelbase_mm": 210}}
 
 
 async def status(request):
@@ -126,6 +127,23 @@ async def wheel_post(request):
     return web.Response(text="ok")
 
 
+async def dims_get(request):
+    return web.json_response(STATE["dims"])
+
+
+async def dims_post(request):
+    body = (await request.text()).strip()
+    try:
+        track, base = (int(x) for x in body.split())
+        if not (60 <= track <= 300 and 90 <= base <= 360):
+            raise ValueError
+    except ValueError:
+        return web.Response(status=400, text="need: <track> <wheelbase>")
+    STATE["dims"] = {"track_mm": track, "wheelbase_mm": base}
+    print(f"dims: {STATE['dims']}")
+    return web.Response(text="ok")
+
+
 async def ota(request):
     data = await request.read()
     print(f"ota: received {len(data)} bytes")
@@ -147,8 +165,10 @@ def main():
         web.post("/trim", trim_post),
         web.get("/wheel", wheel_get),
         web.post("/wheel", wheel_post),
+        web.get("/dims", dims_get),
+        web.post("/dims", dims_post),
     ])
-    print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*, /ramp, /trim, /wheel, /ota)")
+    print("mock car on http://127.0.0.1:8080  (/status, /ws, /calib*, /ramp, /trim, /wheel, /dims, /ota)")
     web.run_app(app, host="127.0.0.1", port=8080)
 
 
