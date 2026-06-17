@@ -12,6 +12,8 @@ struct TrickSimView: View {
     var donutCircles: Int? = nil
     var spinTurns: Int? = nil
     var spinDurMs: Int? = nil
+    var fig8Dia: Double? = nil
+    var fig8Eights: Int? = nil
     @State private var wheel: WheelClient.Params?
     @State private var track = Tricks.donutTrackFallbackM
     private var p: Palette { palette }
@@ -25,6 +27,9 @@ struct TrickSimView: View {
         }
         if trick.id == Tricks.spin.id, let n = spinTurns, let ms = spinDurMs, let v = vmaxMS {
             return Tricks.spinTrick(turns: n, durationMs: ms, vmaxMS: v, trackM: track).steps
+        }
+        if trick.id == Tricks.figure8.id, let dia = fig8Dia, let n = fig8Eights, let v = vmaxMS {
+            return Tricks.figure8Trick(diameterCm: dia, eights: n, vmaxMS: v, trackM: track).steps
         }
         let d = durs.isEmpty ? Tricks.baseDurations(trick) : durs
         return Tricks.withDurations(trick, d).steps
