@@ -10,6 +10,8 @@ struct TrickSimView: View {
     let palette: Palette
     var donutDiameterCm: Double? = nil
     var donutCircles: Int? = nil
+    var spinTurns: Int? = nil
+    var spinDurMs: Int? = nil
     @State private var wheel: WheelClient.Params?
     @State private var track = Tricks.donutTrackFallbackM
     private var p: Palette { palette }
@@ -20,6 +22,9 @@ struct TrickSimView: View {
     private var steps: [TrickStep] {
         if trick.id == Tricks.donut.id, let dia = donutDiameterCm, let n = donutCircles, let v = vmaxMS {
             return Tricks.donutTrick(diameterCm: dia, circles: n, vmaxMS: v, trackM: track).steps
+        }
+        if trick.id == Tricks.spin.id, let n = spinTurns, let ms = spinDurMs, let v = vmaxMS {
+            return Tricks.spinTrick(turns: n, durationMs: ms, vmaxMS: v, trackM: track).steps
         }
         let d = durs.isEmpty ? Tricks.baseDurations(trick) : durs
         return Tricks.withDurations(trick, d).steps
