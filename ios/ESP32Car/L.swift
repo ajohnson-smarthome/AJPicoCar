@@ -107,6 +107,7 @@ enum L {
     static func simVerdict(_ sec: Double, _ turns: Double) -> String { s("sim.verdict", sec, turns) }
     static var simPickMotor: String { s("sim.pickMotor") }
     static var simDiameter: String { s("sim.diameter") }
+    static var simCircles: String { s("sim.circles") }
     static var gateNoInternetTitle: String { s("gate.noInternetTitle") }
     static var gateNoInternetSub: String { s("gate.noInternetSub") }
     static var gateCheckFailedTitle: String { s("gate.checkFailedTitle") }
