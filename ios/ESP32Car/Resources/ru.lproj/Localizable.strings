@@ -102,6 +102,11 @@
 "wheel.gear"          = "Редуктор";
 "wheel.quad"          = "Квадратура";
 "wheel.custom"        = "Свои параметры";
+"dims.title"          = "Размеры машинки";
+"dims.track"          = "Колея";
+"dims.base"           = "База";
+"dims.trackHint"      = "поперёк";
+"dims.baseHint"       = "вдоль";
 "unit.mm"             = "мм";
 "unit.rpm"            = "об/мин";
 "unit.m"              = "м";

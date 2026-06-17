@@ -88,6 +88,11 @@ enum L {
     static var wheelWizardTitle: String { s("wheel.wizardTitle") }
     static func wheelStep(_ a: Int, _ b: Int) -> String { s("wheel.step", a, b) }
     static var wheelNext: String { s("wheel.next") }
+    static var dimsTitle: String { s("dims.title") }
+    static var dimsTrack: String { s("dims.track") }
+    static var dimsBase: String { s("dims.base") }
+    static var dimsTrackHint: String { s("dims.trackHint") }
+    static var dimsBaseHint: String { s("dims.baseHint") }
     static var wheelSectionWheels: String { s("wheel.sectionWheels") }
     static var wheelSectionMotors: String { s("wheel.sectionMotors") }
     static var wheelDiameter: String { s("wheel.diameter") }
