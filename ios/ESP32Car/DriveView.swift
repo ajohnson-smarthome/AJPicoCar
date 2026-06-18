@@ -83,6 +83,9 @@ struct DriveView: View {
                 if Task.isCancelled { return }
                 trick = Tricks.figure8Trick(diameterCm: Double(TrickSettings.fig8Dia()),
                                             eights: TrickSettings.fig8Eights(), vmaxMS: vmax, trackM: track)
+            } else if base.id == Tricks.wiggle.id {
+                // In-place oscillation — no geometry, build synchronously from amplitude + wag count.
+                trick = Tricks.wiggleTrick(amplitude: TrickSettings.wiggleAmp(), wags: TrickSettings.wiggleWags())
             } else {
                 trick = Tricks.withDurations(base, TrickSettings.durations(for: base))  // per-action durations
             }
