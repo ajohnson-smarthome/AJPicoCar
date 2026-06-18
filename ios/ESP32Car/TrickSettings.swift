@@ -109,4 +109,32 @@ enum TrickSettings {
     static func resetFig8Eights() {
         UserDefaults.standard.removeObject(forKey: fig8EightsKey)
     }
+
+    private static let wiggleAmpKey = "trick.wiggle.amp"
+    private static func clampWiggleAmp(_ a: Double) -> Double {
+        Swift.min(Tricks.wiggleAmpMax, Swift.max(Tricks.wiggleAmpMin, a))
+    }
+    static func wiggleAmp() -> Double {
+        clampWiggleAmp(UserDefaults.standard.object(forKey: wiggleAmpKey) as? Double ?? Tricks.wiggleAmpDefault)
+    }
+    static func setWiggleAmp(_ a: Double) {
+        UserDefaults.standard.set(clampWiggleAmp(a), forKey: wiggleAmpKey)
+    }
+    static func resetWiggleAmp() {
+        UserDefaults.standard.removeObject(forKey: wiggleAmpKey)
+    }
+
+    private static let wiggleWagsKey = "trick.wiggle.wags"
+    private static func clampWiggleWags(_ n: Int) -> Int {
+        Swift.min(Tricks.wiggleWagsMax, Swift.max(Tricks.wiggleWagsMin, n))
+    }
+    static func wiggleWags() -> Int {
+        clampWiggleWags(UserDefaults.standard.object(forKey: wiggleWagsKey) as? Int ?? Tricks.wiggleWagsDefault)
+    }
+    static func setWiggleWags(_ n: Int) {
+        UserDefaults.standard.set(clampWiggleWags(n), forKey: wiggleWagsKey)
+    }
+    static func resetWiggleWags() {
+        UserDefaults.standard.removeObject(forKey: wiggleWagsKey)
+    }
 }
