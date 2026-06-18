@@ -12,6 +12,8 @@ struct TrickEditorView: View {
     @State private var spinDurMs = Tricks.spinDurDefaultMs
     @State private var fig8Dia = Tricks.fig8DiaDefaultCm
     @State private var fig8Eights = Tricks.fig8EightsDefault
+    @State private var wiggleAmp = Tricks.wiggleAmpDefault
+    @State private var wiggleWags = Tricks.wiggleWagsDefault
     private var p: Palette { palette }
     private var actions: [(t: Double, y: Double, count: Int)] { Tricks.distinctActions(trick) }
     private var totalSec: Double {
@@ -77,6 +79,24 @@ struct TrickEditorView: View {
                         }
                         .padding(.bottom, 16)
                     }
+                } else if trick.id == Tricks.wiggle.id {
+                    // One shared scroll: animation + stats + amplitude + wag count scroll together.
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            TrickSimView(trick: Tricks.wiggle, durs: durs, palette: p,
+                                         wiggleAmp: wiggleAmp, wiggleWags: wiggleWags)
+                            VStack(spacing: 0) {
+                                wiggleAmpRow.padding(.horizontal, 14)
+                                Rectangle().fill(p.metal.opacity(0.25)).frame(height: 1)
+                                wiggleWagsRow.padding(.horizontal, 14)
+                            }
+                            .background(p.panel)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(p.metal.opacity(0.4), lineWidth: 1))
+                            .padding(.horizontal, 16)
+                        }
+                        .padding(.bottom, 16)
+                    }
                 } else {
                     controls
                 }
@@ -91,6 +111,8 @@ struct TrickEditorView: View {
             spinDurMs = TrickSettings.spinDurMs()
             fig8Dia = TrickSettings.fig8Dia()
             fig8Eights = TrickSettings.fig8Eights()
+            wiggleAmp = TrickSettings.wiggleAmp()
+            wiggleWags = TrickSettings.wiggleWags()
         }
     }
 
@@ -309,6 +331,62 @@ struct TrickEditorView: View {
             }.disabled(fig8Eights >= Tricks.fig8EightsMax)
             Button {
                 fig8Eights = Tricks.fig8EightsDefault; TrickSettings.resetFig8Eights()
+            } label: {
+                Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
+                    .foregroundStyle(isDefault ? p.muted : p.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
+            }
+            .buttonStyle(.plain).disabled(isDefault).padding(.leading, 4)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var wiggleAmpRow: some View {
+        let isDefault = wiggleAmp == Tricks.wiggleAmpDefault
+        let ampBinding = Binding<Double>(
+            get: { wiggleAmp },
+            set: { wiggleAmp = (($0 * 10).rounded()) / 10 }   // 0.1 steps
+        )
+        let ampRange = Tricks.wiggleAmpMin...Tricks.wiggleAmpMax
+        HStack(spacing: 11) {
+            Text(L.wiggleAmp).font(.system(size: 13)).foregroundStyle(p.text)
+                .frame(width: 150, alignment: .leading)
+            Slider(value: ampBinding, in: ampRange, step: 0.1) { editing in
+                if !editing { TrickSettings.setWiggleAmp(wiggleAmp) }
+            }
+            .tint(p.accent)
+            Text(String(format: "%.1f", wiggleAmp)).font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(p.accent).monospacedDigit().frame(width: 54, alignment: .trailing)
+            Button {
+                wiggleAmp = Tricks.wiggleAmpDefault; TrickSettings.resetWiggleAmp()
+            } label: {
+                Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
+                    .foregroundStyle(isDefault ? p.muted : p.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(isDefault ? p.line : p.accent.opacity(0.4)))
+            }
+            .buttonStyle(.plain).disabled(isDefault)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var wiggleWagsRow: some View {
+        let isDefault = wiggleWags == Tricks.wiggleWagsDefault
+        HStack(spacing: 11) {
+            Text(L.wiggleCount).font(.system(size: 13)).foregroundStyle(p.text)
+                .frame(width: 150, alignment: .leading)
+            Spacer()
+            stepButton("minus") {
+                wiggleWags = Swift.max(Tricks.wiggleWagsMin, wiggleWags - 1); TrickSettings.setWiggleWags(wiggleWags)
+            }.disabled(wiggleWags <= Tricks.wiggleWagsMin)
+            Text("\(wiggleWags)").font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(p.accent).monospacedDigit().frame(width: 34)
+            stepButton("plus") {
+                wiggleWags = Swift.min(Tricks.wiggleWagsMax, wiggleWags + 1); TrickSettings.setWiggleWags(wiggleWags)
+            }.disabled(wiggleWags >= Tricks.wiggleWagsMax)
+            Button {
+                wiggleWags = Tricks.wiggleWagsDefault; TrickSettings.resetWiggleWags()
             } label: {
                 Image(systemName: "arrow.counterclockwise").font(.system(size: 13))
                     .foregroundStyle(isDefault ? p.muted : p.accent)
