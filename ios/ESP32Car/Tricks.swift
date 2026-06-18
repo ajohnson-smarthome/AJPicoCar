@@ -114,6 +114,22 @@ enum Tricks {
         return Trick(id: figure8.id, nameKey: figure8.nameKey, icon: figure8.icon, steps: steps)
     }
 
+    // MARK: wiggle (pure, host-tested) — in-place yaw oscillation, NO geometry. amplitude = |y| per
+    // step; a wag = 2 steps (+amp, −amp); fixed 250 ms tempo. `wags` wags → 2·wags steps.
+    static let wiggleAmpMin = 0.2, wiggleAmpMax = 1.0, wiggleAmpDefault = 0.8
+    static let wiggleWagsMin = 1, wiggleWagsMax = 20, wiggleWagsDefault = 10
+    static let wiggleStepMs = 250
+
+    /// The wiggle maneuver: `wags` full left-right wags at `amplitude`, fixed 250 ms/step. `2·wags` steps
+    /// alternating {t:0, y:+amp} / {t:0, y:-amp}. amplitude clamped to [0.2, 1.0], wags floored at 1.
+    /// Keeps the wiggle id/name/icon.
+    static func wiggleTrick(amplitude: Double, wags: Int) -> Trick {
+        let a = Swift.min(wiggleAmpMax, Swift.max(wiggleAmpMin, amplitude))
+        let n = Swift.max(wiggleWagsMin, wags)
+        let steps = (0..<(2 * n)).map { TrickStep(t: 0, y: $0 % 2 == 0 ? a : -a, ms: wiggleStepMs) }
+        return Trick(id: wiggle.id, nameKey: wiggle.nameKey, icon: wiggle.icon, steps: steps)
+    }
+
     // MARK: per-action durations (host-tested)
     static let durMin = 100      // ms
     static let durMax = 10000

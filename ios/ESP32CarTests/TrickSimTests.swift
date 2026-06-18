@@ -133,4 +133,31 @@ final class TrickSimTests: XCTestCase {
             XCTAssertLessThan(hypot(last.x, last.y), 0.6 * 0.5)   // figure-8 returns near its start
         }
     }
+
+    func testWiggleStructure() {
+        let w = Tricks.wiggleTrick(amplitude: 0.8, wags: 10)
+        XCTAssertEqual(w.steps.count, 20)                      // 2 steps × 10 wags
+        XCTAssertEqual(w.steps[0].y, 0.8, accuracy: 1e-9)
+        XCTAssertEqual(w.steps[1].y, -0.8, accuracy: 1e-9)     // alternating
+        XCTAssertTrue(w.steps.allSatisfy { $0.t == 0 })
+        XCTAssertTrue(w.steps.allSatisfy { $0.ms == 250 })
+        XCTAssertEqual(w.id, Tricks.wiggle.id)
+    }
+
+    func testWiggleDefaultMatchesBase() {
+        let w = Tricks.wiggleTrick(amplitude: 0.8, wags: 10)
+        let base = Tricks.wiggle
+        XCTAssertEqual(w.steps.count, base.steps.count)
+        for (a, b) in zip(w.steps, base.steps) {
+            XCTAssertEqual(a.y, b.y, accuracy: 1e-9)
+            XCTAssertEqual(a.ms, b.ms)
+            XCTAssertEqual(a.t, b.t, accuracy: 1e-9)
+        }
+    }
+
+    func testWiggleClamps() {
+        XCTAssertEqual(Tricks.wiggleTrick(amplitude: 5.0, wags: 3).steps[0].y, 1.0, accuracy: 1e-9)
+        XCTAssertEqual(Tricks.wiggleTrick(amplitude: 0.0, wags: 3).steps[0].y, 0.2, accuracy: 1e-9)
+        XCTAssertEqual(Tricks.wiggleTrick(amplitude: 0.8, wags: 0).steps.count, 2)   // wags floored to 1
+    }
 }
