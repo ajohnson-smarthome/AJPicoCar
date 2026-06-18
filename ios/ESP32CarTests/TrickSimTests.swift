@@ -160,4 +160,28 @@ final class TrickSimTests: XCTestCase {
         XCTAssertEqual(Tricks.wiggleTrick(amplitude: 0.0, wags: 3).steps[0].y, 0.2, accuracy: 1e-9)
         XCTAssertEqual(Tricks.wiggleTrick(amplitude: 0.8, wags: 0).steps.count, 2)   // wags floored to 1
     }
+
+    func testInitialThetaHeading() {
+        // default 0 → a forward command heads +x (drawn pointing right)
+        let r0 = TrickSim.simulate(steps: [TrickStep(t: 1, y: 0, ms: 1000)],
+                                   vmaxMS: 1, trackM: 0.15, carLenM: 0.25, carWidM: 0.15)
+        XCTAssertEqual(r0.poses[0].theta, 0, accuracy: 1e-9)
+        XCTAssertGreaterThan(r0.maxX, 0.5)
+        // π/2 → the same command heads +y (screen up), x stays ~0
+        let r90 = TrickSim.simulate(steps: [TrickStep(t: 1, y: 0, ms: 1000)],
+                                    vmaxMS: 1, trackM: 0.15, carLenM: 0.25, carWidM: 0.15,
+                                    initialTheta: .pi / 2)
+        XCTAssertEqual(r90.poses[0].theta, .pi / 2, accuracy: 1e-9)
+        XCTAssertGreaterThan(r90.maxY, 0.5)
+        XCTAssertEqual(r90.maxX, 0.075, accuracy: 0.02)
+    }
+
+    func testWiggleStartsVertical() {
+        // The wiggle preview starts vertical (nose up = θ π/2) and stays in place.
+        let w = Tricks.wiggleTrick(amplitude: 0.8, wags: 10)
+        let r = TrickSim.simulate(steps: w.steps, vmaxMS: 0.578, trackM: 0.13,
+                                  carLenM: 0.25, carWidM: 0.15, initialTheta: .pi / 2)
+        XCTAssertEqual(r.poses[0].theta, .pi / 2, accuracy: 1e-9)
+        XCTAssertLessThan(r.pathLenM, 0.05)
+    }
 }

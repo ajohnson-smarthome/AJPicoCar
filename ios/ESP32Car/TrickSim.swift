@@ -14,9 +14,12 @@ struct TrickSim {
     }
 
     /// vmaxMS = π·D·rpm/60 (m/s). trackM = lateral wheel separation. car dims in metres.
+    /// `initialTheta` is the starting heading (rad); 0 = nose along +x (drawn pointing right). In-place
+    /// maneuvers (e.g. the wiggle) pass π/2 so the resting car reads vertical (nose up) in the preview.
     static func simulate(steps: [TrickStep], vmaxMS: Double, trackM: Double,
-                         carLenM: Double, carWidM: Double, dtMS: Int = 10) -> Result {
-        var x = 0.0, y = 0.0, th = 0.0
+                         carLenM: Double, carWidM: Double, dtMS: Int = 10,
+                         initialTheta: Double = 0) -> Result {
+        var x = 0.0, y = 0.0, th = initialTheta
         var pathLen = 0.0, turn = 0.0
         var minX = 0.0, minY = 0.0, maxX = 0.0, maxY = 0.0
         var poses: [Pose] = []

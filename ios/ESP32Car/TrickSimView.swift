@@ -51,8 +51,10 @@ struct TrickSimView: View {
     }
     private var sim: TrickSim.Result? {
         guard let v = vmaxMS else { return nil }
+        // The wiggle is in-place; start it vertical (nose up) so the resting car reads naturally.
+        let theta0 = trick.id == Tricks.wiggle.id ? Double.pi / 2 : 0
         return TrickSim.simulate(steps: steps, vmaxMS: v, trackM: track,
-                                 carLenM: Self.carLenM, carWidM: Self.carWidM)
+                                 carLenM: Self.carLenM, carWidM: Self.carWidM, initialTheta: theta0)
     }
 
     var body: some View {
